@@ -8,39 +8,24 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-    name = "IDEMPOTENCY_RECORDS",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "UQ_IDEMPOTENCY_KEY",
-            columnNames = "IDEMPOTENCY_KEY"
-        )
-    }
-)
+@Table(name = "IDEMPOTENCY_RECORDS")
 @Getter
 @Setter
 @NoArgsConstructor
 public class IdempotencyRecord {
 
     @Id
-    @Column(name = "IDEMPOTENCY_ID")
+    @SequenceGenerator(name = "idempotency_seq", sequenceName = "SEQ_IDEMPOTENCY_ID", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "idempotency_seq")
+    @Column(name = "IDEMPOTENCY_ID", nullable = false)
     private Long idempotencyId;
 
-    @Column(
-        name = "IDEMPOTENCY_KEY",
-        nullable = false,
-        unique = true,
-        length = 100
-    )
+    @Column(name = "IDEMPOTENCY_KEY", nullable = false, unique = true, length = 100)
     private String idempotencyKey;
 
     @Column(name = "CUSTOMER_ID", nullable = false, length = 50)
     private String customerId;
 
-    /*
-     * Optional relationship to a transaction within
-     * the same Transaction Service.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "TRANSACTION_ID")
     private Transaction transaction;

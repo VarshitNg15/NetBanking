@@ -8,30 +8,20 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-    name = "TRANSFER_DETAILS",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "UQ_TRANSFER_TRANSACTION",
-            columnNames = "TRANSACTION_ID"
-        )
-    }
-)
+@Table(name = "TRANSFER_DETAILS")
 @Getter
 @Setter
 @NoArgsConstructor
 public class TransferDetails {
 
     @Id
-    @Column(name = "TRANSFER_ID")
+    @SequenceGenerator(name = "transfer_seq", sequenceName = "SEQ_TRANSFER_ID", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transfer_seq")
+    @Column(name = "TRANSFER_ID", nullable = false)
     private Long transferId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-        name = "TRANSACTION_ID",
-        nullable = false,
-        unique = true
-    )
+    @JoinColumn(name = "TRANSACTION_ID", nullable = false, unique = true)
     private Transaction transaction;
 
     @Column(name = "TRANSFER_TYPE", nullable = false, length = 30)

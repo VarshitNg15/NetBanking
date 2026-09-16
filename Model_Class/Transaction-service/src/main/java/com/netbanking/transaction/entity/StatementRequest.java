@@ -15,18 +15,14 @@ import java.time.LocalDateTime;
 public class StatementRequest {
 
     @Id
-    @Column(name = "REQUEST_ID")
+    @SequenceGenerator(name = "statement_request_seq", sequenceName = "SEQ_STATEMENT_REQUEST_ID", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "statement_request_seq")
+    @Column(name = "REQUEST_ID", nullable = false)
     private Long requestId;
 
-    /*
-     * Logical reference to Account Service.
-     */
     @Column(name = "ACCOUNT_ID", nullable = false)
     private Long accountId;
 
-    /*
-     * Logical reference to User Service.
-     */
     @Column(name = "CUSTOMER_ID", nullable = false, length = 50)
     private String customerId;
 
