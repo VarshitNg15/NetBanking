@@ -1,0 +1,43 @@
+package com.netbanking.notification.controller;
+
+import com.netbanking.notification.dto.NotificationCreateRequest;
+import com.netbanking.notification.entity.Notification;
+import com.netbanking.notification.service.EmailService;
+import com.netbanking.notification.service.NotificationService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/notifications")
+@RequiredArgsConstructor
+public class NotificationController {
+
+    private final NotificationService notificationService;
+    private final EmailService emailService;
+
+    @PostMapping
+    public ResponseEntity<Notification> create(@Valid @RequestBody NotificationCreateRequest request) {
+        Notification notification = notificationService.create(request);
+        return ResponseEntity.ok(notification);
+    }
+
+    @PostMapping("/{id}/send")
+    public ResponseEntity<Void> send(@PathVariable Long id) {
+        emailService.send(notificationService.findById(id));
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Notification> findById(@PathVariable Long id) {
+        return ResponseEntity.ok(notificationService.findById(id));
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<Notification>> findByCustomer(@PathVariable String customerId) {
+        return ResponseEntity.ok(notificationService.findByCustomer(customerId));
+    }
+}
