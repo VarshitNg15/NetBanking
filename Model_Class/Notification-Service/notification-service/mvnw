@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+MAVEN_VERSION=3.9.11
+BASE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+MAVEN_HOME="$BASE_DIR/.mvn/maven-$MAVEN_VERSION"
+if [ ! -x "$MAVEN_HOME/bin/mvn" ]; then
+  echo "Maven $MAVEN_VERSION was not found. Downloading it into .mvn ..."
+  ZIP="$BASE_DIR/.mvn/apache-maven-$MAVEN_VERSION-bin.zip"
+  curl -fsSL "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$MAVEN_VERSION/apache-maven-$MAVEN_VERSION-bin.zip" -o "$ZIP"
+  command -v unzip >/dev/null 2>&1 || { echo "Please install unzip."; exit 1; }
+  unzip -q -o "$ZIP" -d "$BASE_DIR/.mvn"
+  rm -f "$ZIP"
+fi
+exec "$MAVEN_HOME/bin/mvn" "$@"

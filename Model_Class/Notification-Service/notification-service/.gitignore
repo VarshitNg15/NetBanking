@@ -1,0 +1,7 @@
+target/
+.mvn/maven-3.9.11/
+.mvn/apache-maven-3.9.11-bin.zip
+.idea/
+.vscode/
+*.class
+.env
