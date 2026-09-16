@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${AUTH_DB_URL:jdbc:oracle:thin:@localhost:1521/FREEPDB1}
+    username: ${AUTH_DB_USERNAME:AUTH_SCHEMA}
+    password: ${AUTH_DB_PASSWORD:AuthSchema@123}
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+server:
+  port: ${SERVER_PORT:8081}
+
+app:
+  jwt:
+    issuer: ${JWT_ISSUER:http://localhost:8081}
+    key-id: ${JWT_KEY_ID:netbanking-auth-key}
+    private-key: ${JWT_PRIVATE_KEY:classpath:keys/private.pem}
+    public-key: ${JWT_PUBLIC_KEY:classpath:keys/public.pem}
+    access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES:15}
+
+  kafka:
+    auth-topic: ${AUTH_KAFKA_TOPIC:auth-events}
+
+  cleanup:
+    delay-ms: ${AUTH_CLEANUP_DELAY_MS:3600000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
