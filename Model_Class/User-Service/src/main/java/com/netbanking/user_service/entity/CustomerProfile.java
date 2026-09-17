@@ -1,4 +1,4 @@
-package com.netbanking.userservice.entity;
+package com.netbanking.user_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,18 +16,19 @@ import java.time.LocalDateTime;
 public class CustomerProfile {
 
     @Id
-    @Column(name = "CUSTOMER_ID", length = 50)
+    @Column(name = "CUSTOMER_ID", length = 50, nullable = false)
     private String customerId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
     @JoinColumn(
-        name = "CUSTOMER_ID",
-        referencedColumnName = "CUSTOMER_ID"
+            name = "CUSTOMER_ID",
+            referencedColumnName = "CUSTOMER_ID",
+            insertable = false,
+            updatable = false
     )
     private Customer customer;
 
-    @Column(name = "FIRST_NAME", nullable = false, length = 100)
+    @Column(name = "FIRST_NAME", length = 100, nullable = false)
     private String firstName;
 
     @Column(name = "LAST_NAME", length = 100)
@@ -62,4 +63,23 @@ public class CustomerProfile {
 
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (createdAt == null) {
+            createdAt = now;
+        }
+
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

@@ -1,4 +1,4 @@
-package com.netbanking.userservice.entity;
+package com.netbanking.user_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,28 +17,22 @@ import java.util.List;
 public class AccountOpeningRequest {
 
     @Id
-    @Column(name = "REQUEST_ID", length = 30)
+    @Column(name = "REQUEST_ID", length = 30, nullable = false)
     private String requestId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-        name = "CUSTOMER_ID",
-        nullable = false,
-        foreignKey = @ForeignKey(name = "FK_REQUEST_CUSTOMER")
+            name = "CUSTOMER_ID",
+            nullable = false
     )
     private Customer customer;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "REQUEST_STATUS", nullable = false, length = 20)
-    private RequestStatus requestStatus;
+    @Column(name = "REQUEST_STATUS", length = 20, nullable = false)
+    private String requestStatus;
 
     @Column(name = "SUBMITTED_AT", nullable = false)
     private LocalDateTime submittedAt;
 
-    /*
-     * Admin identifier.
-     * Auth/User service owns the actual admin identity.
-     */
     @Column(name = "REVIEWED_BY", length = 50)
     private String reviewedBy;
 
@@ -54,16 +48,29 @@ public class AccountOpeningRequest {
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
 
-    /*
-     * A request can contain SAVINGS, CURRENT,
-     * or both account types.
-     */
     @OneToMany(
-        mappedBy = "accountOpeningRequest",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
+            mappedBy = "accountOpeningRequest",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
     )
     @Builder.Default
     private List<AccountOpeningRequestType> requestedAccountTypes =
             new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (submittedAt == null) {
+            submittedAt = now;
+        }
+
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
