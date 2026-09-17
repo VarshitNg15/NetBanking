@@ -1,10 +1,13 @@
 package com.netbanking.auth.service;
 
+import com.netbanking.auth.client.CustomerServiceClient;
 import com.netbanking.auth.dto.AuthDtos.*;
 import com.netbanking.auth.entity.*;
 import com.netbanking.auth.event.AuthEventPublisher;
 import com.netbanking.auth.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -28,6 +32,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final TokenHashService tokenHashService;
     private final AuthEventPublisher eventPublisher;
+    @Autowired(required = false)
+    private CustomerServiceClient customerServiceClient;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -52,6 +58,16 @@ public class AuthService {
         roleRepository.save(role);
         user.getRoles().add(role);
         issueOtp(user, OtpPurpose.EMAIL_VERIFICATION);
+
+        try {
+            if (customerServiceClient != null) {
+                customerServiceClient.createCustomer(new CustomerServiceClient.CustomerCreateRequest(
+                        user.getCustomerId(), user.getEmail(), "PENDING_APPROVAL"));
+            }
+        } catch (Exception ex) {
+            log.warn("Customer sync with user-service via OpenFeign was skipped or failed ({}), falling back to Kafka event: {}",
+                    ex.getClass().getSimpleName(), ex.getMessage());
+        }
 
         eventPublisher.publish("USER_REGISTERED", user.getCustomerId(), user.getCustomerId(),
                 Map.of("email", user.getEmail()));

@@ -10,16 +10,8 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          # The issuer must match the JWT "iss" claim issued by Auth Service.
-          # Set this to your real authorization-server issuer before testing protected APIs.
-          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
-          # Optional alternative when your Auth Service exposes a JWK endpoint but no
-          # OpenID/provider metadata endpoint. Keep issuer-uri so "iss" is still validated.
-          # jwk-set-uri: ${JWT_JWK_SET_URI:http://localhost:8081/.well-known/jwks.json}
+jwt:
+  secret: ${JWT_SECRET}
 
   cloud:
     gateway:
@@ -27,7 +19,7 @@ spring:
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/auth/**
+            - Path=/api/v1/auth/**, /api/auth/**
           filters:
             - name: RequestRateLimiter
               args:

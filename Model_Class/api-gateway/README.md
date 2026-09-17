@@ -18,15 +18,21 @@ Gateway responsibilities:
   - `transaction-service`
   - `notification-service`
 
-## JWT configuration
+## Environment Configuration & JWT Secrets
 
-The gateway currently expects:
+All secrets and configuration are dynamically loaded from `.env` on startup via `DotenvLoader`:
 
-`JWT_ISSUER_URI=http://localhost:8081`
+```text
+SERVER_PORT=8080
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET=your-256-bit-secret-base64-encoded
+EUREKA_URI=http://localhost:8761/eureka/
+```
 
-Replace this with the actual issuer used by Auth Service. The Auth source provided for this project defines credential/session tables, but it does not define a JWT issuer or JWK endpoint, so the value cannot be inferred safely.
-
-If Auth Service exposes a JWK Set endpoint but not provider metadata, uncomment `jwk-set-uri` in `application.yml` and set `JWT_JWK_SET_URI` accordingly.
+- Edge validation uses pure JJWT (HMAC-SHA256) matching `auth-service`'s `JWT_SECRET`.
+- On successful validation, trusted headers `X-Customer-Id`, `X-User-Email`, and `X-User-Roles` are forwarded to downstream microservices.
+- No OAuth2 Resource Server or remote JWKS roundtrip required.
 
 ## Rate limits
 

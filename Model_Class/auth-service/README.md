@@ -28,35 +28,24 @@ The database schema is treated as pre-created. Hibernate uses `ddl-auto=validate
 
 Redis is not required by Auth Service itself; Redis is used by the API Gateway for rate limiting.
 
-## Database defaults
+## Environment Configuration & Secrets
+
+All secrets and credentials are loaded dynamically from `.env` via `DotenvLoader`:
 
 ```text
-URL      jdbc:oracle:thin:@localhost:1521/FREEPDB1
-Username AUTH_SCHEMA
-Password AuthSchema@123
+AUTH_DB_URL=jdbc:oracle:thin:@localhost:1521/FREEPDB1
+AUTH_DB_USERNAME=AUTH_SCHEMA
+AUTH_DB_PASSWORD=your_auth_password
+JWT_SECRET=your-256-bit-secret-base64-encoded
 ```
 
-Prefer environment variables in real deployments:
+See `.env.example` for the full list of configurable environment variables.
 
-```text
-AUTH_DB_URL
-AUTH_DB_USERNAME
-AUTH_DB_PASSWORD
-```
+## JWT Integration with API Gateway
 
-## JWT integration with API Gateway
-
-The service exposes:
-
-```text
-GET /.well-known/openid-configuration
-GET /.well-known/jwks.json
-GET /oauth2/jwks
-```
-
-The issuer is `http://localhost:8081` by default. This matches the Gateway's `JWT_ISSUER_URI` default from the companion API Gateway project.
-
-For production, replace the development PEM keys and manage the signing key outside source control. The included PEM keys are for local development only.
+- Pure HMAC-SHA256 tokens using `io.jsonwebtoken` (JJWT 0.12.7).
+- Shared `JWT_SECRET` loaded from `.env` into both `auth-service` and `api-gateway`.
+- API Gateway validates incoming Bearer JWTs at the edge and propagates trusted user context (`X-Customer-Id`, `X-User-Email`, `X-User-Roles`) to downstream services.
 
 ## Endpoints
 

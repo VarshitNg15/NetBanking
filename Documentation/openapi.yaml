@@ -1,0 +1,1158 @@
+openapi: 3.0.3
+info:
+  title: NetBanking Microservices Platform API
+  description: |
+    Comprehensive single-file OpenAPI 3.0 specification for the NetBanking Distributed Banking Platform.
+    This specification aggregates all API surfaces across the 5 core microservices:
+    1. **Authentication Service** (`auth-service` - Port 8081)
+    2. **User & Customer Profile Service** (`user-service` - Port 8082)
+    3. **Account & Ledger Service** (`account-service` - Port 8083)
+    4. **Transaction & Statement Service** (`transaction-service` - Port 8084)
+    5. **Notification & Audit Service** (`notification-service` - Port 8085)
+    
+    All external traffic routes through the Spring Cloud API Gateway (Port 8080) with pure JWT Bearer authentication.
+  version: 1.0.0
+  contact:
+    name: NetBanking Platform Engineering
+    email: support@netbanking.com
+
+servers:
+  - url: http://localhost:8080
+    description: Spring Cloud API Gateway (Primary Edge Gateway)
+  - url: http://localhost:8081
+    description: Direct Auth Service
+  - url: http://localhost:8082
+    description: Direct User Service
+  - url: http://localhost:8083
+    description: Direct Account Service
+  - url: http://localhost:8084
+    description: Direct Transaction Service
+  - url: http://localhost:8085
+    description: Direct Notification Service
+
+tags:
+  - name: Authentication & Identity
+    description: User registration, credentials login, MFA OTP verification, token refresh, and logout.
+  - name: Customer & User Management
+    description: Customer profile management, KYC verification, and account opening requests.
+  - name: Account & Ledger
+    description: Account lifecycle, double-entry ledger operations, balance inquiries, and 4-digit PIN security.
+  - name: Transactions & Transfers
+    description: Fund transfers, self-transfers, idempotency records, and statement generation (PDF/CSV).
+  - name: Notifications & Audit
+    description: Email dispatch statuses, system-wide immutable audit trail, and admin passkey approvals.
+
+paths:
+  # =========================================================================
+  # 1. AUTHENTICATION SERVICE ENDPOINTS
+  # =========================================================================
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Register a new customer identity
+      description: Validates email uniqueness, creates AUTH_USER credentials with BCrypt hashing, initializes the customer shell in User-Service, and issues an email verification OTP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Registration successful, verification OTP issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid input or email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Authenticate user credentials and issue pure JWTs
+      description: Validates email and password. If MFA is enabled and OTP is omitted, generates a 6-digit login OTP and returns mfaRequired=true. Once verified, issues HMAC-SHA256 signed access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful or MFA OTP challenge initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account locked or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Refresh an expired access token
+      description: Validates an unrevoked refresh token, revokes it (rotation), and issues a fresh pure JWT access token and new refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Successfully refreshed tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid, expired, or revoked refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Revoke session and logout
+      description: Revokes the refresh token and registers a LOGOUT event in the login history.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Session terminated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/verify-otp:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Verify one-time password (OTP)
+      description: Verifies 6-digit OTP code for EMAIL_VERIFICATION, LOGIN MFA, or PASSWORD_RESET purposes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Request password reset instructions
+      description: Generates a secure reset token and issues a password reset OTP/link via email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Reset instructions dispatched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/auth/reset-password:
+    post:
+      tags:
+        - Authentication & Identity
+      summary: Reset password with token
+      description: Consumes a valid password reset token and updates user password hash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # =========================================================================
+  # 2. USER & CUSTOMER PROFILE SERVICE ENDPOINTS
+  # =========================================================================
+  /api/v1/customers:
+    post:
+      tags:
+        - Customer & User Management
+      summary: Create customer shell (Internal Feign / Registration)
+      description: Creates the root CUSTOMER record in USER_SCHEMA. Called by Auth Service via OpenFeign on registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreateRequest'
+      responses:
+        '200':
+          description: Customer record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+
+  /api/v1/customers/{customerId}:
+    get:
+      tags:
+        - Customer & User Management
+      summary: Get customer status and profile
+      description: Retrieves customer onboarding state (PENDING_APPROVAL, ACTIVE, BLOCKED) and profile details.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: C94A82F12B4C
+      responses:
+        '200':
+          description: Customer profile returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerResponse'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/customers/{customerId}/profile:
+    put:
+      tags:
+        - Customer & User Management
+      summary: Update customer profile details
+      description: Updates address, phone number, and personal information for a customer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerProfileUpdateRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/v1/customers/{customerId}/account-requests:
+    post:
+      tags:
+        - Customer & User Management
+      summary: Submit account opening request
+      description: Submits a formal request to open a SAVINGS or CURRENT account for admin review.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountOpeningRequestDto'
+      responses:
+        '201':
+          description: Request submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountOpeningResponse'
+
+  /api/v1/admin/customers/requests/{requestId}/review:
+    post:
+      tags:
+        - Customer & User Management
+      summary: Admin review of account opening request
+      description: Approves or rejects a customer's account opening application.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReviewDto'
+      responses:
+        '200':
+          description: Review status processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  # =========================================================================
+  # 3. ACCOUNT & LEDGER SERVICE ENDPOINTS
+  # =========================================================================
+  /api/v1/accounts:
+    post:
+      tags:
+        - Account & Ledger
+      summary: Create new bank account
+      description: Creates an account in ACCOUNT_SCHEMA with initial balance and ledger record.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+
+  /api/v1/accounts/{accountId}:
+    get:
+      tags:
+        - Account & Ledger
+      summary: Get account details
+      description: Retrieves bank account metadata, status, account number, and currency.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Account details returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '404':
+          description: Account not found
+
+  /api/v1/accounts/{accountId}/balance:
+    get:
+      tags:
+        - Account & Ledger
+      summary: Check account balance
+      description: Returns current and available balances with optimistic lock version.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Balance details returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalanceResponse'
+
+  /api/v1/accounts/{accountId}/debit:
+    post:
+      tags:
+        - Account & Ledger
+      summary: Debit funds (Internal Feign)
+      description: Atomically validates available balance, debits the account, and creates an immutable double-entry ledger debit record.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceOperationRequest'
+      responses:
+        '200':
+          description: Debit operation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceOperationResponse'
+        '400':
+          description: Insufficient funds or account frozen
+
+  /api/v1/accounts/{accountId}/credit:
+    post:
+      tags:
+        - Account & Ledger
+      summary: Credit funds (Internal Feign)
+      description: Atomically credits the account and creates an immutable double-entry ledger credit record.
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BalanceOperationRequest'
+      responses:
+        '200':
+          description: Credit operation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceOperationResponse'
+
+  /api/v1/accounts/{accountId}/pin:
+    post:
+      tags:
+        - Account & Ledger
+      summary: Set or update 4-digit account PIN
+      description: Hashes 4-digit PIN using BCrypt with lock counter tracking.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPinRequest'
+      responses:
+        '200':
+          description: PIN updated successfully
+
+  /api/v1/accounts/{accountId}/close:
+    put:
+      tags:
+        - Account & Ledger
+      summary: Close bank account
+      description: Soft closes an account, sets status to CLOSED, preserves ledger history.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseAccountRequest'
+      responses:
+        '200':
+          description: Account closed successfully
+
+  # =========================================================================
+  # 4. TRANSACTION & STATEMENT SERVICE ENDPOINTS
+  # =========================================================================
+  /api/v1/transactions/transfer:
+    post:
+      tags:
+        - Transactions & Transfers
+      summary: Execute fund transfer between accounts
+      description: Orchestrates fund transfers between accounts with idempotency checking, customer verification, and atomic Feign debits/credits.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Transfer executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid request or transfer validation failed
+        '409':
+          description: Duplicate request detected (Idempotency Key Conflict)
+
+  /api/v1/transactions/{transactionReference}:
+    get:
+      tags:
+        - Transactions & Transfers
+      summary: Get transaction status by reference
+      description: Returns transaction details and immutable transition status history.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionReference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction details returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+
+  /api/v1/transactions/statements:
+    post:
+      tags:
+        - Transactions & Transfers
+      summary: Generate account statement
+      description: Requests statement generation (PDF/CSV) over a date range by aggregating ledger data from Account Service.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatementRequestDto'
+      responses:
+        '200':
+          description: Statement generation request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementResponse'
+
+  # =========================================================================
+  # 5. NOTIFICATION & AUDIT SERVICE ENDPOINTS
+  # =========================================================================
+  /api/v1/notifications/customer/{customerId}:
+    get:
+      tags:
+        - Notifications & Audit
+      summary: List notification history for customer
+      description: Returns recent transactional emails and delivery statuses dispatched to the customer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification delivery list returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationDto'
+
+  /api/v1/audit/logs:
+    get:
+      tags:
+        - Notifications & Audit
+      summary: Query system audit logs (Admin only)
+      description: Retrieves immutable audit logs across services. Requires a valid time-bound audit passkey.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: passkey
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Temporary audit-team approved passkey token
+      responses:
+        '200':
+          description: Audit logs returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogDto'
+        '403':
+          description: Invalid or expired audit passkey
+
+  /api/v1/audit/request-access:
+    post:
+      tags:
+        - Notifications & Audit
+      summary: Request time-bound audit log access passkey
+      description: Submits an audit log access request for audit-team authorization.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditAccessRequestDto'
+      responses:
+        '201':
+          description: Access request submitted
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Provide the pure JWT access token issued by Auth Service (`Bearer <token>`).
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: customer@netbanking.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+          example: SecureP@ssw0rd!
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: customer@netbanking.com
+        password:
+          type: string
+          format: password
+          example: SecureP@ssw0rd!
+        otp:
+          type: string
+          description: 6-digit OTP code (if MFA is enabled and challenging)
+          example: "123456"
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: Pure HMAC-SHA256 signed JWT
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: Refresh token string
+          example: 8e5d0f19-bca1-4567-8910-111213141516
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          format: int64
+          description: Access token lifetime in seconds
+          example: 900
+        customerId:
+          type: string
+          example: C94A82F12B4C
+        roles:
+          type: array
+          items:
+            type: string
+          example: ["CUSTOMER"]
+        mfaRequired:
+          type: boolean
+          example: false
+
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    VerifyOtpRequest:
+      type: object
+      required:
+        - email
+        - otp
+        - purpose
+      properties:
+        email:
+          type: string
+          format: email
+        otp:
+          type: string
+          pattern: '^\\d{6}$'
+          example: "748291"
+        purpose:
+          type: string
+          enum: [LOGIN, PASSWORD_RESET, EMAIL_VERIFICATION]
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully.
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Email is already registered
+
+    CustomerCreateRequest:
+      type: object
+      required:
+        - customerId
+        - email
+      properties:
+        customerId:
+          type: string
+          example: C94A82F12B4C
+        email:
+          type: string
+          format: email
+        customerStatus:
+          type: string
+          example: PENDING_APPROVAL
+
+    CustomerResponse:
+      type: object
+      properties:
+        customerId:
+          type: string
+          example: C94A82F12B4C
+        customerStatus:
+          type: string
+          enum: [PENDING_APPROVAL, ACTIVE, INACTIVE, BLOCKED, REJECTED]
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+
+    CustomerProfileUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        addressLine1:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+
+    AccountOpeningRequestDto:
+      type: object
+      required:
+        - accountTypes
+      properties:
+        accountTypes:
+          type: array
+          items:
+            type: string
+            enum: [SAVINGS, CURRENT]
+
+    AccountOpeningResponse:
+      type: object
+      properties:
+        requestId:
+          type: string
+        status:
+          type: string
+
+    RequestReviewDto:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum: [APPROVED, REJECTED]
+        rejectionReason:
+          type: string
+
+    CreateAccountRequest:
+      type: object
+      required:
+        - customerId
+        - accountType
+      properties:
+        customerId:
+          type: string
+        accountType:
+          type: string
+          enum: [SAVINGS, CURRENT]
+        initialDeposit:
+          type: number
+          format: double
+
+    AccountResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        accountNumber:
+          type: string
+          example: "1001009841"
+        customerId:
+          type: string
+          example: C94A82F12B4C
+        accountType:
+          type: string
+          enum: [SAVINGS, CURRENT]
+        accountStatus:
+          type: string
+          enum: [PENDING_APPROVAL, ACTIVE, FROZEN, BLOCKED, CLOSED, REJECTED]
+        currencyCode:
+          type: string
+          example: INR
+
+    AccountBalanceResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        currentBalance:
+          type: number
+          format: double
+          example: 25000.50
+        availableBalance:
+          type: number
+          format: double
+          example: 25000.50
+        currency:
+          type: string
+          example: INR
+
+    BalanceOperationRequest:
+      type: object
+      required:
+        - amount
+        - transactionReference
+      properties:
+        amount:
+          type: number
+          format: double
+          example: 500.00
+        transactionReference:
+          type: string
+          example: TXN-20260917-882194
+        description:
+          type: string
+        initiatedBy:
+          type: string
+
+    BalanceOperationResponse:
+      type: object
+      properties:
+        successful:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Balance updated successfully
+
+    SetPinRequest:
+      type: object
+      required:
+        - pin
+      properties:
+        pin:
+          type: string
+          pattern: '^\\d{4}$'
+          example: "1234"
+
+    CloseAccountRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          example: Customer request to close account
+
+    TransferRequest:
+      type: object
+      required:
+        - sourceAccountId
+        - destinationAccountId
+        - amount
+        - transferType
+        - idempotencyKey
+      properties:
+        sourceAccountId:
+          type: integer
+          format: int64
+          example: 101
+        destinationAccountId:
+          type: integer
+          format: int64
+          example: 102
+        amount:
+          type: number
+          format: double
+          example: 1000.00
+        currency:
+          type: string
+          default: INR
+          example: INR
+        transferType:
+          type: string
+          enum: [INTERNAL, SELF, FUND_TRANSFER, CUSTOMER_TRANSFER]
+        idempotencyKey:
+          type: string
+          example: idemp-94a1-84bc-218401
+        description:
+          type: string
+          example: Rent payment
+
+    TransactionResponse:
+      type: object
+      properties:
+        transactionId:
+          type: integer
+          format: int64
+        transactionReference:
+          type: string
+          example: TXN-20260917-882194
+        transactionStatus:
+          type: string
+          enum: [INITIATED, PROCESSING, SUCCESS, FAILED, REVERSED]
+        sourceAccountId:
+          type: integer
+          format: int64
+        destinationAccountId:
+          type: integer
+          format: int64
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        initiatedAt:
+          type: string
+          format: date-time
+
+    StatementRequestDto:
+      type: object
+      required:
+        - accountId
+        - fromDate
+        - toDate
+        - requestType
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        fromDate:
+          type: string
+          format: date-time
+        toDate:
+          type: string
+          format: date-time
+        requestType:
+          type: string
+          enum: [PDF, CSV]
+
+    StatementResponse:
+      type: object
+      properties:
+        requestId:
+          type: integer
+          format: int64
+        status:
+          type: string
+        fileUrl:
+          type: string
+
+    NotificationDto:
+      type: object
+      properties:
+        notificationId:
+          type: integer
+          format: int64
+        eventType:
+          type: string
+          example: TRANSACTION_COMPLETED
+        recipientEmail:
+          type: string
+        subject:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, SENT, FAILED]
+        sentAt:
+          type: string
+          format: date-time
+
+    AuditLogDto:
+      type: object
+      properties:
+        auditId:
+          type: integer
+          format: int64
+        eventType:
+          type: string
+        actorId:
+          type: string
+        actorRole:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+        action:
+          type: string
+        eventTimestamp:
+          type: string
+          format: date-time
+
+    AuditAccessRequestDto:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          example: Quarterly compliance audit investigation

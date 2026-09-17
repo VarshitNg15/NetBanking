@@ -1,0 +1,775 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NetBanking Microservices Platform API",
+    "description": "Comprehensive single-file OpenAPI 3.0 specification for the NetBanking Distributed Banking Platform covering Authentication, Customer Profile, Account/Ledger, Transaction, and Notification/Audit microservices with pure JWT Bearer authentication.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "NetBanking Platform Engineering",
+      "email": "support@netbanking.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Spring Cloud API Gateway (Primary Edge Gateway)"
+    },
+    {
+      "url": "http://localhost:8081",
+      "description": "Direct Auth Service"
+    },
+    {
+      "url": "http://localhost:8082",
+      "description": "Direct User Service"
+    },
+    {
+      "url": "http://localhost:8083",
+      "description": "Direct Account Service"
+    },
+    {
+      "url": "http://localhost:8084",
+      "description": "Direct Transaction Service"
+    },
+    {
+      "url": "http://localhost:8085",
+      "description": "Direct Notification Service"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication & Identity",
+      "description": "User registration, credentials login, MFA OTP verification, token refresh, and logout."
+    },
+    {
+      "name": "Customer & User Management",
+      "description": "Customer profile management, KYC verification, and account opening requests."
+    },
+    {
+      "name": "Account & Ledger",
+      "description": "Account lifecycle, double-entry ledger operations, balance inquiries, and 4-digit PIN security."
+    },
+    {
+      "name": "Transactions & Transfers",
+      "description": "Fund transfers, self-transfers, idempotency records, and statement generation (PDF/CSV)."
+    },
+    {
+      "name": "Notifications & Audit",
+      "description": "Email dispatch statuses, system-wide immutable audit trail, and admin passkey approvals."
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Register a new customer identity",
+        "description": "Creates AUTH_USER credentials with BCrypt hashing, initializes customer shell in User-Service, and issues verification OTP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Registration successful, verification OTP issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or email already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Authenticate user credentials and issue pure JWTs",
+        "description": "Validates email and password. Issues HMAC-SHA256 signed access and refresh tokens or prompts MFA OTP challenge.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful or MFA OTP challenge initiated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Refresh an expired access token",
+        "description": "Exchanges valid refresh token for a newly signed pure JWT access token and rotated refresh token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or revoked refresh token"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Revoke session and logout",
+        "description": "Revokes user refresh token and records logout history.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session terminated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-otp": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Verify one-time password (OTP)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Request password reset",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset instructions dispatched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": ["Authentication & Identity"],
+        "summary": "Reset password using token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers": {
+      "post": {
+        "tags": ["Customer & User Management"],
+        "summary": "Create customer shell (Internal Feign / Registration)",
+        "description": "Initializes CUSTOMER entity in USER_SCHEMA. Invoked by Auth Service via OpenFeign on registration.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer record created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{customerId}": {
+      "get": {
+        "tags": ["Customer & User Management"],
+        "summary": "Get customer status and profile",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "example": "C94A82F12B4C"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Customer profile returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts": {
+      "post": {
+        "tags": ["Account & Ledger"],
+        "summary": "Create new bank account",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{accountId}/balance": {
+      "get": {
+        "tags": ["Account & Ledger"],
+        "summary": "Check account balance",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountBalanceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{accountId}/debit": {
+      "post": {
+        "tags": ["Account & Ledger"],
+        "summary": "Debit funds (Internal Feign)",
+        "description": "Atomically validates balance, debits account, records double-entry ledger debit row.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BalanceOperationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Debit successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceOperationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{accountId}/credit": {
+      "post": {
+        "tags": ["Account & Ledger"],
+        "summary": "Credit funds (Internal Feign)",
+        "description": "Atomically credits account, records double-entry ledger credit row.",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BalanceOperationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credit successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceOperationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/transfer": {
+      "post": {
+        "tags": ["Transactions & Transfers"],
+        "summary": "Execute fund transfer between accounts",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Duplicate request (idempotency key conflict)"
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/{transactionReference}": {
+      "get": {
+        "tags": ["Transactions & Transfers"],
+        "summary": "Get transaction details by reference",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "transactionReference",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/statements": {
+      "post": {
+        "tags": ["Transactions & Transfers"],
+        "summary": "Request account statement generation (PDF/CSV)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatementRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Statement generation queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/logs": {
+      "get": {
+        "tags": ["Notifications & Audit"],
+        "summary": "Query audit logs (Admin with passkey)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "passkey",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit log events returned"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "customer@netbanking.com" },
+          "password": { "type": "string", "format": "password", "minLength": 8, "example": "SecureP@ssw0rd!" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "customer@netbanking.com" },
+          "password": { "type": "string", "format": "password", "example": "SecureP@ssw0rd!" },
+          "otp": { "type": "string", "example": "123456" }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "tokenType": { "type": "string", "example": "Bearer" },
+          "expiresIn": { "type": "integer", "format": "int64", "example": 900 },
+          "customerId": { "type": "string", "example": "C94A82F12B4C" },
+          "roles": { "type": "array", "items": { "type": "string" }, "example": ["CUSTOMER"] },
+          "mfaRequired": { "type": "boolean", "example": false }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": { "type": "string" }
+        }
+      },
+      "VerifyOtpRequest": {
+        "type": "object",
+        "required": ["email", "otp", "purpose"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "otp": { "type": "string", "example": "123456" },
+          "purpose": { "type": "string", "enum": ["LOGIN", "PASSWORD_RESET", "EMAIL_VERIFICATION"] }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "format": "email" }
+        }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": ["token", "newPassword"],
+        "properties": {
+          "token": { "type": "string" },
+          "newPassword": { "type": "string", "minLength": 8 }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "example": "Operation completed successfully." }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "Bad Request" },
+          "message": { "type": "string", "example": "Invalid parameters" }
+        }
+      },
+      "CustomerCreateRequest": {
+        "type": "object",
+        "required": ["customerId", "email"],
+        "properties": {
+          "customerId": { "type": "string", "example": "C94A82F12B4C" },
+          "email": { "type": "string", "format": "email" },
+          "customerStatus": { "type": "string", "example": "PENDING_APPROVAL" }
+        }
+      },
+      "CustomerResponse": {
+        "type": "object",
+        "properties": {
+          "customerId": { "type": "string", "example": "C94A82F12B4C" },
+          "customerStatus": { "type": "string", "example": "PENDING_APPROVAL" }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": ["customerId", "accountType"],
+        "properties": {
+          "customerId": { "type": "string", "example": "C94A82F12B4C" },
+          "accountType": { "type": "string", "enum": ["SAVINGS", "CURRENT"] },
+          "initialDeposit": { "type": "number", "format": "double", "example": 1000.0 }
+        }
+      },
+      "AccountResponse": {
+        "type": "object",
+        "properties": {
+          "accountId": { "type": "integer", "format": "int64", "example": 101 },
+          "accountNumber": { "type": "string", "example": "1001009841" },
+          "customerId": { "type": "string", "example": "C94A82F12B4C" },
+          "accountType": { "type": "string", "example": "SAVINGS" },
+          "accountStatus": { "type": "string", "example": "ACTIVE" },
+          "currencyCode": { "type": "string", "example": "INR" }
+        }
+      },
+      "AccountBalanceResponse": {
+        "type": "object",
+        "properties": {
+          "accountId": { "type": "integer", "format": "int64", "example": 101 },
+          "currentBalance": { "type": "number", "format": "double", "example": 25000.0 },
+          "availableBalance": { "type": "number", "format": "double", "example": 25000.0 },
+          "currency": { "type": "string", "example": "INR" }
+        }
+      },
+      "BalanceOperationRequest": {
+        "type": "object",
+        "required": ["amount", "transactionReference"],
+        "properties": {
+          "amount": { "type": "number", "format": "double", "example": 500.0 },
+          "transactionReference": { "type": "string", "example": "TXN-20260917-882194" },
+          "description": { "type": "string", "example": "Fund transfer" },
+          "initiatedBy": { "type": "string", "example": "C94A82F12B4C" }
+        }
+      },
+      "BalanceOperationResponse": {
+        "type": "object",
+        "properties": {
+          "successful": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "Balance updated successfully" }
+        }
+      },
+      "TransferRequest": {
+        "type": "object",
+        "required": ["sourceAccountId", "destinationAccountId", "amount", "transferType", "idempotencyKey"],
+        "properties": {
+          "sourceAccountId": { "type": "integer", "format": "int64", "example": 101 },
+          "destinationAccountId": { "type": "integer", "format": "int64", "example": 102 },
+          "amount": { "type": "number", "format": "double", "example": 1000.0 },
+          "currency": { "type": "string", "example": "INR" },
+          "transferType": { "type": "string", "enum": ["INTERNAL", "SELF", "FUND_TRANSFER", "CUSTOMER_TRANSFER"] },
+          "idempotencyKey": { "type": "string", "example": "idemp-94a1-84bc-218401" },
+          "description": { "type": "string", "example": "Rent payment" }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "properties": {
+          "transactionId": { "type": "integer", "format": "int64", "example": 501 },
+          "transactionReference": { "type": "string", "example": "TXN-20260917-882194" },
+          "transactionStatus": { "type": "string", "example": "SUCCESS" },
+          "sourceAccountId": { "type": "integer", "format": "int64", "example": 101 },
+          "destinationAccountId": { "type": "integer", "format": "int64", "example": 102 },
+          "amount": { "type": "number", "format": "double", "example": 1000.0 },
+          "currency": { "type": "string", "example": "INR" }
+        }
+      },
+      "StatementRequestDto": {
+        "type": "object",
+        "required": ["accountId", "fromDate", "toDate", "requestType"],
+        "properties": {
+          "accountId": { "type": "integer", "format": "int64", "example": 101 },
+          "fromDate": { "type": "string", "format": "date-time" },
+          "toDate": { "type": "string", "format": "date-time" },
+          "requestType": { "type": "string", "enum": ["PDF", "CSV"] }
+        }
+      },
+      "StatementResponse": {
+        "type": "object",
+        "properties": {
+          "requestId": { "type": "integer", "format": "int64", "example": 1 },
+          "status": { "type": "string", "example": "PROCESSING" },
+          "fileUrl": { "type": "string", "example": "https://storage.netbanking.com/statements/stmt-101.pdf" }
+        }
+      }
+    }
+  }
+}
