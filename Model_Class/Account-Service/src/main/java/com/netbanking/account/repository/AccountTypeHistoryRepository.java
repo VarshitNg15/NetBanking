@@ -1,0 +1,1 @@
+package com.netbanking.account.repository; import com.netbanking.account.entity.AccountTypeHistory; import org.springframework.data.jpa.repository.JpaRepository; public interface AccountTypeHistoryRepository extends JpaRepository<AccountTypeHistory,Long>{}

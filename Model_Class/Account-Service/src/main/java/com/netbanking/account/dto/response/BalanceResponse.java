@@ -1,0 +1,1 @@
+package com.netbanking.account.dto.response; import com.netbanking.account.entity.AccountBalance; import java.math.BigDecimal; public record BalanceResponse(BigDecimal currentBalance,BigDecimal availableBalance){public static BalanceResponse from(AccountBalance b){return new BalanceResponse(b.getCurrentBalance(),b.getAvailableBalance());}}

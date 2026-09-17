@@ -1,0 +1,1 @@
+package com.netbanking.account.dto.request; import jakarta.validation.constraints.*; import java.math.BigDecimal; public record PostingRequest(@NotBlank @Size(max=100) String transactionReference,@NotBlank @Size(max=100) String entryReference,@NotNull @DecimalMin(value="0.01") BigDecimal amount,@Size(max=500) String description,@Size(max=100) String createdBy){}

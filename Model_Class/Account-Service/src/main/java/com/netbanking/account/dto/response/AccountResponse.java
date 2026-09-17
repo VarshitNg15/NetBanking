@@ -1,0 +1,2 @@
+package com.netbanking.account.dto.response; import com.netbanking.account.entity.*; import java.time.LocalDateTime;
+public record AccountResponse(Long id,String customerId,String accountNumber,AccountType accountType,AccountStatus status,String currencyCode,LocalDateTime createdAt,LocalDateTime approvedAt){ public static AccountResponse from(Account a){return new AccountResponse(a.getId(),a.getCustomerId(),a.getAccountNumber(),a.getAccountType(),a.getAccountStatus(),a.getCurrencyCode(),a.getCreatedAt(),a.getApprovedAt());} }

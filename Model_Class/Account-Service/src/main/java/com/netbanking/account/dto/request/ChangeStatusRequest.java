@@ -1,0 +1,1 @@
+package com.netbanking.account.dto.request; import com.netbanking.account.entity.AccountStatus; import jakarta.validation.constraints.NotNull; public record ChangeStatusRequest(@NotNull AccountStatus status, String closureReason) {}
