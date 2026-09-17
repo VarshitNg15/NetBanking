@@ -1,6 +1,4 @@
 spring:
-  config:
-    import: optional:file:.env[.properties]
   application:
     name: user-service
 
@@ -20,14 +18,14 @@ spring:
         format_sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
     consumer:
-      group-id: user-service-group
+      group-id: ${USER_KAFKA_GROUP_ID:user-service-group}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -39,7 +37,7 @@ spring:
 
 
 server:
-  port: 8082
+  port: ${USER_SERVER_PORT:${SERVER_PORT:8082}}
 
 
 management:
@@ -62,9 +60,15 @@ logging:
 
 eureka:
   client:
-    enabled: false
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
 
 
 services:
   account-service:
-    url: http://localhost:8083
+    url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}

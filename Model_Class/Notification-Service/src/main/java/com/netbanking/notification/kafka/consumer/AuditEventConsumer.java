@@ -18,7 +18,7 @@ public class AuditEventConsumer {
     private final ObjectMapper objectMapper;
     private final AuditService auditService;
 
-    @KafkaListener(topics = "audit-events", groupId = "notification-service-audit-group")
+    @KafkaListener(topics = "${notification.kafka.audit-topic:audit-events}", groupId = "${notification.kafka.audit-group-id:notification-service-audit-group}")
     public void consume(String payload) {
         try {
             AuditEvent event = objectMapper.readValue(payload, AuditEvent.class);

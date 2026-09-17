@@ -13,7 +13,7 @@ export DB_PASSWORD='account_service'
 mvn spring-boot:run
 ```
 
-Flyway applies the supplied Oracle schema on startup. The API is served at `http://localhost:8080/api/v1/accounts`.
+Database schema is managed via `Schemas/Account_Schema/account_schema.sql` and validated on startup (`hibernate.ddl-auto: validate`). The API is served at `http://localhost:8083/api/v1/accounts`.
 
 ## Main endpoints
 

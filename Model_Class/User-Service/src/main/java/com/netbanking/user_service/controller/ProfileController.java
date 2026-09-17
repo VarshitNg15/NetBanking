@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/users/customers")
+@RequestMapping({"/api/v1/customers", "/api/users/customers", "/api/customers"})
 @RequiredArgsConstructor
 public class ProfileController {
 

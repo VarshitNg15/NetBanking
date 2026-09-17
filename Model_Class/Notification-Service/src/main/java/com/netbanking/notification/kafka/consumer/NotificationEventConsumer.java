@@ -20,7 +20,7 @@ public class NotificationEventConsumer {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
-    @KafkaListener(topics = "notification-events", groupId = "notification-service-group")
+    @KafkaListener(topics = "${notification.kafka.notification-topic:notification-events}", groupId = "${notification.kafka.group-id:notification-service-group}")
     public void consume(String payload) {
         try {
             NotificationEvent event = objectMapper.readValue(payload, NotificationEvent.class);

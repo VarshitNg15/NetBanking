@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users/account-opening")
+@RequestMapping({"/api/v1/users/account-opening", "/api/users/account-opening", "/api/v1/customers/account-requests"})
 @RequiredArgsConstructor
 public class AccountOpeningController {
 

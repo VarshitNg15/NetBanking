@@ -13,7 +13,7 @@ Spring Boot microservice for the NetBanking Notification & Audit domain.
 - mail: email sender
 - exception: API exception handling
 - config: Spring configuration
-- resources/db/migration: database schema SQL
+- Schemas/Notification_Schema: database schema SQL
 
 ## Local run
 

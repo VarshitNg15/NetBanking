@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/statements")
+@RequestMapping({"/api/v1/statements", "/api/statements", "/api/v1/transactions/statements", "/api/transactions/statements"})
 @RequiredArgsConstructor
 public class StatementController {
 

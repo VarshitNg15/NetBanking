@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${GATEWAY_PORT:${SERVER_PORT:8080}}
 
 spring:
   application:
@@ -9,6 +9,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -31,7 +32,7 @@ jwt:
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/users/**
+            - Path=/api/v1/customers/**, /api/v1/users/**, /api/users/**, /api/customers/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -43,7 +44,7 @@ jwt:
         - id: account-service
           uri: lb://account-service
           predicates:
-            - Path=/api/accounts/**
+            - Path=/api/v1/accounts/**, /api/accounts/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -55,7 +56,7 @@ jwt:
         - id: transaction-service
           uri: lb://transaction-service
           predicates:
-            - Path=/api/transactions/**
+            - Path=/api/v1/transactions/**, /api/transactions/**, /api/v1/statements/**, /api/statements/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -67,7 +68,7 @@ jwt:
         - id: notification-service
           uri: lb://notification-service
           predicates:
-            - Path=/api/notifications/**
+            - Path=/api/v1/notifications/**, /api/notifications/**, /api/v1/audit/**, /api/audit/**
           filters:
             - name: RequestRateLimiter
               args:
