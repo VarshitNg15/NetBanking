@@ -1,0 +1,1 @@
+package com.netbanking.account.dto.request; import jakarta.validation.constraints.Pattern; public record SetPinRequest(@Pattern(regexp="\\d{4}",message="PIN must contain exactly four digits") String pin){}

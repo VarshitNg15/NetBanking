@@ -1,0 +1,1 @@
+package com.netbanking.account.repository; import com.netbanking.account.entity.AccountPin; import org.springframework.data.jpa.repository.JpaRepository; public interface AccountPinRepository extends JpaRepository<AccountPin,Long>{}

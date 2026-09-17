@@ -1,0 +1,1 @@
+package com.netbanking.account.dto.request; import com.netbanking.account.entity.AccountType; import jakarta.validation.constraints.*; public record ChangeTypeRequest(@NotNull AccountType accountType,@NotBlank String changedBy,String reason){}
