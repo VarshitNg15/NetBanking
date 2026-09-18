@@ -1,18 +1,21 @@
 server:
   port: ${GATEWAY_PORT:${SERVER_PORT:8080}}
 
+jwt:
+  secret: ${JWT_SECRET}
+
 spring:
   application:
     name: api-gateway
+
+  main:
+    web-application-type: reactive
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
-
-jwt:
-  secret: ${JWT_SECRET}
 
   cloud:
     gateway:
@@ -79,9 +82,6 @@ jwt:
 
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-
-  main:
-    web-application-type: reactive
 
 eureka:
   client:
