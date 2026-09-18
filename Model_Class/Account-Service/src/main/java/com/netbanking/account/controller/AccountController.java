@@ -17,6 +17,7 @@ import com.netbanking.account.service.LedgerService;
 import com.netbanking.account.service.PinService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping({"/api/v1/accounts", "/api/accounts"})
+@Tag(name = "Account & Ledger Operations", description = "Endpoints for bank account creation, balances, debit/credit postings, and 4-digit PIN")
 public class AccountController {
 
     private final AccountService accounts;

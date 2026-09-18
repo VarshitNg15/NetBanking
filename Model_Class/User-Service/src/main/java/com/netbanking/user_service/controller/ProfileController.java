@@ -7,11 +7,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/v1/customers", "/api/users/customers", "/api/customers"})
 @RequiredArgsConstructor
+@Tag(name = "Customer Profile", description = "Endpoints for managing KYC and customer profile information")
 public class ProfileController {
 
     private final CustomerProfileService customerProfileService;

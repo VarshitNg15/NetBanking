@@ -6,6 +6,7 @@ import com.netbanking.notification.service.EmailService;
 import com.netbanking.notification.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping({"/api/v1/notifications", "/api/notifications"})
 @RequiredArgsConstructor
+@Tag(name = "Notification Services", description = "Endpoints for creating and sending customer notifications via Google SMTP")
 public class NotificationController {
 
     private final NotificationService notificationService;

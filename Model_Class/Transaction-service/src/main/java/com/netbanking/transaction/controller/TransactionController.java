@@ -5,12 +5,14 @@ import com.netbanking.transaction.dto.response.TransactionResponse;
 import com.netbanking.transaction.service.TransferService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/v1/transactions", "/api/transactions"})
 @RequiredArgsConstructor
+@Tag(name = "Transactions & Transfers", description = "Endpoints for initiating immediate and scheduled fund transfers")
 public class TransactionController {
 
     private final TransferService transferService;

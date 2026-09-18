@@ -59,10 +59,11 @@ Write-Host "All services have been launched in separate console windows." -Foreg
 Write-Host "Service Endpoints:" -ForegroundColor White
 Write-Host " - Eureka Dashboard:        http://localhost:8761" -ForegroundColor Gray
 Write-Host " - API Gateway (Main Entry): http://localhost:8080" -ForegroundColor Gray
-Write-Host " - Auth Service:            http://localhost:8081" -ForegroundColor Gray
-Write-Host " - User Service:            http://localhost:8082" -ForegroundColor Gray
-Write-Host " - Account Service:         http://localhost:8083" -ForegroundColor Gray
-Write-Host " - Transaction Service:     http://localhost:8084" -ForegroundColor Gray
-Write-Host " - Notification Service:    http://localhost:8085" -ForegroundColor Gray
+Write-Host "`nSwagger UI Documentation Endpoints:" -ForegroundColor Yellow
+Write-Host " - Auth Service Swagger:         http://localhost:8081/swagger-ui/index.html" -ForegroundColor Cyan
+Write-Host " - User Service Swagger:         http://localhost:8082/swagger-ui/index.html" -ForegroundColor Cyan
+Write-Host " - Account Service Swagger:      http://localhost:8083/swagger-ui/index.html" -ForegroundColor Cyan
+Write-Host " - Transaction Service Swagger:  http://localhost:8084/swagger-ui/index.html" -ForegroundColor Cyan
+Write-Host " - Notification Service Swagger: http://localhost:8085/swagger-ui/index.html" -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Green
-Write-Host "Ready for Postman testing. To stop all services, run .\stop_netbanking.ps1" -ForegroundColor Cyan
+Write-Host "Ready for testing. To stop all services, run .\stop_netbanking.ps1" -ForegroundColor Green
