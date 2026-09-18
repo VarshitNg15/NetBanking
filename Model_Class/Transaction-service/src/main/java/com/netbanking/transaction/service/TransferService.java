@@ -12,6 +12,10 @@ public class TransferService {
     private final TransactionService transactionService;
 
     public TransactionResponse transfer(TransferRequest request, String customerId, String initiatedBy, String idempotencyKey) {
-        return transactionService.createTransfer(request, customerId, initiatedBy, idempotencyKey);
+        return transfer(request, customerId, initiatedBy, null, idempotencyKey);
+    }
+
+    public TransactionResponse transfer(TransferRequest request, String customerId, String initiatedBy, String userEmail, String idempotencyKey) {
+        return transactionService.createTransfer(request, customerId, initiatedBy, userEmail, idempotencyKey);
     }
 }

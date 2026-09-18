@@ -64,3 +64,5 @@ notification:
   kafka:
     notification-topic: ${NOTIFICATION_KAFKA_TOPIC:notification-events}
     audit-topic: ${AUDIT_KAFKA_TOPIC:audit-events}
+    auth-topic: ${AUTH_KAFKA_TOPIC:auth-events}
+    transaction-topic: ${TRANSACTION_KAFKA_TOPIC:transaction-events}

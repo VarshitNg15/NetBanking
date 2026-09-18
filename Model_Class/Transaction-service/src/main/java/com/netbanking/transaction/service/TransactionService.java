@@ -33,6 +33,11 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse createTransfer(TransferRequest request, String customerId, String initiatedBy, String idempotencyKey) {
+        return createTransfer(request, customerId, initiatedBy, null, idempotencyKey);
+    }
+
+    @Transactional
+    public TransactionResponse createTransfer(TransferRequest request, String customerId, String initiatedBy, String userEmail, String idempotencyKey) {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             IdempotencyRecord existing = idempotencyService.find(idempotencyKey);
             if (existing != null) {
@@ -76,15 +81,15 @@ public class TransactionService {
             transaction.setUpdatedAt(LocalDateTime.now());
             transactionRepository.save(transaction);
             recordStatus(transaction, "INITIATED", "PROCESSING", "Scheduled transfer accepted");
-            eventProducer.publishTransactionEvent(transaction);
+            eventProducer.publishTransactionEvent(transaction, userEmail);
             return toResponse(transaction);
         }
 
-        return executeImmediateTransfer(transaction, idempotencyKey);
+        return executeImmediateTransfer(transaction, userEmail, idempotencyKey);
     }
 
     @Transactional
-    protected TransactionResponse executeImmediateTransfer(Transaction transaction, String idempotencyKey) {
+    protected TransactionResponse executeImmediateTransfer(Transaction transaction, String userEmail, String idempotencyKey) {
         transaction.setTransactionStatus("PROCESSING");
         transaction.setUpdatedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
@@ -103,7 +108,7 @@ public class TransactionService {
                     accountServiceClient.debit(transaction.getSourceAccountId(), operation);
 
             if (!debit.successful()) {
-                fail(transaction, debit.message(), idempotencyKey);
+                fail(transaction, debit.message(), userEmail, idempotencyKey);
                 return toResponse(transaction);
             }
 
@@ -113,7 +118,7 @@ public class TransactionService {
             if (!credit.successful()) {
                 // A production implementation should invoke a compensating credit
                 // or reversal workflow in Account Service here.
-                fail(transaction, credit.message(), idempotencyKey);
+                fail(transaction, credit.message(), userEmail, idempotencyKey);
                 return toResponse(transaction);
             }
 
@@ -123,11 +128,11 @@ public class TransactionService {
             transactionRepository.save(transaction);
             recordStatus(transaction, "PROCESSING", "SUCCESS", "Transfer completed successfully");
 
-            eventProducer.publishTransactionEvent(transaction);
+            eventProducer.publishTransactionEvent(transaction, userEmail);
             completeIdempotency(idempotencyKey, transaction, "COMPLETED");
             return toResponse(transaction);
         } catch (RuntimeException ex) {
-            fail(transaction, ex.getMessage(), idempotencyKey);
+            fail(transaction, ex.getMessage(), userEmail, idempotencyKey);
             return toResponse(transaction);
         }
     }
@@ -139,14 +144,14 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found: " + reference));
     }
 
-    private void fail(Transaction transaction, String reason, String idempotencyKey) {
+    private void fail(Transaction transaction, String reason, String userEmail, String idempotencyKey) {
         transaction.setTransactionStatus("FAILED");
         transaction.setFailureReason(reason);
         transaction.setCompletedAt(LocalDateTime.now());
         transaction.setUpdatedAt(LocalDateTime.now());
         transactionRepository.save(transaction);
         recordStatus(transaction, "PROCESSING", "FAILED", reason);
-        eventProducer.publishTransactionEvent(transaction);
+        eventProducer.publishTransactionEvent(transaction, userEmail);
         completeIdempotency(idempotencyKey, transaction, "FAILED");
     }
 

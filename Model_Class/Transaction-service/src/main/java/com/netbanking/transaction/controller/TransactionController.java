@@ -20,10 +20,11 @@ public class TransactionController {
             @Valid @RequestBody TransferRequest request,
             @RequestHeader(value = "X-Customer-Id") String customerId,
             @RequestHeader(value = "X-Initiated-By") String initiatedBy,
+            @RequestHeader(value = "X-User-Email", required = false) String userEmail,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
         return ResponseEntity.ok(
-                transferService.transfer(request, customerId, initiatedBy, idempotencyKey)
+                transferService.transfer(request, customerId, initiatedBy, userEmail, idempotencyKey)
         );
     }
 }

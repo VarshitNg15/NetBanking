@@ -53,6 +53,7 @@ public class Notification {
     @Column(name = "FAILURE_REASON", length = 1000)
     private String failureReason;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToMany(mappedBy = "notification", fetch = FetchType.LAZY)
     @Builder.Default
     private List<NotificationDelivery> deliveryAttempts = new ArrayList<>();

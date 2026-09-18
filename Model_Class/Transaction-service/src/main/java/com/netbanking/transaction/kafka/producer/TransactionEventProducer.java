@@ -16,11 +16,16 @@ public class TransactionEventProducer {
     private String transactionTopic;
 
     public void publishTransactionEvent(Transaction transaction) {
+        publishTransactionEvent(transaction, null);
+    }
+
+    public void publishTransactionEvent(Transaction transaction, String recipientEmail) {
         TransactionEvent event = new TransactionEvent(
                 transaction.getTransactionReference(),
                 transaction.getTransactionType(),
                 transaction.getTransactionStatus(),
                 transaction.getCustomerId(),
+                recipientEmail,
                 transaction.getSourceAccountId(),
                 transaction.getDestinationAccountId(),
                 transaction.getAmount(),
@@ -34,6 +39,7 @@ public class TransactionEventProducer {
             String transactionType,
             String transactionStatus,
             String customerId,
+            String recipientEmail,
             Long sourceAccountId,
             Long destinationAccountId,
             java.math.BigDecimal amount,

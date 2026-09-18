@@ -19,6 +19,7 @@ public class NotificationDelivery {
     @Column(name = "DELIVERY_ID")
     private Long deliveryId;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "NOTIFICATION_ID", nullable = false)
     private Notification notification;
