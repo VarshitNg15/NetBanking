@@ -559,7 +559,14 @@ Executes fund transfers (immediate or scheduled), enforces idempotency, validate
 | Method | Endpoint | Access | Summary |
 | :--- | :--- | :---: | :--- |
 | `POST` | `/api/v1/transactions/transfers` | Protected | Execute immediate or scheduled fund transfer |
+| `POST` | `/api/v1/transactions/transfer` | Protected | Alias path for transfer (also supported) |
+| `GET`  | `/api/v1/transactions/{transactionReference}` | Protected | Retrieve transaction by reference |
+| `GET`  | `/api/v1/transactions/customer/{customerId}` | Protected | List transactions for a customer |
+| `GET`  | `/api/v1/transactions/account/{accountId}` | Protected | List transactions for an account |
 | `POST` | `/api/v1/statements` | Protected | Request account statement generation |
+| `GET`  | `/api/v1/statements` | Protected | List statement requests for the authenticated customer |
+| `GET`  | `/api/v1/statements/{requestId}` | Protected | Get statement request status and metadata |
+| `GET`  | `/api/v1/statements/{requestId}/download` | Protected | Download generated statement content (attachment)
 
 ---
 
@@ -639,6 +646,29 @@ Executes fund transfers (immediate or scheduled), enforces idempotency, validate
     "downloadUrl": "/api/v1/statements/1/download"
   }
   ```
+
+---
+
+### 6.3. Statement Inquiry & Download
+- **Method**: `GET`
+- **Path**: `/api/v1/statements` *(list customer statements)*
+- **Headers**:
+  ```http
+  Authorization: Bearer <JWT>
+  X-Customer-Id: C1001
+  ```
+- **Response (`200 OK`)**: JSON array of statement request objects (see `StatementResponse` schema).
+
+- **Method**: `GET`
+- **Path**: `/api/v1/statements/{requestId}` *(get request status)*
+- **Headers**: `Authorization: Bearer <JWT>`, `X-Customer-Id: C1001`
+- **Response (`200 OK`)**: `StatementResponse` with status, metadata, and generated file reference.
+
+- **Method**: `GET`
+- **Path**: `/api/v1/statements/{requestId}/download` *(download content)*
+- **Headers**: `Authorization: Bearer <JWT>`, `X-Customer-Id: C1001`
+- **Produces**: `text/plain` (attachment)
+- **Response (`200 OK`)**: Raw statement content with `Content-Disposition: attachment; filename="statement-{requestId}.txt"`.
 
 ---
 
