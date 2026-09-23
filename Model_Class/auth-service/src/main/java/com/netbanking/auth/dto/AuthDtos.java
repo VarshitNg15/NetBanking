@@ -31,8 +31,19 @@ public final class AuthDtos {
 
     public record ForgotPasswordRequest(@NotBlank @Email String email) {}
 
+    public record ForgotPasswordResponse(
+            String message,
+            String resetToken,
+            String tokenType,
+            long expiresIn
+    ) {
+        public String getToken() {
+            return resetToken;
+        }
+    }
+
     public record ResetPasswordRequest(
-            @NotBlank String token,
+            String token,
             @NotBlank @Size(min = 8, max = 100) String newPassword
     ) {}
 

@@ -66,6 +66,34 @@ public class JwtService {
         return new TokenData(token, jwtExpiration / 1000, roles);
     }
 
+    public TokenData generatePasswordResetToken(AuthUser user) {
+        long now = System.currentTimeMillis();
+        long expiry = now + (15 * 60 * 1000); // 15 minutes
+        List<String> roles = List.of("ROLE_RESET_PASSWORD");
+
+        String token = Jwts.builder()
+                .issuer(issuer)
+                .subject(user.getCustomerId())
+                .claim("customerId", user.getCustomerId())
+                .claim("email", user.getEmail())
+                .claim("purpose", "PASSWORD_RESET")
+                .claim("roles", roles)
+                .issuedAt(new Date(now))
+                .expiration(new Date(expiry))
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
+                .compact();
+
+        return new TokenData(token, 900L, roles);
+    }
+
+    public String extractPurpose(String token) {
+        try {
+            return extractClaim(token, claims -> claims.get("purpose", String.class));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public String extractCustomerId(String token) {
         Claims claims = extractAllClaims(token);
         String customerId = claims.get("customerId", String.class);

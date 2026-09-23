@@ -72,6 +72,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // 3. Parse and validate pure JWT
         try {
             Claims claims = extractClaims(token);
+            String purpose = claims.get("purpose", String.class);
+            if ("PASSWORD_RESET".equalsIgnoreCase(purpose)) {
+                log.warn("Blocked attempt to use password-reset token on protected endpoint: {}", path);
+                return onError(exchange, HttpStatus.FORBIDDEN, "This temporary access token can only be used to reset password");
+            }
+
             String customerId = claims.get("customerId", String.class);
             if (customerId == null || customerId.isBlank()) {
                 customerId = claims.getSubject();

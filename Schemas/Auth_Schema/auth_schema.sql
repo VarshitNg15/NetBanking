@@ -182,3 +182,39 @@ ON LOGIN_HISTORY(USER_ID);
 
 CREATE INDEX IDX_LOGIN_HISTORY_LOGIN_AT
 ON LOGIN_HISTORY(LOGIN_AT);
+
+
+INSERT INTO AUTH_SCHEMA.AUTH_USER (
+    EMAIL, 
+    PASSWORD_HASH, 
+    CUSTOMER_ID, 
+    ACCOUNT_STATUS, 
+    EMAIL_VERIFIED, 
+    MFA_ENABLED, 
+    FAILED_LOGIN_ATTEMPTS,
+    CREATED_AT,
+    UPDATED_AT
+) VALUES (
+    'admin@netbanking.com',
+    '$2a$10$w09u7g77yF522lJ.36sJ1OTYv5x0hM6Z0G8L4sW3N34oYp9N3Uf1K', -- BCrypt hash of "AdminPassword123!"
+    'ADM101',
+    'ACTIVE',
+    'Y',
+    'N',  -- MFA set to 'N' so login succeeds immediately without OTP
+    0,
+    SYSTIMESTAMP,
+    SYSTIMESTAMP
+);
+
+-- 2. Assign the ADMIN role
+INSERT INTO AUTH_SCHEMA.USER_ROLE (
+    USER_ID, 
+    ROLE_NAME, 
+    CREATED_AT
+) VALUES (
+    (SELECT USER_ID FROM AUTH_SCHEMA.AUTH_USER WHERE EMAIL = 'admin@netbanking.com'),
+    'ADMIN',
+    SYSTIMESTAMP
+);
+
+COMMIT;

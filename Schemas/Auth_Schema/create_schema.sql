@@ -4,7 +4,7 @@
 -- ============================================================
 
 CREATE USER AUTH_SCHEMA
-IDENTIFIED BY "Auth@123";
+IDENTIFIED BY "AuthSchema@123";
 
 GRANT CREATE SESSION TO AUTH_SCHEMA;
 GRANT CREATE TABLE TO AUTH_SCHEMA;

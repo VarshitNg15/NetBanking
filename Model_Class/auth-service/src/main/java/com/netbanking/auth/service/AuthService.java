@@ -158,34 +158,69 @@ public class AuthService {
     }
 
     @Transactional
-    public MessageResponse forgotPassword(ForgotPasswordRequest request) {
-        userRepository.findByEmailIgnoreCase(request.email()).ifPresent(user -> {
-            String raw = UUID.randomUUID().toString() + UUID.randomUUID();
-            passwordResetTokenRepository.save(PasswordResetToken.builder()
-                    .user(user)
-                    .tokenHash(tokenHashService.sha256(raw))
-                    .expiresAt(LocalDateTime.now().plusMinutes(15))
-                    .build());
-            eventPublisher.publish("PASSWORD_RESET_REQUESTED", user.getCustomerId(), user.getCustomerId(),
-                    Map.of("email", user.getEmail(), "token", raw));
-        });
-        return new MessageResponse("If the account exists, password reset instructions have been issued.");
+    public ForgotPasswordResponse forgotPassword(ForgotPasswordRequest request) {
+        AuthUser user = userRepository.findByEmailIgnoreCase(request.email().trim())
+                .orElseThrow(() -> new IllegalArgumentException("No account found with email: " + request.email()));
+
+        // Generate temporary 15-minute access token specifically for password reset
+        JwtService.TokenData tokenData = jwtService.generatePasswordResetToken(user);
+        String resetToken = tokenData.token();
+
+        // Store SHA-256 hash in DB to track single-use consumption and expiration
+        passwordResetTokenRepository.save(PasswordResetToken.builder()
+                .user(user)
+                .tokenHash(tokenHashService.sha256(resetToken))
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build());
+
+        // Note: As requested, no Kafka notification of the token is sent
+        return new ForgotPasswordResponse(
+                "Temporary password reset token generated successfully. Valid for 15 minutes.",
+                resetToken,
+                "Bearer",
+                tokenData.expiresIn()
+        );
     }
 
     @Transactional
     public MessageResponse resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken stored = passwordResetTokenRepository.findByTokenHash(tokenHashService.sha256(request.token()))
+        String rawToken = request.token();
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new IllegalArgumentException("Password reset token must be provided");
+        }
+        rawToken = rawToken.trim();
+        if (rawToken.startsWith("Bearer ")) {
+            rawToken = rawToken.substring(7).trim();
+        }
+
+        // 1. Verify token is a valid JWT with purpose PASSWORD_RESET
+        if (!jwtService.validateToken(rawToken)) {
+            throw new IllegalArgumentException("Invalid or expired password reset token");
+        }
+        String purpose = jwtService.extractPurpose(rawToken);
+        if (!"PASSWORD_RESET".equalsIgnoreCase(purpose)) {
+            throw new IllegalArgumentException("Token is not authorized for password reset");
+        }
+
+        // 2. Verify token hash exists in database and has not been used or expired
+        PasswordResetToken stored = passwordResetTokenRepository.findByTokenHash(tokenHashService.sha256(rawToken))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
         if (stored.getUsedAt() != null || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Password reset token is expired or already used");
         }
+
+        // 3. Reset password and unlock user account if locked
         AuthUser user = stored.getUser();
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         userRepository.save(user);
+
+        // 4. Burn the token so it cannot be reused
         stored.setUsedAt(LocalDateTime.now());
         passwordResetTokenRepository.save(stored);
+
+        // Publish audit event for password reset completion (no secret token involved)
         eventPublisher.publish("PASSWORD_RESET_COMPLETED", user.getCustomerId(), user.getCustomerId(), Map.of());
         return new MessageResponse("Password reset successful");
     }

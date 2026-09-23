@@ -72,12 +72,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyOtp(request));
     }
 
-    @Operation(summary = "Request password reset", description = "Issues a password reset token and dispatches an email OTP/link.")
+    @Operation(summary = "Request password reset", description = "Generates a temporary 15-minute access token specifically for password reset.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Reset instructions dispatched")
+            @ApiResponse(responseCode = "200", description = "Temporary password reset token issued"),
+            @ApiResponse(responseCode = "400", description = "User not found or invalid email")
     })
     @PostMapping("/forgot-password")
-    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         return ResponseEntity.ok(authService.forgotPassword(request));
     }
 
@@ -87,7 +88,12 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Invalid or expired token")
     })
     @PostMapping("/reset-password")
-    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        return ResponseEntity.ok(authService.resetPassword(request));
+    public ResponseEntity<MessageResponse> resetPassword(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @Valid @RequestBody ResetPasswordRequest request) {
+        String token = (request.token() != null && !request.token().isBlank())
+                ? request.token()
+                : (authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null);
+        return ResponseEntity.ok(authService.resetPassword(new ResetPasswordRequest(token, request.newPassword())));
     }
 }

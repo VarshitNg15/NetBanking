@@ -42,6 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             if (jwtService.validateToken(jwt) && SecurityContextHolder.getContext().getAuthentication() == null) {
+                String purpose = jwtService.extractPurpose(jwt);
+                if ("PASSWORD_RESET".equalsIgnoreCase(purpose)) {
+                    log.debug("Skipping authentication for single-purpose password reset token");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 String customerId = jwtService.extractCustomerId(jwt);
                 List<String> roles = jwtService.extractRoles(jwt);
 

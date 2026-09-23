@@ -63,7 +63,30 @@ class JwtServiceTest {
     }
 
     @Test
+    void testGeneratePasswordResetToken() {
+        AuthUser user = AuthUser.builder()
+                .customerId("C100200300")
+                .email("testuser@netbanking.com")
+                .accountStatus(AccountStatus.ACTIVE)
+                .roles(new ArrayList<>())
+                .build();
+
+        JwtService.TokenData tokenData = jwtService.generatePasswordResetToken(user);
+
+        assertNotNull(tokenData);
+        assertNotNull(tokenData.token());
+        assertEquals(900, tokenData.expiresIn());
+        assertEquals(List.of("ROLE_RESET_PASSWORD"), tokenData.roles());
+
+        assertTrue(jwtService.validateToken(tokenData.token()));
+        assertEquals("PASSWORD_RESET", jwtService.extractPurpose(tokenData.token()));
+        assertEquals("C100200300", jwtService.extractCustomerId(tokenData.token()));
+        assertEquals("testuser@netbanking.com", jwtService.extractEmail(tokenData.token()));
+    }
+
+    @Test
     void testInvalidToken() {
         assertFalse(jwtService.validateToken("invalid.token.here"));
+        assertNull(jwtService.extractPurpose("invalid.token.here"));
     }
 }

@@ -194,7 +194,7 @@ Manages user identity, credentials, BCrypt password hashing, JWT token lifecycle
 ### 3.6. Forgot Password
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/forgot-password`
-- **Description**: Generates a 15-minute reset token and publishes an event to deliver reset instructions.
+- **Description**: Generates a temporary 15-minute access token specifically authorized only for password reset (no Kafka notification containing the token is dispatched).
 - **Request Body**:
   ```json
   {
@@ -204,7 +204,11 @@ Manages user identity, credentials, BCrypt password hashing, JWT token lifecycle
 - **Response (`200 OK`)**:
   ```json
   {
-    "message": "If the account exists, password reset instructions have been issued."
+    "message": "Temporary password reset token generated successfully. Valid for 15 minutes.",
+    "resetToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJDMTAwMSIsInB1cnBvc2UiOiJQQVNTV09SRF9SRVNFVCIsInJvbGVzIjpbIlJPTEVfUkVTRVRfUEFTU1dPUkQiXX0...",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJDMTAwMSIsInB1cnBvc2UiOiJQQVNTV09SRF9SRVNFVCIsInJvbGVzIjpbIlJPTEVfUkVTRVRfUEFTU1dPUkQiXX0...",
+    "tokenType": "Bearer",
+    "expiresIn": 900
   }
   ```
 
