@@ -22,6 +22,9 @@ public interface AccountServiceClient {
     @PostMapping("/api/accounts/{accountId}/credit")
     BalanceOperationResponse credit(@PathVariable("accountId") Long accountId, @RequestBody BalanceOperationRequest request);
 
+    @GetMapping("/api/accounts/{accountId}/ledger")
+    java.util.List<LedgerEntryResponse> getLedger(@PathVariable("accountId") Long accountId);
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AccountResponse(
             @JsonAlias({"id", "accountId"}) Long accountId,
@@ -34,4 +37,15 @@ public interface AccountServiceClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record BalanceOperationResponse(boolean successful, String message) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record LedgerEntryResponse(
+            Long id,
+            String transactionReference,
+            String entryReference,
+            @JsonAlias({"entryType", "type"}) String entryType,
+            BigDecimal amount,
+            BigDecimal balanceAfter,
+            java.time.LocalDateTime createdAt
+    ) {}
 }

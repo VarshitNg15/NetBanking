@@ -54,6 +54,14 @@ public class Transaction {
     @Column(name = "FAILURE_REASON", length = 500)
     private String failureReason;
 
+    public void setFailureReason(String failureReason) {
+        if (failureReason != null && failureReason.length() > 495) {
+            this.failureReason = failureReason.substring(0, 492) + "...";
+        } else {
+            this.failureReason = failureReason;
+        }
+    }
+
     @Column(name = "INITIATED_AT", nullable = false)
     private LocalDateTime initiatedAt;
 
