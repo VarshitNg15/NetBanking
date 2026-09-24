@@ -1,0 +1,220 @@
+<!-- NetBanking Redwood Accounts Management View -->
+<div>
+  <!-- Header & Actions -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
+        Bank Accounts & Balances
+      </h2>
+      <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
+        Manage your savings and current checking accounts, configure security PINs, and post deposits.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadAccounts">
+        <span class="oj-ux-ico-refresh"></span>
+        Refresh
+      </button>
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: openCreateAccountDialog">
+        <span class="oj-ux-ico-plus"></span>
+        Open New Account
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-secondary': filterType() === 'ALL', 'nb-btn-outline': filterType() !== 'ALL' }, click: function() { filterType('ALL'); }">
+      All Accounts
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-secondary': filterType() === 'SAVINGS', 'nb-btn-outline': filterType() !== 'SAVINGS' }, click: function() { filterType('SAVINGS'); }">
+      Savings
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-secondary': filterType() === 'CURRENT', 'nb-btn-outline': filterType() !== 'CURRENT' }, click: function() { filterType('CURRENT'); }">
+      Current
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-secondary': filterType() === 'ACTIVE', 'nb-btn-outline': filterType() !== 'ACTIVE' }, click: function() { filterType('ACTIVE'); }">
+      Active Only
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-secondary': filterType() === 'PENDING_APPROVAL', 'nb-btn-outline': filterType() !== 'PENDING_APPROVAL' }, click: function() { filterType('PENDING_APPROVAL'); }">
+      Pending
+    </button>
+  </div>
+
+  <!-- Alerts -->
+  <!-- ko if: errorMessage -->
+  <div class="nb-alert nb-alert-error">
+    <span class="oj-ux-ico-error-s"></span>
+    <span data-bind="text: errorMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: successMessage -->
+  <div class="nb-alert nb-alert-success">
+    <span class="oj-ux-ico-check"></span>
+    <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- Loading State -->
+  <!-- ko if: isLoading -->
+  <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
+    <p>Loading your bank accounts...</p>
+  </div>
+  <!-- /ko -->
+
+  <!-- Accounts Grid -->
+  <!-- ko ifnot: isLoading -->
+    <!-- ko if: filteredAccounts().length === 0 -->
+    <div class="nb-card" style="text-align: center; padding: 3rem 1rem;">
+      <span class="oj-ux-ico-credit-card" style="font-size: 3rem; color: #d1cfcb;"></span>
+      <h3 style="margin: 0.5rem 0 0.25rem 0;">No Accounts Match Filter</h3>
+      <p style="font-size: 0.88rem; color: var(--nb-text-muted);">Try selecting "All Accounts" or apply for a new account.</p>
+    </div>
+    <!-- /ko -->
+
+    <div class="nb-grid-2" data-bind="foreach: filteredAccounts">
+      <div class="nb-card nb-card-hover">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+          <div>
+            <span class="nb-badge nb-badge-customer" style="margin-bottom: 0.25rem; display: inline-block;" data-bind="text: accountType"></span>
+            <div class="nb-account-number" data-bind="text: accountNumber"></div>
+          </div>
+          <div>
+            <!-- ko if: status === 'ACTIVE' -->
+            <span class="nb-status nb-status-active">Active</span>
+            <!-- /ko -->
+            <!-- ko if: status === 'PENDING_APPROVAL' -->
+            <span class="nb-status nb-status-pending">Pending Approval</span>
+            <!-- /ko -->
+            <!-- ko if: status === 'FROZEN' -->
+            <span class="nb-status nb-status-frozen">Frozen</span>
+            <!-- /ko -->
+            <!-- ko if: status === 'CLOSED' -->
+            <span class="nb-status nb-status-closed">Closed</span>
+            <!-- /ko -->
+          </div>
+        </div>
+
+        <!-- Balance Info -->
+        <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.85rem; margin: 0.85rem 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.8rem; color: var(--nb-text-muted); font-weight: 600;">AVAILABLE BALANCE:</span>
+            <span style="font-size: 1.25rem; font-weight: 800; color: var(--nb-success);" data-bind="text: formattedAvailableBalance"></span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.75rem; color: var(--nb-text-muted);">Current (Ledger) Balance:</span>
+            <span style="font-size: 0.85rem; color: var(--nb-text-dark); font-weight: 600;" data-bind="text: formattedCurrentBalance"></span>
+          </div>
+        </div>
+
+        <!-- Account Metadata -->
+        <div style="font-size: 0.75rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
+          <span>Account ID: <strong data-bind="text: id"></strong></span> &bull;
+          <span>Currency: <strong data-bind="text: currencyCode"></strong></span>
+          <!-- ko if: approvedAt -->
+          &bull; <span>Approved: <span data-bind="text: approvedAt.substring(0, 10)"></span></span>
+          <!-- /ko -->
+        </div>
+
+        <!-- Action Buttons -->
+        <!-- ko if: status === 'ACTIVE' -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-success" data-bind="click: $parent.openDepositDialog">
+            <span class="oj-ux-ico-arrow-down"></span>
+            Deposit Funds
+          </button>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: $parent.openPinDialog">
+            <span class="oj-ux-ico-lock"></span>
+            Set 4-Digit PIN
+          </button>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { window.location.hash = '#transfers'; }">
+            <span class="oj-ux-ico-exchange"></span>
+            Transfer
+          </button>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: status === 'PENDING_APPROVAL' -->
+        <div style="background: #fff8e1; border: 1px solid #ffe082; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.8rem; color: #b45309;">
+          <span class="oj-ux-ico-information-s" style="margin-right: 4px;"></span>
+          This account was provisioned in PENDING_APPROVAL status. An Administrator must review and activate it before transactions can occur.
+        </div>
+        <!-- /ko -->
+      </div>
+    </div>
+  <!-- /ko -->
+
+  <!-- Dialog: Set 4-Digit PIN -->
+  <oj-dialog id="setPinDialog" dialog-title="Configure Security PIN" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
+    <div slot="body">
+      <p id="descPin" style="font-size: 0.88rem; color: var(--nb-text-muted);">
+        Account: <strong class="nb-account-number" data-bind="text: selectedAccountNumber"></strong>
+        <br />Enter a 4-digit PIN used to authorize fund transfers and debit transactions.
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="pinCodeInput">4-Digit PIN</label>
+        <input id="pinCodeInput" type="password" maxlength="4" class="nb-input" placeholder="e.g. 1234" data-bind="textInput: pinCode" required />
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="confirmPinInput">Confirm 4-Digit PIN</label>
+        <input id="confirmPinInput" type="password" maxlength="4" class="nb-input" placeholder="Repeat PIN" data-bind="textInput: confirmPinCode" required />
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closePinDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: submitPin, disable: isSubmittingPin">
+        <!-- ko if: isSubmittingPin -->Saving...<!-- /ko -->
+        <!-- ko ifnot: isSubmittingPin -->Save Security PIN<!-- /ko -->
+      </button>
+    </div>
+  </oj-dialog>
+
+  <!-- Dialog: Deposit Funds -->
+  <oj-dialog id="accountDepositDialog" dialog-title="Deposit Funds into Account" aria-describedby="descDep" style="width: 440px; max-width: 95%;">
+    <div slot="body">
+      <p id="descDep" style="font-size: 0.88rem; color: var(--nb-text-muted);">
+        Account: <strong class="nb-account-number" data-bind="text: depositAccountNumber"></strong>
+        <br />Posts a credit entry to increase available and current balances.
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="depAmt">Deposit Amount (₹ INR)</label>
+        <input id="depAmt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 10000.00" data-bind="textInput: depositAmount" required />
+      </div>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="depDesc">Description</label>
+        <input id="depDesc" type="text" class="nb-input" data-bind="textInput: depositDescription" />
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeDepositDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-success" data-bind="click: submitDeposit, disable: isSubmittingDeposit">
+        <!-- ko if: isSubmittingDeposit -->Depositing...<!-- /ko -->
+        <!-- ko ifnot: isSubmittingDeposit -->Confirm Deposit<!-- /ko -->
+      </button>
+    </div>
+  </oj-dialog>
+
+  <!-- Dialog: Open New Account -->
+  <oj-dialog id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 420px; max-width: 95%;">
+    <div slot="body">
+      <p id="descAccCreate" style="font-size: 0.88rem; color: var(--nb-text-muted);">
+        Select the type of account you want to open.
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="createAccTypeSelect">Account Type</label>
+        <select id="createAccTypeSelect" class="nb-input" data-bind="value: newAccountType">
+          <option value="SAVINGS">Savings Account (SAVINGS)</option>
+          <option value="CURRENT">Current Account (CURRENT)</option>
+        </select>
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeCreateAccountDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: submitCreateAccount, disable: isSubmittingNewAccount">
+        <!-- ko if: isSubmittingNewAccount -->Submitting...<!-- /ko -->
+        <!-- ko ifnot: isSubmittingNewAccount -->Submit Application<!-- /ko -->
+      </button>
+    </div>
+  </oj-dialog>
+</div>

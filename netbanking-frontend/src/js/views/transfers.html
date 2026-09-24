@@ -1,0 +1,165 @@
+<!-- NetBanking Redwood Fund Transfers View -->
+<div>
+  <!-- Header -->
+  <div style="margin-bottom: 1.5rem;">
+    <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
+      Fund Transfers
+    </h2>
+    <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
+      Transfer funds securely across NetBanking accounts using 4-digit PIN authentication.
+    </p>
+  </div>
+
+  <!-- Alerts -->
+  <!-- ko if: errorMessage -->
+  <div class="nb-alert nb-alert-error">
+    <span class="oj-ux-ico-error-s"></span>
+    <span data-bind="text: errorMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: successMessage -->
+  <div class="nb-alert nb-alert-success">
+    <span class="oj-ux-ico-check"></span>
+    <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- Transfer Result Receipt -->
+  <!-- ko if: lastReceipt -->
+  <div class="nb-card" style="border-left: 4px solid var(--nb-success); background: #fbfdfb; margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-check-circle-s" style="font-size: 1.5rem; color: var(--nb-success);"></span>
+        <h3 style="margin: 0; color: var(--nb-success); font-size: 1.15rem;">Transfer Processed Successfully</h3>
+      </div>
+      <span class="nb-status nb-status-active">PROCESSED</span>
+    </div>
+    <div class="nb-grid-2" style="font-size: 0.88rem;">
+      <div>
+        <p style="margin: 0.25rem 0; color: var(--nb-text-muted);">Transaction Reference:</p>
+        <p style="margin: 0; font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: lastReceipt().transactionReference || lastReceipt().transferReference || 'REF-CONFIRMED'"></p>
+      </div>
+      <div>
+        <p style="margin: 0.25rem 0; color: var(--nb-text-muted);">Debited Amount:</p>
+        <p style="margin: 0; font-weight: 800; font-size: 1.1rem; color: var(--nb-text-dark);">
+          ₹ <span data-bind="text: lastReceipt().amount || '0.00'"></span>
+        </p>
+      </div>
+    </div>
+  </div>
+  <!-- /ko -->
+
+  <div class="nb-grid-2">
+    <!-- Transfer Form Card -->
+    <div class="nb-card">
+      <div class="nb-card-header">
+        <h3 class="nb-card-title">Initiate Transfer</h3>
+      </div>
+
+      <!-- ko if: isLoading -->
+      <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
+        <p>Loading active accounts...</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko ifnot: isLoading -->
+        <!-- ko if: activeAccounts().length === 0 -->
+        <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
+          <span class="oj-ux-ico-warning-s" style="font-size: 2.5rem; color: var(--nb-warning);"></span>
+          <p style="margin-top: 0.5rem;">You do not have any active accounts eligible for transfers.</p>
+          <a href="#accounts" class="nb-btn nb-btn-sm nb-btn-primary">View Accounts</a>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: activeAccounts().length > 0 -->
+        <form data-bind="submit: handleTransfer">
+          <!-- 1. Source Account -->
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="fromAccount">Select From Account</label>
+            <select id="fromAccount" class="nb-input" data-bind="value: sourceAccountId">
+              <!-- ko foreach: activeAccounts -->
+              <option data-bind="value: id, text: accountNumber + ' (' + accountType + ') - ' + formattedAvailableBalance"></option>
+              <!-- /ko -->
+            </select>
+            <span style="font-size: 0.78rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">
+              Available to transfer: <strong style="color: var(--nb-success);" data-bind="text: selectedAccountBalance"></strong>
+            </span>
+          </div>
+
+          <!-- 2. Destination Account -->
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="toAccount">Destination Account ID or Number</label>
+            <input id="toAccount" type="text" class="nb-input" placeholder="e.g. 1 or NB221992311862871354" data-bind="textInput: targetAccountId" required />
+            <span style="font-size: 0.75rem; color: var(--nb-text-muted);">Enter the beneficiary's account number or internal Account ID.</span>
+          </div>
+
+          <!-- 3. Amount -->
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="amt">Transfer Amount (₹ INR)</label>
+            <input id="amt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 2500.00" data-bind="textInput: transferAmount" required />
+            <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+              <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('500'); }">+₹500</button>
+              <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('1000'); }">+₹1,000</button>
+              <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('5000'); }">+₹5,000</button>
+            </div>
+          </div>
+
+          <!-- 4. Description -->
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="desc">Remark / Purpose</label>
+            <input id="desc" type="text" class="nb-input" placeholder="e.g. Rent payment, Invoice settlement" data-bind="textInput: transferDescription" />
+          </div>
+
+          <!-- 5. Security PIN -->
+          <div class="nb-form-group" style="background: #fbfbf9; padding: 0.85rem; border: 1px solid var(--nb-border); border-radius: 6px;">
+            <label class="nb-form-label" for="pin" style="color: var(--nb-secondary); font-weight: 700;">
+              <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+              Authorize with 4-Digit PIN
+            </label>
+            <input id="pin" type="password" maxlength="4" class="nb-input" placeholder="••••" data-bind="textInput: securityPin" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">
+              PIN is encrypted and verified directly by the Account-Service.
+            </span>
+          </div>
+
+          <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1rem;" data-bind="disable: isSubmitting">
+            <!-- ko if: isSubmitting -->Authorizing & Sending...<!-- /ko -->
+            <!-- ko ifnot: isSubmitting -->
+            <span class="oj-ux-ico-exchange" style="margin-right: 4px;"></span>
+            Transfer Funds
+            <!-- /ko -->
+          </button>
+        </form>
+        <!-- /ko -->
+      <!-- /ko -->
+    </div>
+
+    <!-- Security & Policy Guidelines Card -->
+    <div>
+      <div class="nb-card">
+        <div class="nb-card-header">
+          <h3 class="nb-card-title">Transfer Guidelines</h3>
+        </div>
+        <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--nb-text-muted); line-height: 1.6; margin: 0;">
+          <li><strong>Instant Settlement:</strong> Transfers between NetBanking accounts settle immediately via the core Transaction Service.</li>
+          <li><strong>PIN Protection:</strong> Never share your 4-digit security PIN. You can change your PIN at any time under the <em>Accounts</em> tab.</li>
+          <li><strong>Available Balance:</strong> Transferred amounts are immediately debited from your available balance.</li>
+          <li><strong>Audit Trail:</strong> Every transaction is published to the Apache Kafka <code>transaction-events</code> topic for real-time compliance auditing.</li>
+        </ul>
+      </div>
+
+      <div class="nb-card" style="background: #fbf0ec; border-color: #f2c7b8;">
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <span class="oj-ux-ico-shield-check" style="font-size: 1.75rem; color: var(--nb-primary);"></span>
+          <div>
+            <h4 style="margin: 0; color: var(--nb-primary); font-size: 0.95rem;">Multi-Factor Protected</h4>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--nb-text-dark);">
+              High-value transactions trigger automated email verification notices to your registered email address.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

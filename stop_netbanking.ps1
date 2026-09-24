@@ -6,7 +6,12 @@ Write-Host "==================================================================" 
 Write-Host "            STOPPING NETBANKING MICROSERVICES PLATFORM            " -ForegroundColor Yellow
 Write-Host "==================================================================" -ForegroundColor Yellow
 
-$ports = @(8080, 8081, 8082, 8083, 8084, 8085, 8761)
+param(
+    [switch]$Containers,
+    [switch]$All
+)
+
+$ports = @(8000, 8080, 8081, 8082, 8083, 8084, 8085, 8761)
 
 foreach ($port in $ports) {
     try {
@@ -23,6 +28,19 @@ foreach ($port in $ports) {
     }
 }
 
-Write-Host "`nAll NetBanking microservice ports (8080-8085, 8761) have been released." -ForegroundColor Green
-Write-Host "To also stop Podman containers, run: podman stop kafka springboot-podman-demo-redis-1" -ForegroundColor Gray
+Write-Host "`nAll NetBanking service ports (8000, 8080-8085, 8761) have been released." -ForegroundColor Green
+
+if ($Containers -or $All) {
+    Write-Host "`nStopping Podman containers (Oracle DB, Kafka, Redis)..." -ForegroundColor Yellow
+    try {
+        podman stop oracle-db-full kafka springboot-podman-demo-redis-1 2>$null
+        Write-Host "Podman containers stopped." -ForegroundColor Green
+    } catch {
+        Write-Host "Error stopping Podman containers." -ForegroundColor Red
+    }
+} else {
+    Write-Host "Note: Podman infrastructure containers are still running." -ForegroundColor Gray
+    Write-Host "To also stop Podman containers, run: .\stop_netbanking.ps1 -Containers" -ForegroundColor DarkGray
+    Write-Host "Or manually run: podman stop oracle-db-full kafka springboot-podman-demo-redis-1" -ForegroundColor DarkGray
+}
 Write-Host "==================================================================" -ForegroundColor Yellow

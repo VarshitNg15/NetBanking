@@ -1,0 +1,145 @@
+<!-- NetBanking Redwood Login & Authentication View -->
+<div class="nb-auth-container">
+  <!-- Brand Header -->
+  <div class="nb-auth-header">
+    <span class="oj-ux-ico-bank nb-bank-icon" style="font-size: 2.2rem;"></span>
+    <h2 class="nb-auth-title">NetBanking Portal</h2>
+    <p class="nb-auth-sub">Enterprise Banking &middot; Oracle Redwood UX</p>
+  </div>
+
+  <!-- Navigation Mode Buttons -->
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--nb-border); padding-bottom: 0.75rem;">
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'login', 'nb-btn-outline': activeTab() !== 'login' }, click: function() { switchTab('login'); }">
+      Sign In
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'register', 'nb-btn-outline': activeTab() !== 'register' }, click: function() { switchTab('register'); }">
+      Open Account
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'forgot', 'nb-btn-outline': activeTab() !== 'forgot' }, click: function() { switchTab('forgot'); }">
+      Forgot Password
+    </button>
+  </div>
+
+  <!-- Alerts -->
+  <!-- ko if: errorMessage -->
+  <div class="nb-alert nb-alert-error">
+    <span class="oj-ux-ico-error-s"></span>
+    <span data-bind="text: errorMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: successMessage -->
+  <div class="nb-alert nb-alert-success">
+    <span class="oj-ux-ico-check"></span>
+    <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- 1. SIGN IN FORM -->
+  <!-- ko if: activeTab() === 'login' -->
+  <form data-bind="submit: handleLogin">
+    <div class="nb-form-group">
+      <label class="nb-form-label" for="loginEmail">Email Address</label>
+      <input id="loginEmail" type="email" class="nb-input" placeholder="e.g. customer@example.com" data-bind="textInput: email" required />
+    </div>
+
+    <div class="nb-form-group">
+      <label class="nb-form-label" for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" class="nb-input" placeholder="Enter password" data-bind="textInput: password" required />
+    </div>
+
+    <!-- ko if: mfaRequired -->
+    <div class="nb-form-group" style="background: #fbfbf9; padding: 0.75rem; border: 1px dashed var(--nb-primary); border-radius: 6px;">
+      <label class="nb-form-label" for="loginOtp" style="color: var(--nb-primary); font-weight: 700;">6-Digit Email OTP</label>
+      <input id="loginOtp" type="text" maxlength="6" class="nb-input" placeholder="123456" data-bind="textInput: otp" />
+      <span style="font-size: 0.75rem; color: var(--nb-text-muted);">A verification code was dispatched via Google SMTP to your email.</span>
+    </div>
+    <!-- /ko -->
+
+    <div style="margin-top: 1.5rem;">
+      <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" data-bind="disable: isLoading">
+        <!-- ko if: isLoading -->
+        <span>Authenticating...</span>
+        <!-- /ko -->
+        <!-- ko ifnot: isLoading -->
+        <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+        <span>Sign In to NetBanking</span>
+        <!-- /ko -->
+      </button>
+    </div>
+  </form>
+  <!-- /ko -->
+
+  <!-- 2. OPEN ACCOUNT (REGISTER) FORM -->
+  <!-- ko if: activeTab() === 'register' -->
+  <form data-bind="submit: handleRegister">
+    <div class="nb-form-group">
+      <label class="nb-form-label" for="regEmail">Your Email Address</label>
+      <input id="regEmail" type="email" class="nb-input" placeholder="new.customer@example.com" data-bind="textInput: regEmail" required />
+    </div>
+
+    <div class="nb-form-group">
+      <label class="nb-form-label" for="regPassword">Create Secure Password</label>
+      <input id="regPassword" type="password" class="nb-input" placeholder="Min 8 chars, 1 upper, 1 lower, 1 digit, 1 special" data-bind="textInput: regPassword" required />
+      <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Must be 8-32 chars with letters, numbers, and special characters.</span>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <button type="submit" class="nb-btn nb-btn-success nb-btn-block" data-bind="disable: isLoading">
+        <!-- ko if: isLoading -->
+        <span>Registering...</span>
+        <!-- /ko -->
+        <!-- ko ifnot: isLoading -->
+        <span class="oj-ux-ico-user-plus" style="margin-right: 4px;"></span>
+        <span>Register Customer Account</span>
+        <!-- /ko -->
+      </button>
+    </div>
+  </form>
+  <!-- /ko -->
+
+  <!-- 3. FORGOT / RESET PASSWORD FORM -->
+  <!-- ko if: activeTab() === 'forgot' -->
+  <div>
+    <!-- Step 1: Request Token -->
+    <!-- ko if: resetStep() === 1 -->
+    <form data-bind="submit: handleForgotPassword">
+      <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
+        Enter your registered email address. The system will issue a temporary 15-minute access token specifically authorized to reset your password.
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="forgotEmail">Registered Email</label>
+        <input id="forgotEmail" type="email" class="nb-input" placeholder="customer@example.com" data-bind="textInput: forgotEmail" required />
+      </div>
+      <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" data-bind="disable: isLoading">
+        <span class="oj-ux-ico-key"></span>
+        <span>Generate 15-Min Reset Token</span>
+      </button>
+    </form>
+    <!-- /ko -->
+
+    <!-- Step 2: Set New Password with Token -->
+    <!-- ko if: resetStep() === 2 -->
+    <form data-bind="submit: handleResetPassword">
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="resetTokenInput">Temporary Reset Token</label>
+        <textarea id="resetTokenInput" class="nb-input" rows="3" style="font-family: monospace; font-size: 0.78rem;" data-bind="textInput: resetToken" required></textarea>
+        <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Valid for 15 minutes. Single-use only.</span>
+      </div>
+
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="newPassword">New Password</label>
+        <input id="newPassword" type="password" class="nb-input" placeholder="Enter new password" data-bind="textInput: newPassword" required />
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
+        <button type="button" class="nb-btn nb-btn-outline" data-bind="click: function() { resetStep(1); }">Back</button>
+        <button type="submit" class="nb-btn nb-btn-primary" style="flex: 1;" data-bind="disable: isLoading">
+          Confirm Password Reset
+        </button>
+      </div>
+    </form>
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+</div>

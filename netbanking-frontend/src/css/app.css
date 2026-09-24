@@ -1,0 +1,607 @@
+/* ==============================================================================
+   NetBanking Platform - Oracle Redwood Design Styling
+   ============================================================================== */
+
+:root {
+  --nb-primary: #ba3d1d; /* Redwood Teak / Terracotta */
+  --nb-primary-hover: #9c3318;
+  --nb-secondary: #024e68; /* Slate Blue */
+  --nb-bg-card: #ffffff;
+  --nb-bg-surface: #f7f6f4; /* Redwood warm off-white */
+  --nb-border: #e4e2de;
+  --nb-text-dark: #1b1917;
+  --nb-text-muted: #6a6661;
+  --nb-success: #15803d;
+  --nb-warning: #b45309;
+  --nb-danger: #b91c1c;
+  --nb-radius: 8px;
+}
+
+body.oj-web-applayout-body {
+  background-color: var(--nb-bg-surface);
+  color: var(--nb-text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Accessibility hidden element */
+.send-off-screen {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Header & Branding */
+.nb-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--nb-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.nb-header-bar {
+  padding: 0.5rem 1rem;
+}
+
+.nb-header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--nb-text-dark);
+}
+
+.nb-bank-logo-icon {
+  font-size: 1.6rem;
+  color: var(--nb-primary);
+}
+
+.nb-header-title {
+  letter-spacing: -0.02em;
+}
+
+.nb-redwood-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  background: #fbf0ec;
+  color: var(--nb-primary);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #f2c7b8;
+  margin-left: 4px;
+}
+
+.nb-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* User Status Chip */
+.nb-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fbfbf9;
+  border: 1px solid var(--nb-border);
+  padding: 4px 10px;
+  border-radius: 24px;
+}
+
+.nb-user-avatar {
+  width: 28px;
+  height: 28px;
+  background: #e7e5e1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nb-secondary);
+  font-size: 0.9rem;
+}
+
+.nb-user-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nb-user-role-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nb-tag-admin {
+  color: var(--nb-primary);
+}
+
+.nb-tag-customer {
+  color: var(--nb-secondary);
+}
+
+/* Drawer Header & Badges */
+.nb-drawer-header {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nb-brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.nb-bank-icon {
+  font-size: 1.5rem;
+  color: #ff9166;
+}
+
+.nb-drawer-user-info {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nb-drawer-email {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nb-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.nb-badge-admin {
+  background: #ff5722;
+  color: #ffffff;
+}
+
+.nb-badge-customer {
+  background: #0288d1;
+  color: #ffffff;
+}
+
+.nb-drawer-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nb-btn-block {
+  width: 100%;
+}
+
+/* Navigation Bar */
+.nb-nav-bar-container {
+  background: #ffffff;
+  padding: 0 1rem;
+}
+
+/* Main Container */
+.nb-main-content {
+  padding: 1.5rem 1rem 3rem 1rem;
+  min-height: 80vh;
+}
+
+/* Footer */
+.nb-footer {
+  background: #ffffff;
+  border-top: 1px solid var(--nb-border);
+  padding: 1.5rem 1rem;
+}
+
+.nb-footer-list {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.nb-footer-list a {
+  color: var(--nb-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.nb-footer-list a:hover {
+  text-decoration: underline;
+  color: var(--nb-primary);
+}
+
+.nb-copy {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--nb-text-muted);
+}
+
+/* ==============================================================================
+   Redwood Component Cards, Grids & UI Helpers
+   ============================================================================== */
+
+.nb-card {
+  background: var(--nb-bg-card);
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius);
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-bottom: 1.25rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.nb-card-hover:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  transform: translateY(-2px);
+}
+
+.nb-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--nb-border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.nb-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--nb-text-dark);
+  margin: 0;
+}
+
+/* Metric KPI Cards */
+.nb-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.nb-metric-tile {
+  background: #ffffff;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-metric-tile-primary {
+  border-left: 4px solid var(--nb-primary);
+}
+
+.nb-metric-tile-secondary {
+  border-left: 4px solid var(--nb-secondary);
+}
+
+.nb-metric-tile-success {
+  border-left: 4px solid var(--nb-success);
+}
+
+.nb-metric-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--nb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.nb-metric-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--nb-text-dark);
+  margin-top: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.nb-metric-sub {
+  font-size: 0.75rem;
+  color: var(--nb-text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Status Chips */
+.nb-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.nb-status-active {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.nb-status-pending {
+  background: #fff8e1;
+  color: #f57f17;
+  border: 1px solid #ffe082;
+}
+
+.nb-status-frozen, .nb-status-blocked {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.nb-status-closed {
+  background: #eceff1;
+  color: #455a64;
+  border: 1px solid #cfd8dc;
+}
+
+/* Account Number Display */
+.nb-account-number {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  color: var(--nb-secondary);
+}
+
+/* Responsive Grid Helper */
+.nb-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Redwood Styled Form Container */
+.nb-auth-container {
+  max-width: 440px;
+  margin: 2rem auto;
+  background: #ffffff;
+  border: 1px solid var(--nb-border);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.nb-auth-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.nb-auth-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--nb-text-dark);
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.nb-auth-sub {
+  font-size: 0.85rem;
+  color: var(--nb-text-muted);
+}
+
+.nb-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.nb-form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--nb-text-dark);
+}
+
+.nb-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #d1cfcb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nb-input:focus {
+  outline: none;
+  border-color: var(--nb-primary);
+  box-shadow: 0 0 0 3px rgba(186, 61, 29, 0.15);
+}
+
+/* Alert Boxes */
+.nb-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nb-alert-error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.nb-alert-success {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+}
+
+.nb-alert-info {
+  background: #e1f5fe;
+  color: #0277bd;
+  border: 1px solid #b3e5fc;
+}
+
+/* Table Design */
+.nb-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.nb-table th {
+  background: #f7f6f4;
+  border-bottom: 2px solid var(--nb-border);
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  color: var(--nb-text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.nb-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--nb-border);
+  vertical-align: middle;
+}
+
+.nb-table tr:hover td {
+  background: #faf9f7;
+}
+
+/* Quick Action Buttons */
+.nb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nb-btn-primary {
+  background: var(--nb-primary);
+  color: #ffffff;
+}
+
+.nb-btn-primary:hover {
+  background: var(--nb-primary-hover);
+}
+
+.nb-btn-secondary {
+  background: var(--nb-secondary);
+  color: #ffffff;
+}
+
+.nb-btn-secondary:hover {
+  background: #01374a;
+}
+
+.nb-btn-outline {
+  background: transparent;
+  border: 1px solid var(--nb-border);
+  color: var(--nb-text-dark);
+}
+
+.nb-btn-outline:hover {
+  background: #f0eee9;
+}
+
+.nb-btn-success {
+  background: var(--nb-success);
+  color: #ffffff;
+}
+
+.nb-btn-success:hover {
+  background: #166534;
+}
+
+.nb-btn-danger {
+  background: var(--nb-danger);
+  color: #ffffff;
+}
+
+.nb-btn-danger:hover {
+  background: #991b1b;
+}
+
+.nb-btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+/* Metric KPI Cards for Operations Command Center */
+.nb-metric-card {
+  background: var(--nb-bg-card, #ffffff);
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-radius, 8px);
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nb-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.nb-metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.nb-metric-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nb-text-muted);
+}
+
+.nb-metric-icon {
+  font-size: 1.25rem;
+  color: var(--nb-text-muted);
+}
+
+.nb-metric-caption {
+  font-size: 0.78rem;
+  color: var(--nb-text-muted);
+  margin-top: 0.35rem;
+}
+
+.nb-metric-positive {
+  color: var(--nb-success) !important;
+}

@@ -50,15 +50,21 @@ Write-Host " -> Launching Notification Service (:8085)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\Notification-Service'; `$host.UI.RawUI.WindowTitle = 'Notification Service (8085)'; Write-Host '--- NOTIFICATION SERVICE (8085) ---' -ForegroundColor Green; mvn spring-boot:run"
 
 # 4. Launch API Gateway (:8080)
-Write-Host "`n[4/4] Starting API Gateway (Port 8080)..." -ForegroundColor Yellow
+Write-Host "`n[4/5] Starting API Gateway (Port 8080)..." -ForegroundColor Yellow
 Start-Sleep -Seconds 6
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\api-gateway'; `$host.UI.RawUI.WindowTitle = 'API Gateway (8080)'; Write-Host '--- API GATEWAY (8080) ---' -ForegroundColor Green; mvn spring-boot:run"
+
+# 5. Launch Oracle JET Frontend (:8000)
+Write-Host "`n[5/5] Starting Oracle JET Frontend (Port 8000)..." -ForegroundColor Yellow
+$frontendDir = Join-Path $rootDir "netbanking-frontend"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendDir'; `$host.UI.RawUI.WindowTitle = 'Oracle JET Frontend (8000)'; Write-Host '--- ORACLE JET REDWOOD FRONTEND (8000) ---' -ForegroundColor Green; node server.js"
 
 Write-Host "`n==================================================================" -ForegroundColor Green
 Write-Host "All services have been launched in separate console windows." -ForegroundColor Green
 Write-Host "Service Endpoints:" -ForegroundColor White
-Write-Host " - Eureka Dashboard:        http://localhost:8761" -ForegroundColor Gray
+Write-Host " - Frontend (Oracle JET):    http://localhost:8000" -ForegroundColor Cyan
 Write-Host " - API Gateway (Main Entry): http://localhost:8080" -ForegroundColor Gray
+Write-Host " - Eureka Dashboard:        http://localhost:8761" -ForegroundColor Gray
 Write-Host "`nSwagger UI Documentation Endpoints:" -ForegroundColor Yellow
 Write-Host " - Auth Service Swagger:         http://localhost:8081/swagger-ui/index.html" -ForegroundColor Cyan
 Write-Host " - User Service Swagger:         http://localhost:8082/swagger-ui/index.html" -ForegroundColor Cyan

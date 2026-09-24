@@ -1,0 +1,520 @@
+<!-- NetBanking Redwood Administrator Operations Command Center -->
+<div>
+  <!-- Command Center Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span class="nb-badge nb-badge-admin" style="font-size: 0.75rem; padding: 4px 8px; letter-spacing: 0.05em;">OPERATIONS COMMAND CENTER</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--nb-success); font-weight: 700;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--nb-success); display: inline-block;"></span>
+          LIVE
+        </span>
+      </div>
+      <h2 style="margin: 0; font-size: 1.7rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
+        Enterprise Banking Operations
+      </h2>
+      <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
+        Core banking governance, KYC onboarding approvals, ledger controls &amp; microservices telemetry.
+      </p>
+    </div>
+
+    <!-- ko if: isAuthorized -->
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="background: var(--nb-card-bg); border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.4rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-security" style="color: var(--nb-primary); font-size: 1.1rem;"></span>
+        <div>
+          <div style="font-weight: 700; color: var(--nb-text-dark); line-height: 1.1;"><span data-bind="text: adminId"></span></div>
+          <div style="font-size: 0.7rem; color: var(--nb-text-muted);">ROLE_ADMIN &bull; Full Authority</div>
+        </div>
+      </div>
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadPendingRequests">
+        <span class="oj-ux-ico-refresh"></span>
+        Refresh Operations
+      </button>
+    </div>
+    <!-- /ko -->
+  </div>
+
+  <!-- Alerts -->
+  <!-- ko if: errorMessage -->
+  <div class="nb-alert nb-alert-error">
+    <span class="oj-ux-ico-error-s"></span>
+    <span data-bind="text: errorMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: successMessage -->
+  <div class="nb-alert nb-alert-success">
+    <span class="oj-ux-ico-check"></span>
+    <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- Access Denied Guard (Only non-admins) -->
+  <!-- ko ifnot: isAuthorized -->
+  <div class="nb-card" style="text-align: center; padding: 3rem 1.5rem; border-left: 4px solid var(--nb-danger);">
+    <span class="oj-ux-ico-security" style="font-size: 3rem; color: var(--nb-danger);"></span>
+    <h3 style="margin: 0.75rem 0 0.25rem 0; color: var(--nb-text-dark);">Administrator Privilege Required</h3>
+    <p style="font-size: 0.9rem; color: var(--nb-text-muted); max-width: 480px; margin: 0 auto 1.5rem auto;">
+      This command center is strictly restricted to authorized bank officers with the <code>ADMIN</code> role.
+    </p>
+    <button type="button" class="nb-btn nb-btn-primary" data-bind="click: function() { apiService.navigate('login'); }">
+      Sign In as Administrator
+    </button>
+  </div>
+  <!-- /ko -->
+
+  <!-- Authorized Admin Command Center Content -->
+  <!-- ko if: isAuthorized -->
+  <div>
+    <!-- Redwood Operations KPI Metric Summary Cards -->
+    <div class="nb-metric-grid" style="margin-bottom: 1.75rem;">
+      <!-- KPI 1: Pending Applications -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-warning);">
+        <div class="nb-metric-header">
+          <span class="nb-metric-title">Pending KYC Applications</span>
+          <span class="oj-ux-ico-user-management nb-metric-icon"></span>
+        </div>
+        <div class="nb-metric-value" style="color: var(--nb-warning);" data-bind="text: pendingCount">0</div>
+        <div class="nb-metric-caption">
+          <!-- ko if: pendingCount() > 0 -->
+          <span style="color: var(--nb-warning); font-weight: 700;">Action Required:</span> Awaiting Review
+          <!-- /ko -->
+          <!-- ko if: pendingCount() === 0 -->
+          <span style="color: var(--nb-success); font-weight: 700;">Queue Cleared:</span> All Verified
+          <!-- /ko -->
+        </div>
+      </div>
+
+      <!-- KPI 2: Gateway Edge Status -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-secondary);">
+        <div class="nb-metric-header">
+          <span class="nb-metric-title">Spring Cloud Gateway</span>
+          <span class="oj-ux-ico-globe nb-metric-icon"></span>
+        </div>
+        <div class="nb-metric-value" style="font-size: 1.6rem; color: var(--nb-secondary);">ONLINE :8080</div>
+        <div class="nb-metric-caption">
+          Edge Routing, Rate Limiting &amp; CORS Active
+        </div>
+      </div>
+
+      <!-- KPI 3: Service Discovery Fleet -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-primary);">
+        <div class="nb-metric-header">
+          <span class="nb-metric-title">Service Fleet (Eureka)</span>
+          <span class="oj-ux-ico-server nb-metric-icon"></span>
+        </div>
+        <div class="nb-metric-value" style="font-size: 1.6rem; color: var(--nb-primary);">7 Services</div>
+        <div class="nb-metric-caption">
+          Port 8761 &bull; Service Mesh Active
+        </div>
+      </div>
+
+      <!-- KPI 4: Compliance & Audit Token Status -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-success);">
+        <div class="nb-metric-header">
+          <span class="nb-metric-title">Dual-Control Audit Access</span>
+          <span class="oj-ux-ico-key nb-metric-icon"></span>
+        </div>
+        <div class="nb-metric-value" style="font-size: 1.6rem;" data-bind="css: auditPasskey() ? 'nb-metric-positive' : ''">
+          <!-- ko if: auditPasskey -->AUTHORIZED<!-- /ko -->
+          <!-- ko ifnot: auditPasskey -->STANDBY<!-- /ko -->
+        </div>
+        <div class="nb-metric-caption">
+          <!-- ko if: auditPasskey -->
+          Passkey Active &bull; 5-min TTL
+          <!-- /ko -->
+          <!-- ko ifnot: auditPasskey -->
+          Regulatory Single-Use Policy
+          <!-- /ko -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Operations Workspace Navigation Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--nb-border); padding-bottom: 0.85rem; flex-wrap: wrap;">
+      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'onboarding', 'nb-btn-outline': activeTab() !== 'onboarding' }, click: function() { switchTab('onboarding'); }">
+        <span class="oj-ux-ico-user-management" style="margin-right: 4px;"></span>
+        Onboarding &amp; KYC Approvals
+        <!-- ko if: pendingCount() > 0 -->
+        <span class="nb-badge nb-badge-admin" style="margin-left: 6px; font-size: 0.7rem; padding: 1px 6px;" data-bind="text: pendingCount"></span>
+        <!-- /ko -->
+      </button>
+
+      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'governance', 'nb-btn-outline': activeTab() !== 'governance' }, click: function() { switchTab('governance'); }">
+        <span class="oj-ux-ico-tools" style="margin-right: 4px;"></span>
+        Account Governance &amp; Inspector
+      </button>
+
+      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'audit', 'nb-btn-outline': activeTab() !== 'audit' }, click: function() { switchTab('audit'); }">
+        <span class="oj-ux-ico-key" style="margin-right: 4px;"></span>
+        Dual-Control Audit Vault
+      </button>
+
+      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'fleet', 'nb-btn-outline': activeTab() !== 'fleet' }, click: function() { switchTab('fleet'); }">
+        <span class="oj-ux-ico-dashboard" style="margin-right: 4px;"></span>
+        Microservices Fleet Monitor
+      </button>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- TAB 1: ONBOARDING & KYC APPROVALS QUEUE                        -->
+    <!-- ============================================================= -->
+    <!-- ko if: activeTab() === 'onboarding' -->
+    <div class="nb-card">
+      <div class="nb-card-header">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <h3 class="nb-card-title">Customer Onboarding &amp; KYC Queue</h3>
+            <span class="nb-badge nb-badge-admin" data-bind="text: pendingCount">0</span>
+          </div>
+          <span style="font-size: 0.78rem; color: var(--nb-text-muted);">
+            Source: <code>User-Service /api/v1/users/admin/account-opening/pending</code>
+          </span>
+        </div>
+      </div>
+
+      <!-- ko if: isLoading -->
+      <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
+        <p>Retrieving pending onboarding applications from User-Service...</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko ifnot: isLoading -->
+        <!-- ko if: pendingRequests().length === 0 -->
+        <div style="text-align: center; padding: 3.5rem 1rem; color: var(--nb-text-muted);">
+          <span class="oj-ux-ico-check-circle-s" style="font-size: 3rem; color: var(--nb-success); display: block; margin-bottom: 0.5rem;"></span>
+          <h4 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark); font-size: 1.15rem;">All Onboarding Applications Processed</h4>
+          <p style="font-size: 0.88rem; max-width: 440px; margin: 0 auto;">There are currently no customer account opening requests waiting in the compliance queue.</p>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: pendingRequests().length > 0 -->
+        <div style="overflow-x: auto;">
+          <table class="nb-table">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Customer ID</th>
+                <th>Account Type</th>
+                <th>Status</th>
+                <th>Submission Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody data-bind="foreach: pendingRequests">
+              <tr>
+                <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
+                <td>
+                  <span style="font-weight: 700; color: var(--nb-text-dark);" data-bind="text: customerId"></span>
+                </td>
+                <td>
+                  <span class="nb-badge nb-badge-customer" data-bind="text: accountType || 'SAVINGS'"></span>
+                </td>
+                <td>
+                  <span class="nb-status nb-status-pending" data-bind="text: requestStatus || status || 'PENDING'"></span>
+                </td>
+                <td style="font-size: 0.8rem; color: var(--nb-text-muted);" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+                <td>
+                  <div style="display: flex; gap: 0.4rem;">
+                    <button type="button" class="nb-btn nb-btn-sm nb-btn-success" data-bind="click: $parent.openApproveDialog">
+                      <span class="oj-ux-ico-check"></span>
+                      Approve &amp; Provision
+                    </button>
+                    <button type="button" class="nb-btn nb-btn-sm nb-btn-danger" data-bind="click: $parent.openRejectDialog">
+                      <span class="oj-ux-ico-close"></span>
+                      Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- /ko -->
+      <!-- /ko -->
+    </div>
+    <!-- /ko -->
+
+    <!-- ============================================================= -->
+    <!-- TAB 2: ACCOUNT GOVERNANCE & LIVE INSPECTOR                    -->
+    <!-- ============================================================= -->
+    <!-- ko if: activeTab() === 'governance' -->
+    <div class="nb-grid-2">
+      <!-- Left: Live Account & Ledger Inspector -->
+      <div class="nb-card">
+        <div class="nb-card-header">
+          <h3 class="nb-card-title">Live Account &amp; Ledger Inspector</h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
+          Query any bank account across the entire system by Database ID to inspect its current status, KYC holder, and real-time balances.
+        </p>
+
+        <form data-bind="submit: handleInspectAccount" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+          <input type="number" class="nb-input" placeholder="Enter Account ID (e.g. 1 or 2)" data-bind="textInput: inspectSearchQuery" required style="flex: 1;" />
+          <button type="submit" class="nb-btn nb-btn-primary" data-bind="disable: isInspecting">
+            <!-- ko if: isInspecting -->Inspecting...<!-- /ko -->
+            <!-- ko ifnot: isInspecting -->
+            <span class="oj-ux-ico-search" style="margin-right: 4px;"></span>
+            Inspect
+            <!-- /ko -->
+          </button>
+        </form>
+
+        <!-- ko if: inspectError -->
+        <div class="nb-alert nb-alert-error" style="margin-bottom: 1rem;">
+          <span class="oj-ux-ico-error-s"></span>
+          <span data-bind="text: inspectError"></span>
+        </div>
+        <!-- /ko -->
+
+        <!-- ko if: inspectedAccount -->
+        <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">Account Number</span>
+              <div style="font-family: monospace; font-size: 1.15rem; font-weight: 800; color: var(--nb-secondary);" data-bind="text: inspectedAccount().accountNumber"></div>
+            </div>
+            <span class="nb-status" data-bind="text: inspectedAccount().status, css: {
+              'nb-status-active': inspectedAccount().status === 'ACTIVE',
+              'nb-status-pending': inspectedAccount().status === 'PENDING_APPROVAL',
+              'nb-status-frozen': inspectedAccount().status === 'FROZEN' || inspectedAccount().status === 'BLOCKED',
+              'nb-status-closed': inspectedAccount().status === 'CLOSED'
+            }"></span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
+            <div>
+              <span style="color: var(--nb-text-muted);">Database ID:</span>
+              <strong data-bind="text: inspectedAccount().id"></strong>
+            </div>
+            <div>
+              <span style="color: var(--nb-text-muted);">Customer ID:</span>
+              <strong data-bind="text: inspectedAccount().customerId"></strong>
+            </div>
+            <div>
+              <span style="color: var(--nb-text-muted);">Account Type:</span>
+              <strong data-bind="text: inspectedAccount().accountType"></strong>
+            </div>
+            <div>
+              <span style="color: var(--nb-text-muted);">Currency:</span>
+              <strong data-bind="text: inspectedAccount().currencyCode || 'INR'"></strong>
+            </div>
+          </div>
+
+          <!-- ko if: inspectedBalance -->
+          <div style="background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.75rem; display: flex; justify-content: space-around; text-align: center;">
+            <div>
+              <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase;">Available Balance</div>
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--nb-success);">
+                ₹ <span data-bind="text: parseFloat(inspectedBalance().availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
+              </div>
+            </div>
+            <div style="border-left: 1px solid var(--nb-border); padding-left: 1rem;">
+              <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase;">Current Balance</div>
+              <div style="font-size: 1.1rem; font-weight: 800; color: var(--nb-text-dark);">
+                ₹ <span data-bind="text: parseFloat(inspectedBalance().currentBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
+              </div>
+            </div>
+          </div>
+          <!-- /ko -->
+        </div>
+        <!-- /ko -->
+      </div>
+
+      <!-- Right: Direct Account Status Transition Controller -->
+      <div class="nb-card">
+        <div class="nb-card-header">
+          <h3 class="nb-card-title">Direct Account Status Override</h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
+          Administratively transition any account lifecycle state. Useful for approving pending accounts, emergency freezing, or compliance closures.
+        </p>
+
+        <form data-bind="submit: submitStatusOverride">
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="targetAccId">Account Database ID</label>
+            <input id="targetAccId" type="number" class="nb-input" placeholder="e.g. 2" data-bind="textInput: targetAccountId" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Numeric primary key in the Oracle DB Account table.</span>
+          </div>
+
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="targetStatusSelect">Target Lifecycle Status</label>
+            <select id="targetStatusSelect" class="nb-input" data-bind="value: targetStatus">
+              <option value="ACTIVE">ACTIVE (Fully Operational / Unlocked)</option>
+              <option value="PENDING_APPROVAL">PENDING_APPROVAL (Under Officer Review)</option>
+              <option value="FROZEN">FROZEN (Temporarily Suspended - No Debits)</option>
+              <option value="BLOCKED">BLOCKED (Regulatory / Compliance Hold)</option>
+              <option value="CLOSED">CLOSED (Permanently Terminated)</option>
+            </select>
+          </div>
+
+          <!-- ko if: targetStatus() === 'CLOSED' -->
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="closureReasonInput">Closure Justification</label>
+            <input id="closureReasonInput" type="text" class="nb-input" placeholder="e.g. Customer requested termination / AML flag" data-bind="textInput: closureReason" required />
+          </div>
+          <!-- /ko -->
+
+          <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1.5rem;" data-bind="disable: isSubmittingStatusChange">
+            <!-- ko if: isSubmittingStatusChange -->Transitioning Status...<!-- /ko -->
+            <!-- ko ifnot: isSubmittingStatusChange -->
+            <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
+            Execute Status Transition
+            <!-- /ko -->
+          </button>
+        </form>
+      </div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ============================================================= -->
+    <!-- TAB 3: DUAL-CONTROL AUDIT PASSKEY VAULT                       -->
+    <!-- ============================================================= -->
+    <!-- ko if: activeTab() === 'audit' -->
+    <div class="nb-card" style="max-width: 720px; margin: 0 auto;">
+      <div class="nb-card-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="oj-ux-ico-key" style="font-size: 1.4rem; color: var(--nb-secondary);"></span>
+          <h3 class="nb-card-title">Dual-Control Audit Access Vault</h3>
+        </div>
+      </div>
+
+      <p style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
+        Under banking compliance standards, immutable audit trails and notification dispatch records in the <strong>Notification-Service</strong> are protected by dual-control authorization. Administrators must request a cryptographic, time-bound access passkey before reviewing audit logs.
+      </p>
+
+      <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem;">
+          <div>
+            <span style="color: var(--nb-text-muted);">Requesting Officer:</span>
+            <strong data-bind="text: adminId"></strong>
+          </div>
+          <div>
+            <span style="color: var(--nb-text-muted);">Officer Email:</span>
+            <strong data-bind="text: adminEmail"></strong>
+          </div>
+          <div>
+            <span style="color: var(--nb-text-muted);">Policy Protocol:</span>
+            <strong>Dual-Control Single-Use</strong>
+          </div>
+          <div>
+            <span style="color: var(--nb-text-muted);">Token Expiration:</span>
+            <strong>5 Minutes (300 Seconds)</strong>
+          </div>
+        </div>
+
+        <div class="nb-form-group">
+          <label class="nb-form-label" for="auditReasonInput">Compliance Audit Purpose / Regulatory Justification</label>
+          <input id="auditReasonInput" type="text" class="nb-input" data-bind="textInput: auditReason" required />
+        </div>
+
+        <button type="button" class="nb-btn nb-btn-secondary nb-btn-block" data-bind="click: requestAuditPasskey, disable: isRequestingAudit">
+          <!-- ko if: isRequestingAudit -->Issuing Token...<!-- /ko -->
+          <!-- ko ifnot: isRequestingAudit -->
+          <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+          Generate 5-Minute Compliance Passkey
+          <!-- /ko -->
+        </button>
+      </div>
+
+      <!-- ko if: auditPasskey -->
+      <div style="background: #eef8f1; border: 1px solid #c2e9cb; border-radius: 8px; padding: 1.25rem; text-align: center;">
+        <span class="oj-ux-ico-check-circle-s" style="font-size: 2rem; color: var(--nb-success); display: block; margin-bottom: 0.25rem;"></span>
+        <h4 style="margin: 0 0 0.25rem 0; color: #1e5a2f;">Audit Passkey Authorized</h4>
+        <p style="font-size: 0.8rem; color: #2e7d32; margin: 0 0 0.75rem 0;">Valid for 5 minutes. Authorizes inspection of all email and security event logs.</p>
+        <div style="background: #fff; border: 1px dashed var(--nb-success); border-radius: 6px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.05em; color: var(--nb-secondary);" data-bind="text: auditPasskey"></div>
+        <div style="margin-top: 1rem;">
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { apiService.navigate('notifications'); }">
+            <span class="oj-ux-ico-bell"></span>
+            Inspect System Audit Logs
+          </button>
+        </div>
+      </div>
+      <!-- /ko -->
+    </div>
+    <!-- /ko -->
+
+    <!-- ============================================================= -->
+    <!-- TAB 4: MICROSERVICES FLEET MONITOR                            -->
+    <!-- ============================================================= -->
+    <!-- ko if: activeTab() === 'fleet' -->
+    <div class="nb-card">
+      <div class="nb-card-header">
+        <h3 class="nb-card-title">Microservices Architecture Fleet Telemetry</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1.5rem;">
+        Real-time status overview of all 7 decoupled Spring Boot microservices and gateways in the NetBanking platform.
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;" data-bind="foreach: fleetServices">
+        <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div>
+              <div style="font-weight: 800; font-size: 1rem; color: var(--nb-text-dark);" data-bind="text: name"></div>
+              <div style="font-size: 0.78rem; color: var(--nb-text-muted);" data-bind="text: role"></div>
+            </div>
+            <span class="nb-badge nb-badge-customer" style="font-family: monospace;" data-bind="text: ':' + port"></span>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <!-- ko if: docsUrl -->
+            <a :href="[[docsUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline" style="flex: 1; text-align: center; text-decoration: none;">
+              <span class="oj-ux-ico-external-link" style="margin-right: 4px;"></span>
+              Swagger UI
+            </a>
+            <!-- /ko -->
+            <!-- ko if: healthUrl -->
+            <a :href="[[healthUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline" style="flex: 1; text-align: center; text-decoration: none;">
+              Health Check
+            </a>
+            <!-- /ko -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+
+  <!-- Modal Dialog 1: Confirm Approval -->
+  <oj-dialog id="approveRequestDialog" dialog-title="Confirm Customer Onboarding Approval" aria-describedby="descApprove" style="width: 440px; max-width: 95%;">
+    <div slot="body">
+      <p id="descApprove" style="font-size: 0.88rem; color: var(--nb-text-muted);">
+        Approving Request ID: <strong style="color: var(--nb-secondary);" data-bind="text: selectedRequestId"></strong>
+        <br />This will trigger Account-Service via OpenFeign to provision an active checking/savings account in Oracle DB.
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="approvalReasonInput">Approval Justification</label>
+        <input id="approvalReasonInput" type="text" class="nb-input" data-bind="textInput: approvalReason" required />
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeApproveDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-success" data-bind="click: confirmApprove, disable: isSubmittingApproval">
+        <!-- ko if: isSubmittingApproval -->Provisioning Account...<!-- /ko -->
+        <!-- ko ifnot: isSubmittingApproval -->Confirm &amp; Provision<!-- /ko -->
+      </button>
+    </div>
+  </oj-dialog>
+
+  <!-- Modal Dialog 2: Confirm Rejection -->
+  <oj-dialog id="rejectRequestDialog" dialog-title="Reject Customer Application" aria-describedby="descReject" style="width: 440px; max-width: 95%;">
+    <div slot="body">
+      <p id="descReject" style="font-size: 0.88rem; color: var(--nb-text-muted);">
+        Rejecting Request ID: <strong data-bind="text: selectedRequestId"></strong>
+      </p>
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="rejectReasonInput">Rejection Reason</label>
+        <input id="rejectReasonInput" type="text" class="nb-input" data-bind="textInput: rejectionReason" required />
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeRejectDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-danger" data-bind="click: confirmReject, disable: isSubmittingRejection">
+        <!-- ko if: isSubmittingRejection -->Rejecting...<!-- /ko -->
+        <!-- ko ifnot: isSubmittingRejection -->Confirm Rejection<!-- /ko -->
+      </button>
+    </div>
+  </oj-dialog>
+</div>
