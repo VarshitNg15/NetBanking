@@ -11,12 +11,16 @@
         Email: <strong data-bind="text: userEmail"></strong>
       </p>
     </div>
-    <div style="display: flex; gap: 0.5rem;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: openProfileDialog">
+        <span class="oj-ux-ico-user"></span>
+        My Profile &amp; KYC
+      </button>
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadDashboardData">
         <span class="oj-ux-ico-refresh"></span>
         Refresh
       </button>
-      <button type="button" class="nb-btn nb-btn-secondary" data-bind="click: openNewAccountDialog">
+      <button type="button" class="nb-btn nb-btn-secondary" data-bind="click: openNewAccountDialog, disable: !canOpenAccount()" title="Apply for a new account">
         <span class="oj-ux-ico-plus"></span>
         Open New Account
       </button>
@@ -39,6 +43,19 @@
   <div class="nb-alert nb-alert-success">
     <span class="oj-ux-ico-check"></span>
     <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- Profile Setup Prompt if not created yet -->
+  <!-- ko if: !hasProfile() && !isLoadingProfile() -->
+  <div class="nb-alert nb-alert-info" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="oj-ux-ico-information-s" style="font-size: 1.25rem;"></span>
+      <span><strong>Customer Profile Pending:</strong> Complete your personal and KYC address details to personalize your account.</span>
+    </div>
+    <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: openProfileDialog">
+      Complete Profile Now
+    </button>
   </div>
   <!-- /ko -->
 
@@ -140,10 +157,6 @@
               <td style="color: var(--nb-text-muted);" data-bind="text: formattedCurrentBalance"></td>
               <td>
                 <!-- ko if: status === 'ACTIVE' -->
-                <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: $parent.openCreditDialog">
-                  <span class="oj-ux-ico-arrow-down"></span>
-                  Deposit
-                </button>
                 <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: $parent.goToTransfers">
                   <span class="oj-ux-ico-exchange"></span>
                   Transfer
@@ -161,63 +174,117 @@
     <!-- /ko -->
   </div>
 
-  <!-- Dialog: Open New Account -->
-  <oj-dialog id="newAccountDialog" dialog-title="Request New Bank Account" aria-describedby="descNewAcc" style="width: 420px; max-width: 95%;">
+  <!-- Dialog: Open New Account (Enforces 1 Savings & 1 Current max) -->
+  <oj-dialog id="newAccountDialog" dialog-title="Request New Bank Account" aria-describedby="descNewAcc" style="width: 440px; max-width: 95%;">
     <div slot="body">
+      <!-- ko if: !canOpenAccount() -->
+      <div class="nb-alert nb-alert-info" style="margin-bottom: 1rem;">
+        <span class="oj-ux-ico-information-s"></span>
+        <span>You currently hold both a Savings and a Current account. Platform policy restricts each customer to at most 1 of each account type.</span>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko if: canOpenAccount() -->
       <p id="descNewAcc" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Submit an application to provision an additional checking or savings account.
+        Apply to provision a new bank account. Platform rules allow a maximum of 1 Savings and 1 Current account per customer.
       </p>
       <div class="nb-form-group">
         <label class="nb-form-label" for="accTypeSelect">Select Account Type</label>
         <select id="accTypeSelect" class="nb-input" data-bind="value: newAccountType">
+          <!-- ko ifnot: hasSavingsAccount -->
           <option value="SAVINGS">Savings Account (SAVINGS)</option>
-          <option value="CURRENT">Current / Checking Account (CURRENT)</option>
+          <!-- /ko -->
+          <!-- ko ifnot: hasCurrentAccount -->
+          <option value="CURRENT">Current Account (CURRENT)</option>
+          <!-- /ko -->
         </select>
       </div>
       <div class="nb-form-group">
         <label class="nb-form-label">Currency</label>
         <input type="text" class="nb-input" value="INR (Indian Rupee)" disabled />
       </div>
+      <!-- /ko -->
     </div>
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeNewAccountDialog">Cancel</button>
+      <!-- ko if: canOpenAccount() -->
       <button type="button" class="nb-btn nb-btn-primary" data-bind="click: submitNewAccount, disable: isSubmittingNewAccount">
         <!-- ko if: isSubmittingNewAccount -->Submitting...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingNewAccount -->Submit Request<!-- /ko -->
+        <!-- ko ifnot: isSubmittingNewAccount -->Submit Application<!-- /ko -->
       </button>
+      <!-- /ko -->
     </div>
   </oj-dialog>
 
-  <!-- Dialog: Quick Credit / Deposit -->
-  <oj-dialog id="quickCreditDialog" dialog-title="Deposit Funds (Credit Account)" aria-describedby="descCredit" style="width: 440px; max-width: 95%;">
+  <!-- Dialog: Customer Profile & KYC Management (Req 4) -->
+  <oj-dialog id="customerProfileDialog" dialog-title="Customer Profile & KYC Details" aria-describedby="descProfile" style="width: 520px; max-width: 95%;">
     <div slot="body">
-      <p id="descCredit" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Posts a credit ledger entry directly to the selected bank account.
+      <p id="descProfile" style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
+        Manage your registered identity, contact information, and KYC residential address.
       </p>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="creditAccSelect">Select Target Account</label>
-        <select id="creditAccSelect" class="nb-input" data-bind="value: creditAccountId">
-          <!-- ko foreach: accounts -->
-            <!-- ko if: status === 'ACTIVE' -->
-            <option data-bind="value: id, text: accountNumber + ' (' + accountType + ')'"></option>
-            <!-- /ko -->
-          <!-- /ko -->
-        </select>
-      </div>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="creditAmt">Deposit Amount (₹ INR)</label>
-        <input id="creditAmt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 5000.00" data-bind="textInput: creditAmount" required />
-      </div>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="creditDesc">Description / Reference Note</label>
-        <input id="creditDesc" type="text" class="nb-input" data-bind="textInput: creditDescription" />
-      </div>
+
+      <form data-bind="submit: saveProfile">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profFirstName">First Name *</label>
+            <input id="profFirstName" type="text" class="nb-input" placeholder="e.g. John" data-bind="textInput: profileFirstName" required />
+          </div>
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profLastName">Last Name</label>
+            <input id="profLastName" type="text" class="nb-input" placeholder="e.g. Doe" data-bind="textInput: profileLastName" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profPhone">Phone Number</label>
+            <input id="profPhone" type="tel" class="nb-input" placeholder="+91 9876543210" data-bind="textInput: profilePhoneNumber" />
+          </div>
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profDob">Date of Birth</label>
+            <input id="profDob" type="date" class="nb-input" data-bind="textInput: profileDateOfBirth" />
+          </div>
+        </div>
+
+        <div class="nb-form-group">
+          <label class="nb-form-label" for="profAddr1">Address Line 1</label>
+          <input id="profAddr1" type="text" class="nb-input" placeholder="House / Flat No., Street Name" data-bind="textInput: profileAddressLine1" />
+        </div>
+
+        <div class="nb-form-group">
+          <label class="nb-form-label" for="profAddr2">Address Line 2</label>
+          <input id="profAddr2" type="text" class="nb-input" placeholder="Apartment, suite, unit (optional)" data-bind="textInput: profileAddressLine2" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profCity">City</label>
+            <input id="profCity" type="text" class="nb-input" placeholder="City" data-bind="textInput: profileCity" />
+          </div>
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profState">State</label>
+            <input id="profState" type="text" class="nb-input" placeholder="State" data-bind="textInput: profileState" />
+          </div>
+          <div class="nb-form-group">
+            <label class="nb-form-label" for="profZip">PIN Code</label>
+            <input id="profZip" type="text" class="nb-input" placeholder="PIN" data-bind="textInput: profilePostalCode" />
+          </div>
+        </div>
+
+        <div class="nb-form-group">
+          <label class="nb-form-label" for="profCountry">Country</label>
+          <input id="profCountry" type="text" class="nb-input" placeholder="India" data-bind="textInput: profileCountry" />
+        </div>
+      </form>
     </div>
     <div slot="footer">
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeCreditDialog">Cancel</button>
-      <button type="button" class="nb-btn nb-btn-success" data-bind="click: submitCredit, disable: isSubmittingCredit">
-        <!-- ko if: isSubmittingCredit -->Processing...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingCredit -->Confirm Deposit<!-- /ko -->
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeProfileDialog">Cancel</button>
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: saveProfile, disable: isSavingProfile">
+        <!-- ko if: isSavingProfile -->Saving Profile...<!-- /ko -->
+        <!-- ko ifnot: isSavingProfile -->
+        <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
+        Save Profile &amp; KYC
+        <!-- /ko -->
       </button>
     </div>
   </oj-dialog>

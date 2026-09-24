@@ -7,7 +7,7 @@
         Bank Accounts & Balances
       </h2>
       <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
-        Manage your savings and current checking accounts, configure security PINs, and post deposits.
+        Manage your savings and current checking accounts, configure security PINs, and perform fund transfers.
       </p>
     </div>
     <div style="display: flex; gap: 0.5rem;">
@@ -15,7 +15,7 @@
         <span class="oj-ux-ico-refresh"></span>
         Refresh
       </button>
-      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: openCreateAccountDialog">
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: openCreateAccountDialog, disable: !canOpenAccount()" title="Apply for a new account">
         <span class="oj-ux-ico-plus"></span>
         Open New Account
       </button>
@@ -120,10 +120,6 @@
         <!-- Action Buttons -->
         <!-- ko if: status === 'ACTIVE' -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button type="button" class="nb-btn nb-btn-sm nb-btn-success" data-bind="click: $parent.openDepositDialog">
-            <span class="oj-ux-ico-arrow-down"></span>
-            Deposit Funds
-          </button>
           <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: $parent.openPinDialog">
             <span class="oj-ux-ico-lock"></span>
             Set 4-Digit PIN
@@ -170,51 +166,41 @@
     </div>
   </oj-dialog>
 
-  <!-- Dialog: Deposit Funds -->
-  <oj-dialog id="accountDepositDialog" dialog-title="Deposit Funds into Account" aria-describedby="descDep" style="width: 440px; max-width: 95%;">
+  <!-- Dialog: Open New Account (Enforces 1 Savings & 1 Current max) -->
+  <oj-dialog id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 440px; max-width: 95%;">
     <div slot="body">
-      <p id="descDep" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Account: <strong class="nb-account-number" data-bind="text: depositAccountNumber"></strong>
-        <br />Posts a credit entry to increase available and current balances.
-      </p>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="depAmt">Deposit Amount (₹ INR)</label>
-        <input id="depAmt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 10000.00" data-bind="textInput: depositAmount" required />
+      <!-- ko if: !canOpenAccount() -->
+      <div class="nb-alert nb-alert-info" style="margin-bottom: 1rem;">
+        <span class="oj-ux-ico-information-s"></span>
+        <span>You currently hold both a Savings and a Current account. Platform policy restricts customers to a maximum of 1 of each account type.</span>
       </div>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="depDesc">Description</label>
-        <input id="depDesc" type="text" class="nb-input" data-bind="textInput: depositDescription" />
-      </div>
-    </div>
-    <div slot="footer">
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeDepositDialog">Cancel</button>
-      <button type="button" class="nb-btn nb-btn-success" data-bind="click: submitDeposit, disable: isSubmittingDeposit">
-        <!-- ko if: isSubmittingDeposit -->Depositing...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingDeposit -->Confirm Deposit<!-- /ko -->
-      </button>
-    </div>
-  </oj-dialog>
+      <!-- /ko -->
 
-  <!-- Dialog: Open New Account -->
-  <oj-dialog id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 420px; max-width: 95%;">
-    <div slot="body">
+      <!-- ko if: canOpenAccount() -->
       <p id="descAccCreate" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Select the type of account you want to open.
+        Select the type of account you want to open. Platform rules permit at most 1 Savings and 1 Current account per customer.
       </p>
       <div class="nb-form-group">
         <label class="nb-form-label" for="createAccTypeSelect">Account Type</label>
         <select id="createAccTypeSelect" class="nb-input" data-bind="value: newAccountType">
+          <!-- ko ifnot: hasSavingsAccount -->
           <option value="SAVINGS">Savings Account (SAVINGS)</option>
+          <!-- /ko -->
+          <!-- ko ifnot: hasCurrentAccount -->
           <option value="CURRENT">Current Account (CURRENT)</option>
+          <!-- /ko -->
         </select>
       </div>
+      <!-- /ko -->
     </div>
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeCreateAccountDialog">Cancel</button>
+      <!-- ko if: canOpenAccount() -->
       <button type="button" class="nb-btn nb-btn-primary" data-bind="click: submitCreateAccount, disable: isSubmittingNewAccount">
         <!-- ko if: isSubmittingNewAccount -->Submitting...<!-- /ko -->
         <!-- ko ifnot: isSubmittingNewAccount -->Submit Application<!-- /ko -->
       </button>
+      <!-- /ko -->
     </div>
   </oj-dialog>
 </div>

@@ -21,6 +21,9 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         self.errorMessage('');
         self.successMessage('');
         self.activeTab(tab);
+        if (tab === 'governance') {
+          self.loadAllAccounts();
+        }
       };
 
       // Current Admin Identity
@@ -91,6 +94,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
           self.successMessage(`Application #${self.selectedRequestId()} approved! Account-Service provisioned active account via OpenFeign.`);
           self.closeApproveDialog();
           await self.loadPendingRequests();
+          await self.loadAllAccounts();
         } catch (err) {
           self.errorMessage(err.message || 'Failed to approve application.');
         } finally {
@@ -132,8 +136,104 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       };
 
       // -------------------------------------------------------------
-      // Tab 2: Account Governance & Status Control
       // -------------------------------------------------------------
+      // Tab 2: Account Governance, Live Directory & Inspector
+      // -------------------------------------------------------------
+      this.allAccounts = ko.observableArray([]);
+      this.isLoadingAccounts = ko.observable(false);
+      this.accountSearchFilter = ko.observable('');
+
+      this.filteredAccounts = ko.computed(() => {
+        const filter = (self.accountSearchFilter() || '').trim().toLowerCase();
+        const accounts = self.allAccounts();
+        if (!filter) return accounts;
+        return accounts.filter(acc => {
+          const id = String(acc.id != null ? acc.id : '').toLowerCase();
+          const accNum = String(acc.accountNumber || '').toLowerCase();
+          const custId = String(acc.customerId || '').toLowerCase();
+          const status = String(acc.status || '').toLowerCase();
+          const type = String(acc.accountType || '').toLowerCase();
+          return id.includes(filter) || accNum.includes(filter) || custId.includes(filter) || status.includes(filter) || type.includes(filter);
+        });
+      });
+
+      this.loadAllAccounts = async () => {
+        self.isLoadingAccounts(true);
+        try {
+          const res = await apiService.getAllAccounts();
+          self.allAccounts(Array.isArray(res) ? res : []);
+        } catch (err) {
+          console.warn('Failed to load accounts list', err);
+        } finally {
+          self.isLoadingAccounts(false);
+        }
+      };
+
+      this.selectAccountForInspect = async (acc) => {
+        if (!acc) return;
+        self.inspectSearchQuery(String(acc.id));
+        self.targetAccountId(String(acc.id));
+        self.depositAccountId(String(acc.id));
+        self.depositAccountNumber(acc.accountNumber || '');
+        await self.handleInspectAccount();
+      };
+
+      // Admin Direct Deposit feature (Req 6)
+      this.depositAccountId = ko.observable('');
+      this.depositAccountNumber = ko.observable('');
+      this.depositAmount = ko.observable('');
+      this.depositDescription = ko.observable('Admin Cash / Direct Credit');
+      this.isSubmittingDeposit = ko.observable(false);
+
+      this.openDepositDialog = (acc) => {
+        if (acc) {
+          self.depositAccountId(String(acc.id));
+          self.depositAccountNumber(acc.accountNumber || '');
+        }
+        const dialog = document.getElementById('adminDepositDialog');
+        if (dialog) dialog.open();
+      };
+
+      this.closeDepositDialog = () => {
+        const dialog = document.getElementById('adminDepositDialog');
+        if (dialog) dialog.close();
+      };
+
+      this.submitAdminDeposit = async () => {
+        self.errorMessage('');
+        self.successMessage('');
+        const accId = self.depositAccountId();
+        const amount = parseFloat(self.depositAmount());
+        if (!accId) {
+          self.errorMessage('Please select or specify an Account Database ID for the deposit.');
+          return;
+        }
+        if (isNaN(amount) || amount <= 0) {
+          self.errorMessage('Please enter a valid deposit amount greater than ₹0.00.');
+          return;
+        }
+
+        self.isSubmittingDeposit(true);
+        try {
+          await apiService.creditAccount(
+            accId,
+            amount,
+            self.depositDescription() || 'Admin Direct Deposit'
+          );
+          self.successMessage(`Successfully deposited ₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} into Account #${accId}!`);
+          self.depositAmount('');
+          self.closeDepositDialog();
+          await self.loadAllAccounts();
+          if (self.inspectedAccount() && String(self.inspectedAccount().id) === String(accId)) {
+            await self.handleInspectAccount();
+          }
+        } catch (err) {
+          self.errorMessage(err.message || 'Deposit failed. Please ensure the target account is in ACTIVE status.');
+        } finally {
+          self.isSubmittingDeposit(false);
+        }
+      };
+
       this.targetAccountId = ko.observable('');
       this.targetStatus = ko.observable('ACTIVE');
       this.closureReason = ko.observable('');
@@ -156,6 +256,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
             self.targetStatus() === 'CLOSED' ? (self.closureReason() || 'Administrative compliance closure') : null
           );
           self.successMessage(`Account #${self.targetAccountId()} status successfully transitioned to ${res.status}!`);
+          await self.loadAllAccounts();
           if (self.inspectedAccount() && String(self.inspectedAccount().id) === String(self.targetAccountId())) {
             await self.handleInspectAccount();
           }
@@ -189,6 +290,8 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
           const acc = await apiService.getAccount(query);
           self.inspectedAccount(acc);
           self.targetAccountId(String(acc.id));
+          self.depositAccountId(String(acc.id));
+          self.depositAccountNumber(acc.accountNumber || '');
           try {
             const bal = await apiService.getBalance(acc.id);
             self.inspectedBalance(bal);
@@ -247,6 +350,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         self.isAuthorized(apiService.isAdmin());
         if (self.isAuthorized()) {
           self.loadPendingRequests();
+          self.loadAllAccounts();
         }
       };
     }

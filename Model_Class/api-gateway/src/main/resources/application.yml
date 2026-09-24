@@ -59,7 +59,7 @@ spring:
         - id: transaction-service
           uri: lb://transaction-service
           predicates:
-            - Path=/api/v1/transactions/**, /api/transactions/**, /api/v1/statements/**, /api/statements/**
+            - Path=/api/v1/transactions/**, /api/transactions/**, /api/v1/statements/**, /api/statements/**, /api/v1/transfers/**, /api/transfers/**
           filters:
             - name: RequestRateLimiter
               args:

@@ -101,41 +101,44 @@
   <!-- 3. FORGOT / RESET PASSWORD FORM -->
   <!-- ko if: activeTab() === 'forgot' -->
   <div>
-    <!-- Step 1: Request Token -->
+    <!-- Step 1: Request Password Reset -->
     <!-- ko if: resetStep() === 1 -->
     <form data-bind="submit: handleForgotPassword">
       <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-        Enter your registered email address. The system will issue a temporary 15-minute access token specifically authorized to reset your password.
+        Enter your registered email address to verify your account and reset your password.
       </p>
       <div class="nb-form-group">
         <label class="nb-form-label" for="forgotEmail">Registered Email</label>
         <input id="forgotEmail" type="email" class="nb-input" placeholder="customer@example.com" data-bind="textInput: forgotEmail" required />
       </div>
       <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" data-bind="disable: isLoading">
-        <span class="oj-ux-ico-key"></span>
-        <span>Generate 15-Min Reset Token</span>
+        <span class="oj-ux-ico-lock"></span>
+        <span data-bind="text: isLoading() ? 'Verifying Account...' : 'Verify Account & Continue'"></span>
       </button>
     </form>
     <!-- /ko -->
 
-    <!-- Step 2: Set New Password with Token -->
+    <!-- Step 2: Set New Password -->
     <!-- ko if: resetStep() === 2 -->
     <form data-bind="submit: handleResetPassword">
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="resetTokenInput">Temporary Reset Token</label>
-        <textarea id="resetTokenInput" class="nb-input" rows="3" style="font-family: monospace; font-size: 0.78rem;" data-bind="textInput: resetToken" required></textarea>
-        <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Valid for 15 minutes. Single-use only.</span>
-      </div>
+      <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
+        Account verified for <strong data-bind="text: forgotEmail"></strong>. Please enter your new password below.
+      </p>
 
       <div class="nb-form-group">
         <label class="nb-form-label" for="newPassword">New Password</label>
         <input id="newPassword" type="password" class="nb-input" placeholder="Enter new password" data-bind="textInput: newPassword" required />
       </div>
 
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="confirmNewPassword">Confirm New Password</label>
+        <input id="confirmNewPassword" type="password" class="nb-input" placeholder="Confirm your new password" data-bind="textInput: confirmNewPassword" required />
+      </div>
+
       <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
         <button type="button" class="nb-btn nb-btn-outline" data-bind="click: function() { resetStep(1); }">Back</button>
         <button type="submit" class="nb-btn nb-btn-primary" style="flex: 1;" data-bind="disable: isLoading">
-          Confirm Password Reset
+          <span data-bind="text: isLoading() ? 'Updating Password...' : 'Confirm Password Reset'"></span>
         </button>
       </div>
     </form>

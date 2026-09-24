@@ -28,12 +28,16 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       this.confirmPinCode = ko.observable('');
       this.isSubmittingPin = ko.observable(false);
 
-      // Deposit Dialog observables
-      this.depositAccountId = ko.observable('');
-      this.depositAccountNumber = ko.observable('');
-      this.depositAmount = ko.observable('');
-      this.depositDescription = ko.observable('Direct Deposit');
-      this.isSubmittingDeposit = ko.observable(false);
+      // Account Limits (Req 2: Max 1 Savings and 1 Current account per user)
+      this.hasSavingsAccount = ko.computed(() => {
+        return self.accounts().some(a => a.accountType === 'SAVINGS' && a.status !== 'CLOSED');
+      });
+      this.hasCurrentAccount = ko.computed(() => {
+        return self.accounts().some(a => a.accountType === 'CURRENT' && a.status !== 'CLOSED');
+      });
+      this.canOpenAccount = ko.computed(() => {
+        return !self.hasSavingsAccount() || !self.hasCurrentAccount();
+      });
 
       // Open Account Dialog
       this.newAccountType = ko.observable('SAVINGS');
@@ -116,44 +120,18 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       };
 
       // -----------------------------------------------------------
-      // Deposit Funds Dialog
-      // -----------------------------------------------------------
-      this.openDepositDialog = (account) => {
-        self.depositAccountId(account.id);
-        self.depositAccountNumber(account.accountNumber);
-        self.depositAmount('');
-        const dialog = document.getElementById('accountDepositDialog');
-        if (dialog) dialog.open();
-      };
-
-      this.closeDepositDialog = () => {
-        const dialog = document.getElementById('accountDepositDialog');
-        if (dialog) dialog.close();
-      };
-
-      this.submitDeposit = async () => {
-        if (!self.depositAmount() || parseFloat(self.depositAmount()) <= 0) {
-          self.errorMessage('Please enter a valid deposit amount.');
-          return;
-        }
-
-        self.isSubmittingDeposit(true);
-        try {
-          await apiService.creditAccount(self.depositAccountId(), self.depositAmount(), self.depositDescription());
-          self.successMessage(`Successfully deposited ₹ ${parseFloat(self.depositAmount()).toFixed(2)} to account ${self.depositAccountNumber()}!`);
-          self.closeDepositDialog();
-          await self.loadAccounts();
-        } catch (err) {
-          self.errorMessage(err.message || 'Deposit failed.');
-        } finally {
-          self.isSubmittingDeposit(false);
-        }
-      };
-
-      // -----------------------------------------------------------
-      // Create Account Dialog
+      // Create Account Dialog (1 Savings & 1 Current limit enforced)
       // -----------------------------------------------------------
       this.openCreateAccountDialog = () => {
+        if (!self.canOpenAccount()) {
+          self.errorMessage('Account limit reached: Platform policy permits a maximum of 1 Savings and 1 Current account per customer.');
+          return;
+        }
+        if (self.hasSavingsAccount()) {
+          self.newAccountType('CURRENT');
+        } else {
+          self.newAccountType('SAVINGS');
+        }
         const dialog = document.getElementById('accCreateDialog');
         if (dialog) dialog.open();
       };
@@ -164,11 +142,23 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       };
 
       this.submitCreateAccount = async () => {
+        if (self.newAccountType() === 'SAVINGS' && self.hasSavingsAccount()) {
+          self.errorMessage('You already hold an active or pending Savings Account. Only 1 Savings Account is allowed.');
+          return;
+        }
+        if (self.newAccountType() === 'CURRENT' && self.hasCurrentAccount()) {
+          self.errorMessage('You already hold an active or pending Current Account. Only 1 Current Account is allowed.');
+          return;
+        }
+
         const user = apiService.getUser();
         self.isSubmittingNewAccount(true);
+        self.errorMessage('');
+        self.successMessage('');
+
         try {
           const res = await apiService.createAccount(user.customerId, self.newAccountType(), 'INR');
-          self.successMessage(`Account created! Status: ${res.status}. Account Number: ${res.accountNumber}`);
+          self.successMessage(`Account application for ${self.newAccountType()} submitted! Status: ${res.status}. Account Number: ${res.accountNumber}`);
           self.closeCreateAccountDialog();
           await self.loadAccounts();
         } catch (err) {

@@ -81,15 +81,15 @@ public class CustomerService {
      * Used internally by other User Service components
      * when a JPA Customer entity is required.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Customer getCustomerEntityForInternalUse(String customerId) {
-
         return customerRepository.findById(customerId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Customer not found: " + customerId
-                        )
-                );
+                .orElseGet(() -> {
+                    Customer customer = new Customer();
+                    customer.setCustomerId(customerId);
+                    customer.setCustomerStatus("PENDING_APPROVAL");
+                    return customerRepository.save(customer);
+                });
     }
 
     private void validateCustomerStatus(String status) {

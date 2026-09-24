@@ -22,14 +22,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping({"/api/v1/transactions", "/api/transactions"})
+@RequestMapping({"/api/v1/transactions", "/api/transactions", "/api/v1/transfers", "/api/transfers"})
 @RequiredArgsConstructor
 @Tag(name = "Transactions & Transfers", description = "Endpoints for initiating immediate and scheduled fund transfers and inquiries")
 public class TransactionController {
 
     private final TransferService transferService;
 
-    @PostMapping({"/transfers", "/transfer"})
+    @PostMapping({"/transfers", "/transfer", ""})
     @Operation(summary = "Create fund transfer", description = "Executes immediate or schedules future fund transfer with automated compensation and idempotency guarantees.")
     public ResponseEntity<TransactionResponse> createTransfer(
             @Valid @RequestBody TransferRequest request,

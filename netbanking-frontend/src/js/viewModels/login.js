@@ -58,8 +58,12 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
             self.mfaRequired(true);
             self.successMessage('MFA Required: Enter the OTP dispatched to your registered email.');
           } else {
-            self.successMessage('Authentication successful! Loading your dashboard...');
-            apiService.navigate('dashboard');
+            self.successMessage('Authentication successful! Loading your portal...');
+            if (apiService.isAdmin()) {
+              apiService.navigate('admin');
+            } else {
+              apiService.navigate('dashboard');
+            }
           }
         } catch (err) {
           self.errorMessage(err.message || 'Login failed. Please check your credentials.');
@@ -95,8 +99,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       };
 
       // -----------------------------------------------------------
-      // Forgot Password Actions
+      // Forgot Password Actions (Token hidden from user)
       // -----------------------------------------------------------
+      this.confirmNewPassword = ko.observable('');
+
       this.handleForgotPassword = async () => {
         self.clearMessages();
         if (!self.forgotEmail()) {
@@ -110,12 +116,12 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           if (res.resetToken) {
             self.resetToken(res.resetToken);
             self.resetStep(2);
-            self.successMessage('Temporary 15-minute reset token generated! Please enter your new password.');
+            self.successMessage('Password reset authorized! Please enter your new password below.');
           } else {
             self.successMessage(res.message || 'Password reset instructions issued.');
           }
         } catch (err) {
-          self.errorMessage(err.message || 'Failed to request password reset token.');
+          self.errorMessage(err.message || 'Failed to request password reset.');
         } finally {
           self.isLoading(false);
         }
@@ -123,8 +129,12 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
 
       this.handleResetPassword = async () => {
         self.clearMessages();
-        if (!self.resetToken() || !self.newPassword()) {
-          self.errorMessage('Please provide both the reset token and your new password.');
+        if (!self.newPassword()) {
+          self.errorMessage('Please enter your new password.');
+          return;
+        }
+        if (self.confirmNewPassword() && self.newPassword() !== self.confirmNewPassword()) {
+          self.errorMessage('Passwords do not match. Please verify your new password.');
           return;
         }
 
@@ -139,7 +149,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
             self.switchTab('login');
           }, 1500);
         } catch (err) {
-          self.errorMessage(err.message || 'Password reset failed. Token may be invalid or expired.');
+          self.errorMessage(err.message || 'Password reset failed. Please request a new reset verification.');
         } finally {
           self.isLoading(false);
         }

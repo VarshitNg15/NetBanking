@@ -31,12 +31,9 @@ public class CustomerProfileService {
         // Verify that the customer exists.
         customerService.getCustomerEntityForInternalUse(customerId);
 
-        // Prevent duplicate profile creation.
+        // If profile already exists, gracefully update it
         if (customerProfileRepository.existsById(customerId)) {
-
-            throw new IllegalArgumentException(
-                    "Profile already exists for customer: " + customerId
-            );
+            return updateProfile(customerId, request);
         }
 
         CustomerProfile profile = new CustomerProfile();

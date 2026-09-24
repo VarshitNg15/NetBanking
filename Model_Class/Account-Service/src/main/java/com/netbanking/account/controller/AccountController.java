@@ -52,7 +52,10 @@ public class AccountController {
     }
 
     @GetMapping
-    public List<AccountResponse> byCustomer(@RequestParam String customerId) {
+    public List<AccountResponse> byCustomer(@RequestParam(required = false) String customerId) {
+        if (customerId == null || customerId.isBlank()) {
+            return accounts.getAll();
+        }
         return accounts.byCustomer(customerId);
     }
 
@@ -112,7 +115,7 @@ public class AccountController {
         return ledger.list(id);
     }
 
-    @PutMapping("/{id}/pin")
+    @RequestMapping(value = "/{id}/pin", method = {RequestMethod.PUT, RequestMethod.POST})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setPin(@PathVariable Long id, @Valid @RequestBody SetPinRequest r) {
         pins.set(id, r.pin());

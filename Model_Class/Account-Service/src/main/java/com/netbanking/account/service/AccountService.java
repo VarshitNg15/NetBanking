@@ -20,6 +20,18 @@ public class AccountService {
 	 }
  @Transactional 
  public AccountResponse create(CreateAccountRequest request){
+     List<Account> existing = accounts.findByCustomerId(request.customerId());
+     boolean alreadyHasType = existing.stream().anyMatch(acc -> 
+         acc.getAccountType() == request.accountType() && acc.getAccountStatus() != AccountStatus.CLOSED
+     );
+     if (alreadyHasType) {
+         throw new ConflictException("Customer %s already has an active or pending %s account. A customer may only have one SAVINGS and one CURRENT account.".formatted(request.customerId(), request.accountType()));
+     }
+     long nonClosedCount = existing.stream().filter(acc -> acc.getAccountStatus() != AccountStatus.CLOSED).count();
+     if (nonClosedCount >= 2) {
+         throw new ConflictException("Customer %s has reached the maximum allowed limit of accounts (1 SAVINGS and 1 CURRENT account).".formatted(request.customerId()));
+     }
+
 	 Account a=new Account();
 	 a.setCustomerId(request.customerId());
 	 a.setAccountNumber(nextAccountNumber());
@@ -28,15 +40,19 @@ public class AccountService {
 	 accounts.save(a);
 	 balances.save(new AccountBalance(a));
 	 return AccountResponse.from(a);
-	 }
+ }
  @Transactional(readOnly=true)
  public AccountResponse get(Long id){
 	 return AccountResponse.from(account(id));
-	 }
+ }
+ @Transactional(readOnly=true)
+ public List<AccountResponse> getAll(){
+	 return accounts.findAll().stream().map(AccountResponse::from).toList();
+ }
  @Transactional(readOnly=true)
  public List<AccountResponse> byCustomer(String customerId){
 	 return accounts.findByCustomerId(customerId).stream().map(AccountResponse::from).toList();
-	 }
+ }
  @Transactional
  public AccountResponse changeStatus(Long id,ChangeStatusRequest r){
 	 Account a=account(id); if(a.getAccountStatus()==AccountStatus.CLOSED) throw new ConflictException("A closed account cannot change status");

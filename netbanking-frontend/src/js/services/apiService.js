@@ -20,7 +20,10 @@ define([], function() {
 
     navigate(path) {
       if (this.router && typeof this.router.go === 'function') {
-        return this.router.go({ path: path });
+        return this.router.go({ path: path }).catch(err => {
+          // Catch internal router redirection rejections cleanly
+          if (err) console.debug('Navigation transition:', err);
+        });
       }
       window.location.search = `?ojr=${path}`;
     }
@@ -241,6 +244,10 @@ define([], function() {
     // -------------------------------------------------------------
     // Account & Ledger Endpoints
     // -------------------------------------------------------------
+    async getAllAccounts() {
+      return this.request('/api/v1/accounts');
+    }
+
     async getAccountsByCustomer(customerId) {
       return this.request(`/api/v1/accounts?customerId=${encodeURIComponent(customerId)}`);
     }
@@ -261,20 +268,28 @@ define([], function() {
     }
 
     async creditAccount(accountId, amount, description = 'Direct Deposit') {
-      const entryReference = 'DEP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+      const ref = 'DEP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
       return this.request(`/api/v1/accounts/${accountId}/credits`, {
         method: 'POST',
         body: JSON.stringify({
+          transactionReference: ref,
+          entryReference: ref + '-CREDIT',
           amount: parseFloat(amount),
-          entryReference: entryReference,
           description: description,
-          createdBy: this.getUser() ? this.getUser().customerId : 'CUSTOMER'
+          createdBy: this.getUser() ? (this.getUser().customerId || this.getUser().email) : 'ADMIN'
         })
       });
     }
 
     async setPin(accountId, pin) {
       return this.request(`/api/v1/accounts/${accountId}/pin`, {
+        method: 'PUT',
+        body: JSON.stringify({ pin: String(pin) })
+      });
+    }
+
+    async verifyPin(accountId, pin) {
+      return this.request(`/api/v1/accounts/${accountId}/pin/verify`, {
         method: 'POST',
         body: JSON.stringify({ pin: String(pin) })
       });
@@ -292,16 +307,64 @@ define([], function() {
     // -------------------------------------------------------------
     // Transfers & Transactions Endpoints
     // -------------------------------------------------------------
-    async transfer(fromAccountId, toAccountId, amount, description = 'Fund Transfer', pin = '1234') {
-      return this.request('/api/v1/transfers', {
+    async transfer(fromAccountId, toAccountId, amount, description = 'Fund Transfer', pin = null) {
+      const user = this.getUser() || {};
+      const customerId = user.customerId || '';
+      const email = user.email || '';
+
+      // 1. Resolve destination account ID if an account number (e.g. "NB...") was provided
+      let resolvedToId = toAccountId;
+      const cleanTo = String(toAccountId).trim();
+      if (cleanTo.startsWith('NB') || isNaN(Number(cleanTo))) {
+        try {
+          const allAccs = await this.getAllAccounts();
+          const match = (allAccs || []).find(a => a.accountNumber === cleanTo || String(a.id) === cleanTo);
+          if (match && match.id) {
+            resolvedToId = match.id;
+          } else {
+            throw new Error(`Beneficiary account "${cleanTo}" not found in system.`);
+          }
+        } catch (e) {
+          if (e.message && e.message.includes('not found')) throw e;
+        }
+      }
+
+      // 2. Pre-verify security PIN if provided
+      if (pin) {
+        try {
+          const pinRes = await this.verifyPin(fromAccountId, pin);
+          if (pinRes && pinRes.valid === false) {
+            throw new Error('Invalid 4-digit security PIN.');
+          }
+        } catch (pinErr) {
+          if (pinErr.status === 404 || (pinErr.message && pinErr.message.includes('not been set'))) {
+            throw new Error('Security PIN not configured for this account. Please set a 4-digit PIN in Account Management first.');
+          }
+          if (pinErr.message && (pinErr.message.includes('PIN') || pinErr.message.includes('locked'))) {
+            throw pinErr;
+          }
+          console.warn('PIN pre-verification error:', pinErr);
+        }
+      }
+
+      // 3. Post transfer to Transaction-Service
+      const idempotencyKey = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+      return this.request('/api/v1/transactions/transfers', {
         method: 'POST',
+        headers: {
+          'X-Customer-Id': customerId,
+          'X-User-Email': email,
+          'X-Initiated-By': 'CUSTOMER',
+          'Idempotency-Key': idempotencyKey
+        },
         body: JSON.stringify({
-          fromAccountId: Number(fromAccountId),
-          toAccountId: Number(toAccountId),
+          sourceAccountId: Number(fromAccountId),
+          destinationAccountId: Number(resolvedToId),
           amount: parseFloat(amount),
-          description: description,
-          pin: String(pin),
-          currency: 'INR'
+          currency: 'INR',
+          description: description || 'Fund Transfer',
+          transferType: 'INTERNAL',
+          transferMode: 'IMMEDIATE'
         })
       });
     }
@@ -352,7 +415,27 @@ define([], function() {
     }
 
     async getCustomerNotifications(customerId) {
-      return this.request(`/api/v1/notifications?customerId=${encodeURIComponent(customerId)}`);
+      if (!customerId) return [];
+      try {
+        return await this.request(`/api/v1/notifications/customer/${encodeURIComponent(customerId)}`);
+      } catch (e) {
+        console.warn('Notification fetch warning:', e.message);
+        return [];
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Customer Profiles & KYC
+    // -------------------------------------------------------------
+    async getCustomerProfile(customerId) {
+      return this.request(`/api/v1/customers/${encodeURIComponent(customerId)}/profile`);
+    }
+
+    async saveCustomerProfile(customerId, profile) {
+      return this.request(`/api/v1/customers/${encodeURIComponent(customerId)}/profile`, {
+        method: 'POST',
+        body: JSON.stringify(profile)
+      });
     }
   }
 

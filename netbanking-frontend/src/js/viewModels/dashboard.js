@@ -31,11 +31,6 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       this.newAccountType = ko.observable('SAVINGS');
       this.isSubmittingNewAccount = ko.observable(false);
 
-      // Quick Credit Dialog observables
-      this.creditAccountId = ko.observable('');
-      this.creditAmount = ko.observable('');
-      this.creditDescription = ko.observable('Online Deposit');
-      this.isSubmittingCredit = ko.observable(false);
 
       // -----------------------------------------------------------
       // Fetch Accounts and Balances
@@ -97,9 +92,122 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       };
 
       // -----------------------------------------------------------
-      // Create Account Request
+      // Account Limits (Req 2: Max 1 Savings and 1 Current account per user)
+      this.hasSavingsAccount = ko.computed(() => {
+        return self.accounts().some(a => a.accountType === 'SAVINGS' && a.status !== 'CLOSED');
+      });
+      this.hasCurrentAccount = ko.computed(() => {
+        return self.accounts().some(a => a.accountType === 'CURRENT' && a.status !== 'CLOSED');
+      });
+      this.canOpenAccount = ko.computed(() => {
+        return !self.hasSavingsAccount() || !self.hasCurrentAccount();
+      });
+
+      // Customer Profile & KYC State (Req 4)
+      this.customerProfile = ko.observable(null);
+      this.hasProfile = ko.observable(false);
+      this.isLoadingProfile = ko.observable(false);
+      this.isSavingProfile = ko.observable(false);
+
+      this.profileFirstName = ko.observable('');
+      this.profileLastName = ko.observable('');
+      this.profilePhoneNumber = ko.observable('');
+      this.profileDateOfBirth = ko.observable('');
+      this.profileAddressLine1 = ko.observable('');
+      this.profileAddressLine2 = ko.observable('');
+      this.profileCity = ko.observable('');
+      this.profileState = ko.observable('');
+      this.profilePostalCode = ko.observable('');
+      this.profileCountry = ko.observable('India');
+
+      this.loadCustomerProfile = async () => {
+        const custId = self.customerId();
+        if (!custId) return;
+        self.isLoadingProfile(true);
+        try {
+          const prof = await apiService.getCustomerProfile(custId);
+          if (prof && (prof.firstName || prof.id)) {
+            self.customerProfile(prof);
+            self.hasProfile(true);
+            self.profileFirstName(prof.firstName || '');
+            self.profileLastName(prof.lastName || '');
+            self.profilePhoneNumber(prof.phoneNumber || '');
+            self.profileDateOfBirth(prof.dateOfBirth || '');
+            self.profileAddressLine1(prof.addressLine1 || '');
+            self.profileAddressLine2(prof.addressLine2 || '');
+            self.profileCity(prof.city || '');
+            self.profileState(prof.state || '');
+            self.profilePostalCode(prof.postalCode || '');
+            self.profileCountry(prof.country || 'India');
+          } else {
+            self.hasProfile(false);
+          }
+        } catch (err) {
+          self.hasProfile(false);
+        } finally {
+          self.isLoadingProfile(false);
+        }
+      };
+
+      this.openProfileDialog = () => {
+        const dialog = document.getElementById('customerProfileDialog');
+        if (dialog) dialog.open();
+      };
+
+      this.closeProfileDialog = () => {
+        const dialog = document.getElementById('customerProfileDialog');
+        if (dialog) dialog.close();
+      };
+
+      this.saveProfile = async () => {
+        if (!self.profileFirstName() || !self.profileFirstName().trim()) {
+          self.errorMessage('First name is required to complete profile.');
+          return;
+        }
+
+        self.isSavingProfile(true);
+        self.errorMessage('');
+        self.successMessage('');
+
+        const payload = {
+          firstName: self.profileFirstName().trim(),
+          lastName: (self.profileLastName() || '').trim(),
+          phoneNumber: (self.profilePhoneNumber() || '').trim(),
+          dateOfBirth: self.profileDateOfBirth() || null,
+          addressLine1: (self.profileAddressLine1() || '').trim(),
+          addressLine2: (self.profileAddressLine2() || '').trim(),
+          city: (self.profileCity() || '').trim(),
+          state: (self.profileState() || '').trim(),
+          postalCode: (self.profilePostalCode() || '').trim(),
+          country: (self.profileCountry() || 'India').trim()
+        };
+
+        try {
+          const res = await apiService.saveCustomerProfile(self.customerId(), payload);
+          self.customerProfile(res);
+          self.hasProfile(true);
+          self.successMessage('Customer Profile & KYC details saved successfully!');
+          self.closeProfileDialog();
+        } catch (err) {
+          self.errorMessage(err.message || 'Failed to save customer profile.');
+        } finally {
+          self.isSavingProfile(false);
+        }
+      };
+
+      // -----------------------------------------------------------
+      // Create Account Request (1 Savings & 1 Current limit enforced)
       // -----------------------------------------------------------
       this.openNewAccountDialog = () => {
+        if (!self.canOpenAccount()) {
+          self.errorMessage('Account limit reached: Platform policy permits a maximum of 1 Savings and 1 Current account per customer.');
+          return;
+        }
+        if (self.hasSavingsAccount()) {
+          self.newAccountType('CURRENT');
+        } else {
+          self.newAccountType('SAVINGS');
+        }
         const dialog = document.getElementById('newAccountDialog');
         if (dialog) dialog.open();
       };
@@ -110,7 +218,19 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       };
 
       this.submitNewAccount = async () => {
+        if (self.newAccountType() === 'SAVINGS' && self.hasSavingsAccount()) {
+          self.errorMessage('You already hold an active or pending Savings Account. Only 1 Savings Account is allowed.');
+          return;
+        }
+        if (self.newAccountType() === 'CURRENT' && self.hasCurrentAccount()) {
+          self.errorMessage('You already hold an active or pending Current Account. Only 1 Current Account is allowed.');
+          return;
+        }
+
         self.isSubmittingNewAccount(true);
+        self.errorMessage('');
+        self.successMessage('');
+
         try {
           const res = await apiService.createAccount(self.customerId(), self.newAccountType(), 'INR');
           self.successMessage(`Account application for ${self.newAccountType()} submitted! Status: ${res.status}`);
@@ -120,44 +240,6 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           self.errorMessage(err.message || 'Failed to submit account request.');
         } finally {
           self.isSubmittingNewAccount(false);
-        }
-      };
-
-      // -----------------------------------------------------------
-      // Quick Credit / Deposit Action
-      // -----------------------------------------------------------
-      this.openCreditDialog = (account) => {
-        if (account && account.id) {
-          self.creditAccountId(account.id);
-        } else if (self.accounts().length > 0) {
-          self.creditAccountId(self.accounts()[0].id);
-        }
-        self.creditAmount('');
-        const dialog = document.getElementById('quickCreditDialog');
-        if (dialog) dialog.open();
-      };
-
-      this.closeCreditDialog = () => {
-        const dialog = document.getElementById('quickCreditDialog');
-        if (dialog) dialog.close();
-      };
-
-      this.submitCredit = async () => {
-        if (!self.creditAccountId() || !self.creditAmount() || parseFloat(self.creditAmount()) <= 0) {
-          self.errorMessage('Please specify a valid deposit amount.');
-          return;
-        }
-
-        self.isSubmittingCredit(true);
-        try {
-          await apiService.creditAccount(self.creditAccountId(), self.creditAmount(), self.creditDescription());
-          self.successMessage(`Successfully credited ₹ ${parseFloat(self.creditAmount()).toFixed(2)} to account ID ${self.creditAccountId()}!`);
-          self.closeCreditDialog();
-          await self.loadDashboardData();
-        } catch (err) {
-          self.errorMessage(err.message || 'Credit operation failed.');
-        } finally {
-          self.isSubmittingCredit(false);
         }
       };
 
@@ -177,6 +259,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         }
         document.title = 'Dashboard - NetBanking Redwood Portal';
         self.loadDashboardData();
+        self.loadCustomerProfile();
       };
     }
 
