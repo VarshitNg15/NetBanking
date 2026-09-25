@@ -20,6 +20,61 @@
     </div>
   </div>
 
+  <!-- Filter Option Controls (Transactions, OTP, Security, All) -->
+  <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+    <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+      <!-- Category Segmented Filters -->
+      <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">Filter:</span>
+
+        <button type="button" class="nb-btn nb-btn-sm"
+          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'ALL', 'nb-btn-outline': categoryFilter() !== 'ALL' }, click: function() { categoryFilter('ALL'); }">
+          All
+          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+            data-bind="text: categoryCounts().all, css: { 'nb-badge-customer': categoryFilter() !== 'ALL' }"></span>
+        </button>
+
+        <button type="button" class="nb-btn nb-btn-sm"
+          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'TRANSACTIONS', 'nb-btn-outline': categoryFilter() !== 'TRANSACTIONS' }, click: function() { categoryFilter('TRANSACTIONS'); }">
+          <span class="oj-ux-ico-swap" style="margin-right: 4px;"></span>
+          Transactions
+          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+            data-bind="text: categoryCounts().transactions, css: { 'nb-badge-customer': categoryFilter() !== 'TRANSACTIONS' }"></span>
+        </button>
+
+        <button type="button" class="nb-btn nb-btn-sm"
+          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'OTP', 'nb-btn-outline': categoryFilter() !== 'OTP' }, click: function() { categoryFilter('OTP'); }">
+          <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+          OTP &amp; Auth
+          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+            data-bind="text: categoryCounts().otp, css: { 'nb-badge-customer': categoryFilter() !== 'OTP' }"></span>
+        </button>
+
+        <button type="button" class="nb-btn nb-btn-sm"
+          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'SECURITY', 'nb-btn-outline': categoryFilter() !== 'SECURITY' }, click: function() { categoryFilter('SECURITY'); }">
+          <span class="oj-ux-ico-shield" style="margin-right: 4px;"></span>
+          PIN &amp; Security
+          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+            data-bind="text: categoryCounts().security, css: { 'nb-badge-customer': categoryFilter() !== 'SECURITY' }"></span>
+        </button>
+      </div>
+
+      <!-- Keyword Search + Clear -->
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 250px; max-width: 400px;">
+        <input type="text" class="nb-input" placeholder="Search by Keyword, Email, Subject..."
+          data-bind="textInput: searchFilter" style="font-size: 0.85rem;" />
+        <!-- ko if: searchFilter() || categoryFilter() !== 'ALL' -->
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+          data-bind="click: function() { searchFilter(''); categoryFilter('ALL'); }" title="Clear filters">
+          Reset
+        </button>
+        <!-- /ko -->
+        <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem; white-space: nowrap;"
+          data-bind="text: filteredNotifications().length + ' Events'"></span>
+      </div>
+    </div>
+  </div>
+
   <!-- ko if: isLoading -->
   <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
     <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
@@ -28,16 +83,16 @@
   <!-- /ko -->
 
   <!-- ko ifnot: isLoading -->
-    <!-- ko if: notifications().length === 0 -->
+    <!-- ko if: filteredNotifications().length === 0 -->
     <div class="nb-card" style="text-align: center; padding: 3.5rem 1rem;">
       <span class="oj-ux-ico-bell" style="font-size: 3rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
-      <h3 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark);">No Notifications Recorded</h3>
-      <p style="font-size: 0.88rem; color: var(--nb-text-muted);">You're all caught up! New account alerts, PIN updates, and transfer receipts will appear here.</p>
+      <h3 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark);">No Events Found</h3>
+      <p style="font-size: 0.88rem; color: var(--nb-text-muted);">No records match your selected category or search filters.</p>
     </div>
     <!-- /ko -->
 
-    <!-- ko if: notifications().length > 0 -->
-    <div style="display: flex; flex-direction: column; gap: 1rem;" data-bind="foreach: notifications">
+    <!-- ko if: filteredNotifications().length > 0 -->
+    <div style="display: flex; flex-direction: column; gap: 1rem;" data-bind="foreach: filteredNotifications">
       <div class="nb-card nb-card-hover" style="margin-bottom: 0;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -59,10 +114,176 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--nb-text-muted); margin-top: 0.5rem; border-top: 1px solid var(--nb-border); padding-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
           <span>Event ID: <strong data-bind="text: notificationId || id"></strong> &bull; Recipient: <strong data-bind="text: recipientEmail || recipient || 'Registered Email'"></strong></span>
-          <span>Timestamp: <span data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></span></span>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span>Timestamp: <span data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></span></span>
+            <!-- ko if: $parent.isAdmin -->
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function(data, event) { $parent.inspectLogLedger(data); event.stopPropagation(); }">
+              <span class="oj-ux-ico-table" style="margin-right: 4px;"></span>
+              Check Ledger
+            </button>
+            <!-- /ko -->
+          </div>
         </div>
       </div>
     </div>
     <!-- /ko -->
   <!-- /ko -->
+
+  <!-- Modal Dialog: System Audit Log & Double-Entry Ledger Inspector -->
+  <oj-dialog id="logLedgerDialog" dialog-title="System Audit Log &amp; Double-Entry Ledger Inspector" aria-describedby="descLogLedger" style="width: 1100px; max-width: 96%;">
+    <div slot="body" style="padding: 0.5rem 0;">
+      <!-- Audit Log Summary Card -->
+      <!-- ko if: selectedAuditLog -->
+      <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span class="oj-ux-ico-bell" style="font-size: 1.2rem; color: var(--nb-secondary);"></span>
+              <strong style="font-size: 1.05rem; color: var(--nb-text-dark);" data-bind="text: selectedAuditLog().subject || 'Audit Event Record'"></strong>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--nb-text-muted);">
+              Log ID: <strong style="font-family: monospace; color: var(--nb-secondary);" data-bind="text: '#' + (selectedAuditLog().notificationId || selectedAuditLog().id)"></strong> &bull;
+              Recipient: <strong data-bind="text: selectedAuditLog().recipientEmail || 'N/A'"></strong> &bull;
+              Timestamp: <span data-bind="text: (selectedAuditLog().createdAt || '').substring(0, 19).replace('T', ' ')"></span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="nb-badge nb-badge-customer" data-bind="text: selectedAuditLog().eventType || 'ALERT'"></span>
+            <!-- ko if: selectedAuditLog().status === 'SENT' || selectedAuditLog().status === 'DELIVERED' || selectedAuditLog().status === 'SUCCESS' -->
+            <span class="nb-status nb-status-active">Delivered</span>
+            <!-- /ko -->
+            <!-- ko if: selectedAuditLog().status !== 'SENT' && selectedAuditLog().status !== 'DELIVERED' && selectedAuditLog().status !== 'SUCCESS' -->
+            <span class="nb-status nb-status-pending" data-bind="text: selectedAuditLog().status || 'LOGGED'"></span>
+            <!-- /ko -->
+          </div>
+        </div>
+
+        <!-- Message Body / Description Preview -->
+        <!-- ko if: selectedAuditLog().messageBody -->
+        <div style="font-size: 0.82rem; color: var(--nb-text-dark); background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.65rem 0.85rem; line-height: 1.45; white-space: pre-line;" data-bind="text: selectedAuditLog().messageBody"></div>
+        <!-- /ko -->
+
+        <!-- Customer Identity & Account Selector Strip -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--nb-border); flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--nb-text-muted);">Target Customer:</span>
+            <strong style="font-family: monospace; color: var(--nb-text-dark); font-size: 0.9rem;" data-bind="text: selectedAuditLog().customerId"></strong>
+          </div>
+
+          <!-- ko if: logCustomerAccounts().length > 0 -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--nb-text-dark);">Customer Accounts:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;" data-bind="foreach: logCustomerAccounts">
+              <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': String($parent.selectedLogAccountId()) === String(id), 'nb-btn-outline': String($parent.selectedLogAccountId()) !== String(id) }, click: function() { $parent.selectedLogAccountId(String(id)); $parent.fetchLogLedger(id); }">
+                <span data-bind="text: (accountType || 'ACCOUNT') + ' #' + id"></span>
+                <!-- ko if: accountNumber -->
+                <span style="opacity: 0.8; font-size: 0.7rem; margin-left: 3px;" data-bind="text: '(' + accountNumber + ')'"></span>
+                <!-- /ko -->
+              </button>
+            </div>
+          </div>
+          <!-- /ko -->
+
+          <!-- Manual Account Lookup if needed -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <input type="number" class="nb-input" style="width: 140px; padding: 4px 8px; font-size: 0.82rem;" placeholder="Account ID..." data-bind="textInput: selectedLogAccountId" />
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { fetchLogLedger(selectedLogAccountId()); }, disable: !selectedLogAccountId() || isLoadingLogLedger()">
+              Inspect
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /ko -->
+
+      <!-- Ledger Section Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h4 style="margin: 0; font-size: 1.05rem; color: var(--nb-text-dark); display: flex; align-items: center; gap: 0.4rem;">
+            <span class="oj-ux-ico-table" style="color: var(--nb-secondary);"></span>
+            10-Column Double-Entry Financial Ledger
+            <!-- ko if: selectedLogAccountId -->
+            <span style="font-size: 0.85rem; font-weight: normal; color: var(--nb-text-muted);" data-bind="text: 'for Account #' + selectedLogAccountId()"></span>
+            <!-- /ko -->
+          </h4>
+        </div>
+        <div>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { fetchLogLedger(selectedLogAccountId()); }, disable: !selectedLogAccountId() || isLoadingLogLedger()">
+            <span class="oj-ux-ico-refresh"></span> Refresh Ledger
+          </button>
+        </div>
+      </div>
+
+      <!-- Ledger Loading State -->
+      <!-- ko if: isLoadingLogLedger -->
+      <div style="text-align: center; padding: 2.5rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+        <p style="margin-top: 0.5rem;">Querying double-entry immutable ledger from Account-Service...</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- Ledger Error -->
+      <!-- ko if: logLedgerError -->
+      <div style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 6px; padding: 0.85rem; color: #c53030; font-size: 0.85rem; margin-bottom: 1rem;" data-bind="text: logLedgerError"></div>
+      <!-- /ko -->
+
+      <!-- Ledger Empty State -->
+      <!-- ko ifnot: isLoadingLogLedger -->
+        <!-- ko if: logAccountLedger().length === 0 && !logLedgerError() -->
+        <div style="text-align: center; padding: 2.5rem 1rem; background: #fafaf8; border: 1px dashed var(--nb-border); border-radius: 8px; color: var(--nb-text-muted);">
+          <span class="oj-ux-ico-table" style="font-size: 2rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+          <p style="font-size: 0.92rem; margin: 0;">No ledger postings recorded for Account #<span data-bind="text: selectedLogAccountId"></span>.</p>
+          <p style="font-size: 0.8rem; margin: 0.25rem 0 0 0;">Transactions, credits, and debits processed via Transaction-Service will appear here with full balances before and after.</p>
+        </div>
+        <!-- /ko -->
+
+        <!-- 10-Column Ledger Table -->
+        <!-- ko if: logAccountLedger().length > 0 -->
+        <div style="overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid var(--nb-border); border-radius: 8px;">
+          <table class="nb-table" style="font-size: 0.78rem; margin: 0; min-width: 1000px;">
+            <thead>
+              <tr style="position: sticky; top: 0; background: #f4f3ef; z-index: 2;">
+                <th style="white-space: nowrap;">TRANSACTION_REFERENCE</th>
+                <th style="white-space: nowrap;">ENTRY_REFERENCE</th>
+                <th style="white-space: nowrap;">ENTRY_TYPE</th>
+                <th style="white-space: nowrap; text-align: right;">AMOUNT</th>
+                <th style="white-space: nowrap; text-align: right;">BALANCE_BEFORE</th>
+                <th style="white-space: nowrap; text-align: right;">BALANCE_AFTER</th>
+                <th style="white-space: nowrap; text-align: right;">AVAILABLE_BALANCE_BEFORE</th>
+                <th style="white-space: nowrap; text-align: right;">AVAILABLE_BALANCE_AFTER</th>
+                <th style="white-space: nowrap;">DESCRIPTION</th>
+                <th style="white-space: nowrap;">CREATED_BY</th>
+                <th style="white-space: nowrap;">CREATED_AT</th>
+              </tr>
+            </thead>
+            <tbody data-bind="foreach: logAccountLedger">
+              <tr>
+                <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference || '-'"></td>
+                <td style="font-family: monospace; color: var(--nb-text-muted);" data-bind="text: entryReference || '-'"></td>
+                <td>
+                  <!-- ko if: entryType === 'CREDIT' -->
+                  <span class="nb-badge nb-badge-customer" style="background: #eef8f1; color: #1e5a2f; border: 1px solid #c2e9cb; font-weight: 700;">CREDIT</span>
+                  <!-- /ko -->
+                  <!-- ko if: entryType !== 'CREDIT' -->
+                  <span class="nb-badge nb-badge-admin" style="background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; font-weight: 700;">DEBIT</span>
+                  <!-- /ko -->
+                </td>
+                <td style="text-align: right; font-weight: 700;" data-bind="css: { 'nb-metric-positive': entryType === 'CREDIT', 'nb-metric-negative': entryType !== 'CREDIT' }, text: (entryType === 'CREDIT' ? '+₹' : '-₹') + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
+                <td style="text-align: right; font-family: monospace;" data-bind="text: '₹' + parseFloat(balanceBefore || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
+                <td style="text-align: right; font-family: monospace; font-weight: 600;" data-bind="text: '₹' + parseFloat(balanceAfter || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
+                <td style="text-align: right; font-family: monospace; color: var(--nb-text-muted);" data-bind="text: '₹' + parseFloat(availableBalanceBefore || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
+                <td style="text-align: right; font-family: monospace; font-weight: 600; color: var(--nb-text-dark);" data-bind="text: '₹' + parseFloat(availableBalanceAfter || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })"></td>
+                <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-bind="text: description || '-'"></td>
+                <td style="white-space: nowrap; font-size: 0.72rem; color: var(--nb-text-muted);" data-bind="text: createdBy || 'SYSTEM'"></td>
+                <td style="white-space: nowrap; font-size: 0.72rem; color: var(--nb-text-muted);" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- /ko -->
+      <!-- /ko -->
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeLogLedgerDialog">Close Inspector</button>
+    </div>
+  </oj-dialog>
 </div>

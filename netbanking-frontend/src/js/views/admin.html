@@ -1,12 +1,16 @@
 <!-- NetBanking Redwood Administrator Operations Command Center -->
 <div>
   <!-- Command Center Header -->
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div
+    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-        <span class="nb-badge nb-badge-admin" style="font-size: 0.75rem; padding: 4px 8px; letter-spacing: 0.05em;">OPERATIONS COMMAND CENTER</span>
-        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--nb-success); font-weight: 700;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--nb-success); display: inline-block;"></span>
+        <span class="nb-badge nb-badge-admin"
+          style="font-size: 0.75rem; padding: 4px 8px; letter-spacing: 0.05em;">Netbanking</span>
+        <span
+          style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--nb-success); font-weight: 700;">
+          <span
+            style="width: 8px; height: 8px; border-radius: 50%; background: var(--nb-success); display: inline-block;"></span>
           LIVE
         </span>
       </div>
@@ -20,14 +24,16 @@
 
     <!-- ko if: isAuthorized -->
     <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-      <div style="background: var(--nb-card-bg); border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.4rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+      <div
+        style="background: var(--nb-card-bg); border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.4rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
         <span class="oj-ux-ico-security" style="color: var(--nb-primary); font-size: 1.1rem;"></span>
         <div>
-          <div style="font-weight: 700; color: var(--nb-text-dark); line-height: 1.1;"><span data-bind="text: adminId"></span></div>
+          <div style="font-weight: 700; color: var(--nb-text-dark); line-height: 1.1;"><span
+              data-bind="text: adminId"></span></div>
           <div style="font-size: 0.7rem; color: var(--nb-text-muted);">ROLE_ADMIN &bull; Full Authority</div>
         </div>
       </div>
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadPendingRequests">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: refreshAll">
         <span class="oj-ux-ico-refresh"></span>
         Refresh Operations
       </button>
@@ -69,20 +75,15 @@
   <div>
     <!-- Redwood Operations KPI Metric Summary Cards -->
     <div class="nb-metric-grid" style="margin-bottom: 1.75rem;">
-      <!-- KPI 1: Pending Applications -->
-      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-warning);">
+      <!-- KPI 1: Active Platform Accounts -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-secondary);">
         <div class="nb-metric-header">
-          <span class="nb-metric-title">Pending KYC Applications</span>
-          <span class="oj-ux-ico-user-management nb-metric-icon"></span>
+          <span class="nb-metric-title">Platform Bank Accounts</span>
+          <span class="oj-ux-ico-bank nb-metric-icon"></span>
         </div>
-        <div class="nb-metric-value" style="color: var(--nb-warning);" data-bind="text: pendingCount">0</div>
+        <div class="nb-metric-value" style="color: var(--nb-secondary);" data-bind="text: allAccounts().length">0</div>
         <div class="nb-metric-caption">
-          <!-- ko if: pendingCount() > 0 -->
-          <span style="color: var(--nb-warning); font-weight: 700;">Action Required:</span> Awaiting Review
-          <!-- /ko -->
-          <!-- ko if: pendingCount() === 0 -->
-          <span style="color: var(--nb-success); font-weight: 700;">Queue Cleared:</span> All Verified
-          <!-- /ko -->
+          Active &amp; Governed Accounts
         </div>
       </div>
 
@@ -110,135 +111,44 @@
         </div>
       </div>
 
-      <!-- KPI 4: Compliance & Audit Token Status -->
-      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-success);">
+      <!-- KPI 4: Compliance & Audit Records Status -->
+      <div class="nb-metric-card" style="border-top: 3px solid var(--nb-secondary);">
         <div class="nb-metric-header">
-          <span class="nb-metric-title">Dual-Control Audit Access</span>
-          <span class="oj-ux-ico-key nb-metric-icon"></span>
+          <span class="nb-metric-title">Compliance Audit Stream</span>
+          <span class="oj-ux-ico-clipboard-check nb-metric-icon"></span>
         </div>
-        <div class="nb-metric-value" style="font-size: 1.6rem;" data-bind="css: auditPasskey() ? 'nb-metric-positive' : ''">
-          <!-- ko if: auditPasskey -->AUTHORIZED<!-- /ko -->
-          <!-- ko ifnot: auditPasskey -->STANDBY<!-- /ko -->
+        <div class="nb-metric-value" style="font-size: 1.6rem;" data-bind="text: auditLogs().length">
+          0
         </div>
         <div class="nb-metric-caption">
-          <!-- ko if: auditPasskey -->
-          Passkey Active &bull; 5-min TTL
-          <!-- /ko -->
-          <!-- ko ifnot: auditPasskey -->
-          Regulatory Single-Use Policy
-          <!-- /ko -->
+          Immutable System Events
         </div>
       </div>
     </div>
 
     <!-- Operations Workspace Navigation Tabs -->
-    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--nb-border); padding-bottom: 0.85rem; flex-wrap: wrap;">
-      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'onboarding', 'nb-btn-outline': activeTab() !== 'onboarding' }, click: function() { switchTab('onboarding'); }">
-        <span class="oj-ux-ico-user-management" style="margin-right: 4px;"></span>
-        Onboarding &amp; KYC Approvals
-        <!-- ko if: pendingCount() > 0 -->
-        <span class="nb-badge nb-badge-admin" style="margin-left: 6px; font-size: 0.7rem; padding: 1px 6px;" data-bind="text: pendingCount"></span>
-        <!-- /ko -->
-      </button>
-
-      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'governance', 'nb-btn-outline': activeTab() !== 'governance' }, click: function() { switchTab('governance'); }">
+    <div
+      style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--nb-border); padding-bottom: 0.85rem; flex-wrap: wrap;">
+      <button type="button" class="nb-btn nb-btn-sm"
+        data-bind="css: { 'nb-btn-primary': activeTab() === 'governance', 'nb-btn-outline': activeTab() !== 'governance' }, click: function() { switchTab('governance'); }">
         <span class="oj-ux-ico-tools" style="margin-right: 4px;"></span>
         Account Governance &amp; Inspector
       </button>
 
-      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'audit', 'nb-btn-outline': activeTab() !== 'audit' }, click: function() { switchTab('audit'); }">
-        <span class="oj-ux-ico-key" style="margin-right: 4px;"></span>
-        Dual-Control Audit Vault
+      <button type="button" class="nb-btn nb-btn-sm"
+        data-bind="css: { 'nb-btn-primary': activeTab() === 'audit', 'nb-btn-outline': activeTab() !== 'audit' }, click: function() { switchTab('audit'); }">
+        <span class="oj-ux-ico-clipboard-check" style="margin-right: 4px;"></span>
+        System Audit Logs &amp; Ledger
       </button>
 
-      <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'fleet', 'nb-btn-outline': activeTab() !== 'fleet' }, click: function() { switchTab('fleet'); }">
+      <button type="button" class="nb-btn nb-btn-sm"
+        data-bind="css: { 'nb-btn-primary': activeTab() === 'fleet', 'nb-btn-outline': activeTab() !== 'fleet' }, click: function() { switchTab('fleet'); }">
         <span class="oj-ux-ico-dashboard" style="margin-right: 4px;"></span>
         Microservices Fleet Monitor
       </button>
     </div>
 
-    <!-- ============================================================= -->
-    <!-- TAB 1: ONBOARDING & KYC APPROVALS QUEUE                        -->
-    <!-- ============================================================= -->
-    <!-- ko if: activeTab() === 'onboarding' -->
-    <div class="nb-card">
-      <div class="nb-card-header">
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 0.6rem;">
-            <h3 class="nb-card-title">Customer Onboarding &amp; KYC Queue</h3>
-            <span class="nb-badge nb-badge-admin" data-bind="text: pendingCount">0</span>
-          </div>
-          <span style="font-size: 0.78rem; color: var(--nb-text-muted);">
-            Source: <code>User-Service /api/v1/users/admin/account-opening/pending</code>
-          </span>
-        </div>
-      </div>
 
-      <!-- ko if: isLoading -->
-      <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
-        <p>Retrieving pending onboarding applications from User-Service...</p>
-      </div>
-      <!-- /ko -->
-
-      <!-- ko ifnot: isLoading -->
-        <!-- ko if: pendingRequests().length === 0 -->
-        <div style="text-align: center; padding: 3.5rem 1rem; color: var(--nb-text-muted);">
-          <span class="oj-ux-ico-check-circle-s" style="font-size: 3rem; color: var(--nb-success); display: block; margin-bottom: 0.5rem;"></span>
-          <h4 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark); font-size: 1.15rem;">All Onboarding Applications Processed</h4>
-          <p style="font-size: 0.88rem; max-width: 440px; margin: 0 auto;">There are currently no customer account opening requests waiting in the compliance queue.</p>
-        </div>
-        <!-- /ko -->
-
-        <!-- ko if: pendingRequests().length > 0 -->
-        <div style="overflow-x: auto;">
-          <table class="nb-table">
-            <thead>
-              <tr>
-                <th>Request ID</th>
-                <th>Customer ID</th>
-                <th>Account User Name</th>
-                <th>Account Type</th>
-                <th>Status</th>
-                <th>Submission Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody data-bind="foreach: pendingRequests">
-              <tr>
-                <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
-                <td>
-                  <span style="font-weight: 700; color: var(--nb-text-dark);" data-bind="text: customerId"></span>
-                </td>
-                <td>
-                  <strong style="color: var(--nb-text-dark);" data-bind="text: customerName || customerId"></strong>
-                </td>
-                <td>
-                  <span class="nb-badge nb-badge-customer" data-bind="text: accountType || 'SAVINGS'"></span>
-                </td>
-                <td>
-                  <span class="nb-status nb-status-pending" data-bind="text: requestStatus || status || 'PENDING'"></span>
-                </td>
-                <td style="font-size: 0.8rem; color: var(--nb-text-muted);" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
-                <td>
-                  <div style="display: flex; gap: 0.4rem;">
-                    <button type="button" class="nb-btn nb-btn-sm nb-btn-success" data-bind="click: $parent.openApproveDialog">
-                      <span class="oj-ux-ico-check"></span>
-                      Approve &amp; Provision
-                    </button>
-                    <button type="button" class="nb-btn nb-btn-sm nb-btn-danger" data-bind="click: $parent.openRejectDialog">
-                      <span class="oj-ux-ico-close"></span>
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- /ko -->
-      <!-- /ko -->
-    </div>
-    <!-- /ko -->
 
     <!-- ============================================================= -->
     <!-- TAB 2: ACCOUNT GOVERNANCE & LIVE INSPECTOR                    -->
@@ -251,18 +161,22 @@
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="oj-ux-ico-list" style="font-size: 1.3rem; color: var(--nb-secondary);"></span>
             <h3 class="nb-card-title">All Platform Accounts Registry</h3>
-            <span class="nb-badge" style="background: var(--nb-secondary); color: #fff; font-size: 0.75rem;" data-bind="text: allAccounts().length + ' Accounts'"></span>
+            <span class="nb-badge" style="background: var(--nb-secondary); color: #fff; font-size: 0.75rem;"
+              data-bind="text: allAccounts().length + ' Accounts'"></span>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" class="nb-input" placeholder="Search by ID, Account #, Customer ID, Status..." style="min-width: 280px; font-size: 0.85rem;" data-bind="textInput: accountSearchFilter" />
-            <button type="button" class="nb-btn nb-btn-outline nb-btn-sm" data-bind="click: loadAllAccounts, disable: isLoadingAccounts" title="Refresh Accounts">
+            <input type="text" class="nb-input" placeholder="Search by ID, Account #, Customer ID, Status..."
+              style="min-width: 280px; font-size: 0.85rem;" data-bind="textInput: accountSearchFilter" />
+            <button type="button" class="nb-btn nb-btn-outline nb-btn-sm"
+              data-bind="click: loadAllAccounts, disable: isLoadingAccounts" title="Refresh Accounts">
               <span class="oj-ux-ico-refresh"></span>
             </button>
           </div>
         </div>
 
         <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-          Select any account below to immediately inspect live ledger balances, execute admin direct deposits, or manage account lifecycle status.
+          Select any account below to immediately inspect live ledger balances, execute admin direct deposits, or manage
+          account lifecycle status.
         </p>
 
         <!-- ko if: isLoadingAccounts -->
@@ -274,7 +188,8 @@
 
         <!-- ko ifnot: isLoadingAccounts -->
         <!-- ko if: filteredAccounts().length === 0 -->
-        <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted); background: #fbfbf9; border-radius: 8px;">
+        <div
+          style="text-align: center; padding: 2rem; color: var(--nb-text-muted); background: #fbfbf9; border-radius: 8px;">
           <span class="oj-ux-ico-search" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></span>
           No accounts found matching search criteria.
         </div>
@@ -296,7 +211,8 @@
             </thead>
             <tbody>
               <!-- ko foreach: filteredAccounts -->
-              <tr data-bind="style: { background: ($parent.targetAccountId() === String($data.id)) ? '#f0f7ff' : 'transparent' }">
+              <tr
+                data-bind="style: { background: ($parent.targetAccountId() === String($data.id)) ? '#f0f7ff' : 'transparent' }">
                 <td>
                   <strong style="color: var(--nb-secondary);" data-bind="text: $data.id"></strong>
                 </td>
@@ -307,10 +223,12 @@
                   <span data-bind="text: $data.customerId"></span>
                 </td>
                 <td>
-                  <strong style="color: var(--nb-text-dark);" data-bind="text: $data.customerName || $data.customerId"></strong>
+                  <strong style="color: var(--nb-text-dark);"
+                    data-bind="text: $data.customerName || $data.customerId"></strong>
                 </td>
                 <td>
-                  <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: $data.accountType"></span>
+                  <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;"
+                    data-bind="text: $data.accountType"></span>
                 </td>
                 <td>
                   <span class="nb-status" data-bind="text: $data.status, css: {
@@ -321,13 +239,19 @@
                   }"></span>
                 </td>
                 <td style="white-space: nowrap;">
-                  <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;" data-bind="click: function() { $parent.selectAccountForInspect($data); }">
+                  <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+                    style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;"
+                    data-bind="click: function() { $parent.selectAccountForInspect($data); }">
                     <span class="oj-ux-ico-search"></span> Inspect
                   </button>
-                  <button type="button" class="nb-btn nb-btn-sm nb-btn-success" style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;" data-bind="click: function() { $parent.openDepositDialog($data); }">
+                  <button type="button" class="nb-btn nb-btn-sm nb-btn-success"
+                    style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;"
+                    data-bind="click: function() { $parent.selectAccountForDeposit($data); }">
                     <span class="oj-ux-ico-plus-circle"></span> Deposit
                   </button>
-                  <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" data-bind="click: function() { $parent.targetAccountId(String($data.id)); }">
+                  <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+                    style="padding: 2px 8px; font-size: 0.75rem;"
+                    data-bind="click: function() { $parent.selectAccountForStatus($data); }">
                     <span class="oj-ux-ico-edit"></span> Set Status
                   </button>
                 </td>
@@ -345,16 +269,18 @@
         <!-- Left Column: Inspector & Admin Direct Deposit Card -->
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
           <!-- Live Account & Ledger Inspector -->
-          <div class="nb-card">
+          <div id="accountInspectorSection" class="nb-card">
             <div class="nb-card-header">
               <h3 class="nb-card-title">Account &amp; Ledger Inspector</h3>
             </div>
             <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
-              Query any bank account across the platform by Database ID to inspect its current status and real-time ledger balance.
+              Query any bank account across the platform by Database ID to inspect its current status and real-time
+              ledger balance.
             </p>
 
             <form data-bind="submit: handleInspectAccount" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
-              <input type="number" class="nb-input" placeholder="Enter Account ID (e.g. 1 or 2)" data-bind="textInput: inspectSearchQuery" required style="flex: 1;" />
+              <input type="number" class="nb-input" placeholder="Enter Account ID (e.g. 1 or 2)"
+                data-bind="textInput: inspectSearchQuery" required style="flex: 1;" />
               <button type="submit" class="nb-btn nb-btn-primary" data-bind="disable: isInspecting">
                 <!-- ko if: isInspecting -->Inspecting...<!-- /ko -->
                 <!-- ko ifnot: isInspecting -->
@@ -375,8 +301,11 @@
             <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <div>
-                  <span style="font-size: 0.75rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">Account Number</span>
-                  <div style="font-family: monospace; font-size: 1.15rem; font-weight: 800; color: var(--nb-secondary);" data-bind="text: inspectedAccount().accountNumber"></div>
+                  <span
+                    style="font-size: 0.75rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">Account
+                    Number</span>
+                  <div style="font-family: monospace; font-size: 1.15rem; font-weight: 800; color: var(--nb-secondary);"
+                    data-bind="text: inspectedAccount().accountNumber"></div>
                 </div>
                 <span class="nb-status" data-bind="text: inspectedAccount().status, css: {
                   'nb-status-active': inspectedAccount().status === 'ACTIVE',
@@ -386,7 +315,8 @@
                 }"></span>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
                 <div>
                   <span style="color: var(--nb-text-muted);">Database ID:</span>
                   <strong data-bind="text: inspectedAccount().id"></strong>
@@ -397,7 +327,8 @@
                 </div>
                 <div>
                   <span style="color: var(--nb-text-muted);">Account User Name:</span>
-                  <strong style="color: var(--nb-secondary);" data-bind="text: inspectedAccount().customerName || inspectedAccount().customerId"></strong>
+                  <strong style="color: var(--nb-secondary);"
+                    data-bind="text: inspectedAccount().customerName || inspectedAccount().customerId"></strong>
                 </div>
                 <div>
                   <span style="color: var(--nb-text-muted);">Account Type:</span>
@@ -410,18 +341,23 @@
               </div>
 
               <!-- ko if: inspectedBalance -->
-              <div style="background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.75rem; text-align: center; margin-bottom: 1rem;">
+              <div
+                style="background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.75rem; text-align: center; margin-bottom: 1rem;">
                 <div>
-                  <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">Available Balance</div>
+                  <div
+                    style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">
+                    Available Balance</div>
                   <div style="font-size: 1.3rem; font-weight: 800; color: var(--nb-success);">
-                    ₹ <span data-bind="text: parseFloat(inspectedBalance().availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
+                    ₹ <span
+                      data-bind="text: parseFloat(inspectedBalance().availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
                   </div>
                 </div>
               </div>
               <!-- /ko -->
 
               <div style="display: flex; gap: 0.5rem;">
-                <button type="button" class="nb-btn nb-btn-sm nb-btn-success" style="flex: 1;" data-bind="click: function() { openDepositDialog(inspectedAccount()); }">
+                <button type="button" class="nb-btn nb-btn-sm nb-btn-success" style="flex: 1;"
+                  data-bind="click: function() { selectAccountForDeposit(inspectedAccount()); }">
                   <span class="oj-ux-ico-plus-circle" style="margin-right: 4px;"></span> Deposit Money to this Account
                 </button>
               </div>
@@ -430,7 +366,7 @@
           </div>
 
           <!-- Admin Direct Deposit Card (Req 6) -->
-          <div class="nb-card" style="border-top: 3px solid var(--nb-success);">
+          <div id="adminDepositSection" class="nb-card" style="border-top: 3px solid var(--nb-success);">
             <div class="nb-card-header">
               <div style="display: flex; align-items: center; gap: 0.5rem;">
                 <span class="oj-ux-ico-plus-circle" style="font-size: 1.3rem; color: var(--nb-success);"></span>
@@ -444,20 +380,24 @@
             <form data-bind="submit: submitAdminDeposit">
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAccId">Target Account DB ID</label>
-                <input id="adminDepAccId" type="number" class="nb-input" placeholder="e.g. 1 or 2" data-bind="textInput: depositAccountId" required />
+                <input id="adminDepAccId" type="number" class="nb-input" placeholder="e.g. 1 or 2"
+                  data-bind="textInput: depositAccountId" required />
               </div>
 
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAmount">Deposit Amount (₹)</label>
-                <input id="adminDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 5000.00" data-bind="textInput: depositAmount" required />
+                <input id="adminDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 5000.00"
+                  data-bind="textInput: depositAmount" required />
               </div>
 
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepDesc">Deposit Reference / Memo</label>
-                <input id="adminDepDesc" type="text" class="nb-input" placeholder="e.g. Branch Cash Deposit" data-bind="textInput: depositDescription" />
+                <input id="adminDepDesc" type="text" class="nb-input" placeholder="e.g. Branch Cash Deposit"
+                  data-bind="textInput: depositDescription" />
               </div>
 
-              <button type="submit" class="nb-btn nb-btn-success nb-btn-block" style="margin-top: 1.25rem;" data-bind="disable: isSubmittingDeposit">
+              <button type="submit" class="nb-btn nb-btn-success nb-btn-block" style="margin-top: 1.25rem;"
+                data-bind="disable: isSubmittingDeposit">
                 <!-- ko if: isSubmittingDeposit -->Processing Deposit...<!-- /ko -->
                 <!-- ko ifnot: isSubmittingDeposit -->
                 <span class="oj-ux-ico-plus-circle" style="margin-right: 4px;"></span>
@@ -469,19 +409,22 @@
         </div>
 
         <!-- Right Column: Direct Account Status Transition Controller -->
-        <div class="nb-card">
+        <div id="statusOverrideSection" class="nb-card">
           <div class="nb-card-header">
             <h3 class="nb-card-title">Direct Account Status Override</h3>
           </div>
           <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
-            Administratively transition any account lifecycle state. Useful for approving pending accounts, emergency freezing, or compliance closures.
+            Administratively transition any account lifecycle state. Useful for approving pending accounts, emergency
+            freezing, or compliance closures.
           </p>
 
           <form data-bind="submit: submitStatusOverride">
             <div class="nb-form-group">
               <label class="nb-form-label" for="targetAccId">Account Database ID</label>
-              <input id="targetAccId" type="number" class="nb-input" placeholder="e.g. 2" data-bind="textInput: targetAccountId" required />
-              <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Numeric primary key in the Oracle DB Account table.</span>
+              <input id="targetAccId" type="number" class="nb-input" placeholder="e.g. 2"
+                data-bind="textInput: targetAccountId" required />
+              <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Numeric primary key in the Oracle DB
+                Account table.</span>
             </div>
 
             <div class="nb-form-group">
@@ -498,11 +441,14 @@
             <!-- ko if: targetStatus() === 'CLOSED' -->
             <div class="nb-form-group">
               <label class="nb-form-label" for="closureReasonInput">Closure Justification</label>
-              <input id="closureReasonInput" type="text" class="nb-input" placeholder="e.g. Customer requested termination / AML flag" data-bind="textInput: closureReason" required />
+              <input id="closureReasonInput" type="text" class="nb-input"
+                placeholder="e.g. Customer requested termination / AML flag" data-bind="textInput: closureReason"
+                required />
             </div>
             <!-- /ko -->
 
-            <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1.5rem;" data-bind="disable: isSubmittingStatusChange">
+            <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1.5rem;"
+              data-bind="disable: isSubmittingStatusChange">
               <!-- ko if: isSubmittingStatusChange -->Transitioning Status...<!-- /ko -->
               <!-- ko ifnot: isSubmittingStatusChange -->
               <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
@@ -516,131 +462,164 @@
     <!-- /ko -->
 
     <!-- ============================================================= -->
-    <!-- TAB 3: DUAL-CONTROL AUDIT PASSKEY VAULT                       -->
+    <!-- TAB 3: SYSTEM AUDIT LOGS & LEDGER INSPECTOR                   -->
     <!-- ============================================================= -->
     <!-- ko if: activeTab() === 'audit' -->
-    <div class="nb-card" style="max-width: 720px; margin: 0 auto;">
+    <div class="nb-card">
       <div class="nb-card-header">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="oj-ux-ico-key" style="font-size: 1.4rem; color: var(--nb-secondary);"></span>
-          <h3 class="nb-card-title">Dual-Control Audit Access Vault</h3>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span class="oj-ux-ico-clipboard-check" style="font-size: 1.4rem; color: var(--nb-secondary);"></span>
+            <div>
+              <h3 class="nb-card-title">System Compliance Audit Records &amp; Event Stream</h3>
+              <p style="font-size: 0.82rem; color: var(--nb-text-muted); margin: 2px 0 0 0;">
+                Real-time Kafka event consumers, SMTP dispatch history, and immutable audit trails from
+                Notification-Service. Click any log entry to inspect its double-entry financial ledger.
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+              data-bind="click: loadAuditLogs, disable: isLoadingAuditLogs">
+              <span class="oj-ux-ico-refresh"></span> Refresh Logs
+            </button>
+          </div>
         </div>
       </div>
 
-      <p style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
-        Under banking compliance standards, immutable audit trails and notification dispatch records in the <strong>Notification-Service</strong> are protected by dual-control authorization. Administrators must request a cryptographic, time-bound access passkey before reviewing audit logs.
-      </p>
+      <!-- Filter Option Controls (Transactions, OTP, Security, All) -->
+      <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+          <!-- Category Segmented Filters -->
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">Filter:</span>
 
-      <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; margin-bottom: 1rem;">
-          <div>
-            <span style="color: var(--nb-text-muted);">Requesting Officer:</span>
-            <strong data-bind="text: adminId"></strong>
+            <button type="button" class="nb-btn nb-btn-sm"
+              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'ALL', 'nb-btn-outline': auditCategoryFilter() !== 'ALL' }, click: function() { auditCategoryFilter('ALL'); }">
+              All Records
+              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+                data-bind="text: auditCounts().all, css: { 'nb-badge-customer': auditCategoryFilter() !== 'ALL' }"></span>
+            </button>
+
+            <button type="button" class="nb-btn nb-btn-sm"
+              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'TRANSACTIONS', 'nb-btn-outline': auditCategoryFilter() !== 'TRANSACTIONS' }, click: function() { auditCategoryFilter('TRANSACTIONS'); }">
+              <span class="oj-ux-ico-swap" style="margin-right: 4px;"></span>
+              Transactions
+              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+                data-bind="text: auditCounts().transactions, css: { 'nb-badge-customer': auditCategoryFilter() !== 'TRANSACTIONS' }"></span>
+            </button>
+
+            <button type="button" class="nb-btn nb-btn-sm"
+              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'OTP', 'nb-btn-outline': auditCategoryFilter() !== 'OTP' }, click: function() { auditCategoryFilter('OTP'); }">
+              <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+              OTP &amp; Auth
+              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+                data-bind="text: auditCounts().otp, css: { 'nb-badge-customer': auditCategoryFilter() !== 'OTP' }"></span>
+            </button>
+
+            <button type="button" class="nb-btn nb-btn-sm"
+              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'SECURITY', 'nb-btn-outline': auditCategoryFilter() !== 'SECURITY' }, click: function() { auditCategoryFilter('SECURITY'); }">
+              <span class="oj-ux-ico-shield" style="margin-right: 4px;"></span>
+              PIN &amp; Security
+              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
+                data-bind="text: auditCounts().security, css: { 'nb-badge-customer': auditCategoryFilter() !== 'SECURITY' }"></span>
+            </button>
           </div>
-          <div>
-            <span style="color: var(--nb-text-muted);">Officer Email:</span>
-            <strong data-bind="text: adminEmail"></strong>
-          </div>
-          <div>
-            <span style="color: var(--nb-text-muted);">Policy Protocol:</span>
-            <strong>Dual-Control Single-Use</strong>
-          </div>
-          <div>
-            <span style="color: var(--nb-text-muted);">Token Expiration:</span>
-            <strong>5 Minutes (300 Seconds)</strong>
+
+          <!-- Keyword Search + Clear -->
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 250px; max-width: 420px;">
+            <input type="text" class="nb-input"
+              placeholder="Search by ID, Customer ID, Email, Subject..."
+              data-bind="textInput: auditSearchFilter" style="font-size: 0.85rem;" />
+            <!-- ko if: auditSearchFilter() || auditCategoryFilter() !== 'ALL' -->
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+              data-bind="click: function() { auditSearchFilter(''); auditCategoryFilter('ALL'); }" title="Clear filters">
+              Reset
+            </button>
+            <!-- /ko -->
+            <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem; white-space: nowrap;"
+              data-bind="text: filteredAuditLogs().length + ' Events'"></span>
           </div>
         </div>
-
-        <div class="nb-form-group">
-          <label class="nb-form-label" for="auditReasonInput">Compliance Audit Purpose / Regulatory Justification</label>
-          <input id="auditReasonInput" type="text" class="nb-input" data-bind="textInput: auditReason" required />
-        </div>
-
-        <button type="button" class="nb-btn nb-btn-secondary nb-btn-block" data-bind="click: requestAuditPasskey, disable: isRequestingAudit">
-          <!-- ko if: isRequestingAudit -->Issuing Token...<!-- /ko -->
-          <!-- ko ifnot: isRequestingAudit -->
-          <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
-          Generate 5-Minute Compliance Passkey
-          <!-- /ko -->
-        </button>
       </div>
 
-      <!-- ko if: auditPasskey -->
-      <div style="background: #eef8f1; border: 1px solid #c2e9cb; border-radius: 8px; padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
-        <span class="oj-ux-ico-check-circle-s" style="font-size: 2rem; color: var(--nb-success); display: block; margin-bottom: 0.25rem;"></span>
-        <h4 style="margin: 0 0 0.25rem 0; color: #1e5a2f;">Audit Passkey Authorized</h4>
-        <p style="font-size: 0.8rem; color: #2e7d32; margin: 0 0 0.75rem 0;">Valid for 5 minutes. Authorizes inspection of all email and security event logs.</p>
-        <div style="background: #fff; border: 1px dashed var(--nb-success); border-radius: 6px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.05em; color: var(--nb-secondary);" data-bind="text: auditPasskey"></div>
-        <div style="margin-top: 1rem;">
-          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { apiService.navigate('notifications'); }">
-            <span class="oj-ux-ico-bell"></span>
-            Inspect System Audit Logs Page
-          </button>
-        </div>
+      <!-- ko if: isLoadingAuditLogs -->
+      <div style="text-align: center; padding: 2.5rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+        <p style="margin-top: 0.5rem;">Loading compliance audit events from Notification-Service...</p>
       </div>
       <!-- /ko -->
 
-      <!-- Live Audit Records Table (Req 2) -->
-      <div style="margin-top: 1rem; background: #fff; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <h4 style="margin: 0; font-size: 1.05rem; color: var(--nb-text-dark);">
-            <span class="oj-ux-ico-list" style="margin-right: 6px; color: var(--nb-secondary);"></span>
-            Live Compliance Audit Records
-          </h4>
-          <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: loadAuditLogs, disable: isLoadingAuditLogs">
-            <span class="oj-ux-ico-refresh"></span> Refresh Logs
-          </button>
-        </div>
-
-        <!-- ko if: isLoadingAuditLogs -->
-        <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
-          Loading audit events from Notification-Service...
-        </div>
-        <!-- /ko -->
-
-        <!-- ko ifnot: isLoadingAuditLogs -->
-          <!-- ko if: auditLogs().length === 0 -->
-          <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
-            No audit records logged yet in Notification-Service.
-          </div>
-          <!-- /ko -->
-
-          <!-- ko if: auditLogs().length > 0 -->
-          <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
-            <table class="nb-table" style="font-size: 0.82rem;">
-              <thead>
-                <tr style="position: sticky; top: 0; background: #fff; z-index: 2;">
-                  <th>Log ID</th>
-                  <th>Event Type</th>
-                  <th>Customer ID</th>
-                  <th>Recipient Email</th>
-                  <th>Subject</th>
-                  <th>Status</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody data-bind="foreach: auditLogs">
-                <tr>
-                  <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: notificationId || id"></td>
-                  <td>
-                    <span class="nb-badge nb-badge-customer" style="font-size: 0.7rem;" data-bind="text: eventType || 'ALERT'"></span>
-                  </td>
-                  <td>
-                    <span style="font-weight: 600;" data-bind="text: customerId"></span>
-                  </td>
-                  <td data-bind="text: recipientEmail"></td>
-                  <td style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-bind="text: subject"></td>
-                  <td>
-                    <span class="nb-status nb-status-active" data-bind="text: status"></span>
-                  </td>
-                  <td style="color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <!-- /ko -->
-        <!-- /ko -->
+      <!-- ko ifnot: isLoadingAuditLogs -->
+      <!-- ko if: filteredAuditLogs().length === 0 -->
+      <div style="text-align: center; padding: 3rem 1rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-clipboard-check"
+          style="font-size: 2.5rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+        <p style="font-size: 0.95rem; margin: 0;">No audit records matching your criteria found in Notification-Service.
+        </p>
       </div>
+      <!-- /ko -->
+
+      <!-- ko if: filteredAuditLogs().length > 0 -->
+      <div
+        style="overflow-x: auto; max-height: 520px; overflow-y: auto; border: 1px solid var(--nb-border); border-radius: 8px;">
+        <table class="nb-table" style="font-size: 0.84rem; margin: 0;">
+          <thead>
+            <tr style="position: sticky; top: 0; background: #fbfbf9; z-index: 2;">
+              <th>Log ID</th>
+              <th>Event Type</th>
+              <th>Customer ID</th>
+              <th>Recipient Email</th>
+              <th>Subject</th>
+              <th>Status</th>
+              <th>Timestamp</th>
+              <th style="text-align: right;">Ledger Action</th>
+            </tr>
+          </thead>
+          <tbody data-bind="foreach: filteredAuditLogs">
+            <tr style="cursor: pointer; transition: background 0.15s ease;" data-bind="click: $parent.inspectLogLedger"
+              class="nb-tr-hover">
+              <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);"
+                data-bind="text: notificationId || id"></td>
+              <td>
+                <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;"
+                  data-bind="text: eventType || 'ALERT'"></span>
+              </td>
+              <td>
+                <span style="font-weight: 600; font-family: monospace;" data-bind="text: customerId"></span>
+              </td>
+              <td data-bind="text: recipientEmail"></td>
+              <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                data-bind="text: subject"></td>
+              <td>
+                <!-- ko if: status === 'SENT' || status === 'DELIVERED' || status === 'SUCCESS' -->
+                <span class="nb-status nb-status-active">Delivered</span>
+                <!-- /ko -->
+                <!-- ko if: status !== 'SENT' && status !== 'DELIVERED' && status !== 'SUCCESS' -->
+                <span class="nb-status nb-status-pending" data-bind="text: status || 'PENDING'"></span>
+                <!-- /ko -->
+              </td>
+              <td style="color: var(--nb-text-muted); white-space: nowrap;"
+                data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+              <td style="text-align: right; white-space: nowrap;">
+                <button type="button" class="nb-btn nb-btn-sm nb-btn-primary"
+                  data-bind="click: function(data, event) { $parent.inspectLogLedger(data); event.stopPropagation(); }">
+                  <span class="oj-ux-ico-table" style="margin-right: 4px;"></span>
+                  Check Ledger
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 0.78rem; color: var(--nb-text-muted); margin-top: 0.5rem;">
+        <span class="oj-ux-ico-information" style="margin-right: 4px;"></span>
+        Click on any log row or click <strong>Check Ledger</strong> to view the immutable 10-column financial ledger for
+        that event's customer account.
+      </p>
+      <!-- /ko -->
+      <!-- /ko -->
     </div>
     <!-- /ko -->
 
@@ -656,25 +635,29 @@
         Real-time status overview of all 7 decoupled Spring Boot microservices and gateways in the NetBanking platform.
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;" data-bind="foreach: fleetServices">
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;"
+        data-bind="foreach: fleetServices">
         <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1rem;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
             <div>
               <div style="font-weight: 800; font-size: 1rem; color: var(--nb-text-dark);" data-bind="text: name"></div>
               <div style="font-size: 0.78rem; color: var(--nb-text-muted);" data-bind="text: role"></div>
             </div>
-            <span class="nb-badge nb-badge-customer" style="font-family: monospace;" data-bind="text: ':' + port"></span>
+            <span class="nb-badge nb-badge-customer" style="font-family: monospace;"
+              data-bind="text: ':' + port"></span>
           </div>
 
           <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
             <!-- ko if: docsUrl -->
-            <a :href="[[docsUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline" style="flex: 1; text-align: center; text-decoration: none;">
+            <a :href="[[docsUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline"
+              style="flex: 1; text-align: center; text-decoration: none;">
               <span class="oj-ux-ico-external-link" style="margin-right: 4px;"></span>
               Swagger UI
             </a>
             <!-- /ko -->
             <!-- ko if: healthUrl -->
-            <a :href="[[healthUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline" style="flex: 1; text-align: center; text-decoration: none;">
+            <a :href="[[healthUrl]]" target="_blank" rel="noopener" class="nb-btn nb-btn-sm nb-btn-outline"
+              style="flex: 1; text-align: center; text-decoration: none;">
               Health Check
             </a>
             <!-- /ko -->
@@ -686,52 +669,14 @@
   </div>
   <!-- /ko -->
 
-  <!-- Modal Dialog 1: Confirm Approval -->
-  <oj-dialog id="approveRequestDialog" dialog-title="Confirm Customer Onboarding Approval" aria-describedby="descApprove" style="width: 440px; max-width: 95%;">
-    <div slot="body">
-      <p id="descApprove" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Approving Request ID: <strong style="color: var(--nb-secondary);" data-bind="text: selectedRequestId"></strong>
-        <br />This will trigger Account-Service via OpenFeign to provision an active checking/savings account in Oracle DB.
-      </p>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="approvalReasonInput">Approval Justification</label>
-        <input id="approvalReasonInput" type="text" class="nb-input" data-bind="textInput: approvalReason" required />
-      </div>
-    </div>
-    <div slot="footer">
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeApproveDialog">Cancel</button>
-      <button type="button" class="nb-btn nb-btn-success" data-bind="click: confirmApprove, disable: isSubmittingApproval">
-        <!-- ko if: isSubmittingApproval -->Provisioning Account...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingApproval -->Confirm &amp; Provision<!-- /ko -->
-      </button>
-    </div>
-  </oj-dialog>
-
-  <!-- Modal Dialog 2: Confirm Rejection -->
-  <oj-dialog id="rejectRequestDialog" dialog-title="Reject Customer Application" aria-describedby="descReject" style="width: 440px; max-width: 95%;">
-    <div slot="body">
-      <p id="descReject" style="font-size: 0.88rem; color: var(--nb-text-muted);">
-        Rejecting Request ID: <strong data-bind="text: selectedRequestId"></strong>
-      </p>
-      <div class="nb-form-group">
-        <label class="nb-form-label" for="rejectReasonInput">Rejection Reason</label>
-        <input id="rejectReasonInput" type="text" class="nb-input" data-bind="textInput: rejectionReason" required />
-      </div>
-    </div>
-    <div slot="footer">
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeRejectDialog">Cancel</button>
-      <button type="button" class="nb-btn nb-btn-danger" data-bind="click: confirmReject, disable: isSubmittingRejection">
-        <!-- ko if: isSubmittingRejection -->Rejecting...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingRejection -->Confirm Rejection<!-- /ko -->
-      </button>
-    </div>
-  </oj-dialog>
 
   <!-- Modal Dialog 3: Admin Direct Deposit -->
-  <oj-dialog id="adminDepositDialog" dialog-title="Admin Direct Deposit" aria-describedby="descAdminDep" style="width: 460px; max-width: 95%;">
+  <oj-dialog id="adminDepositDialog" dialog-title="Admin Direct Deposit" aria-describedby="descAdminDep"
+    style="width: 460px; max-width: 95%;">
     <div slot="body">
       <p id="descAdminDep" style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-        Credit funds directly to Customer Account: <strong style="color: var(--nb-secondary);" data-bind="text: depositAccountNumber() ? ('#' + depositAccountId() + ' (' + depositAccountNumber() + ')') : ('#' + depositAccountId())"></strong>
+        Credit funds directly to Customer Account: <strong style="color: var(--nb-secondary);"
+          data-bind="text: depositAccountNumber() ? ('#' + depositAccountId() + ' (' + depositAccountNumber() + ')') : ('#' + depositAccountId())"></strong>
       </p>
 
       <form data-bind="submit: submitAdminDeposit">
@@ -742,24 +687,240 @@
 
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepAmount">Deposit Amount (₹)</label>
-          <input id="dlgDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 10000.00" data-bind="textInput: depositAmount" required />
+          <input id="dlgDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 10000.00"
+            data-bind="textInput: depositAmount" required />
         </div>
 
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepDesc">Reference / Description</label>
-          <input id="dlgDepDesc" type="text" class="nb-input" placeholder="Admin Cash Deposit" data-bind="textInput: depositDescription" />
+          <input id="dlgDepDesc" type="text" class="nb-input" placeholder="Admin Cash Deposit"
+            data-bind="textInput: depositDescription" />
         </div>
       </form>
     </div>
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeDepositDialog">Cancel</button>
-      <button type="button" class="nb-btn nb-btn-success" data-bind="click: submitAdminDeposit, disable: isSubmittingDeposit">
+      <button type="button" class="nb-btn nb-btn-success"
+        data-bind="click: submitAdminDeposit, disable: isSubmittingDeposit">
         <!-- ko if: isSubmittingDeposit -->Processing...<!-- /ko -->
         <!-- ko ifnot: isSubmittingDeposit -->
         <span class="oj-ux-ico-plus-circle" style="margin-right: 4px;"></span>
         Confirm Deposit
         <!-- /ko -->
       </button>
+    </div>
+  </oj-dialog>
+
+  <!-- Modal Dialog 4: Audit Log & Ledger Inspector -->
+  <oj-dialog id="logLedgerDialog" dialog-title="System Audit Log &amp; Double-Entry Ledger Inspector"
+    aria-describedby="descLogLedger" style="width: 1100px; max-width: 96%;">
+    <div slot="body" style="padding: 0.5rem 0;">
+      <!-- Audit Log Summary Card -->
+      <!-- ko if: selectedAuditLog -->
+      <div
+        style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span class="oj-ux-ico-bell" style="font-size: 1.2rem; color: var(--nb-secondary);"></span>
+              <strong style="font-size: 1.05rem; color: var(--nb-text-dark);"
+                data-bind="text: selectedAuditLog().subject || 'Audit Event Record'"></strong>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--nb-text-muted);">
+              Log ID: <strong style="font-family: monospace; color: var(--nb-secondary);"
+                data-bind="text: '#' + (selectedAuditLog().notificationId || selectedAuditLog().id)"></strong> &bull;
+              Recipient: <strong data-bind="text: selectedAuditLog().recipientEmail || 'N/A'"></strong> &bull;
+              Timestamp: <span
+                data-bind="text: (selectedAuditLog().createdAt || '').substring(0, 19).replace('T', ' ')"></span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="nb-badge nb-badge-customer" data-bind="text: selectedAuditLog().eventType || 'ALERT'"></span>
+            <!-- ko if: selectedAuditLog().status === 'SENT' || selectedAuditLog().status === 'DELIVERED' || selectedAuditLog().status === 'SUCCESS' -->
+            <span class="nb-status nb-status-active">Delivered</span>
+            <!-- /ko -->
+            <!-- ko if: selectedAuditLog().status !== 'SENT' && selectedAuditLog().status !== 'DELIVERED' && selectedAuditLog().status !== 'SUCCESS' -->
+            <span class="nb-status nb-status-pending" data-bind="text: selectedAuditLog().status || 'LOGGED'"></span>
+            <!-- /ko -->
+          </div>
+        </div>
+
+        <!-- Message Body / Description Preview -->
+        <!-- ko if: selectedAuditLog().messageBody -->
+        <div
+          style="font-size: 0.82rem; color: var(--nb-text-dark); background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.65rem 0.85rem; line-height: 1.45; white-space: pre-line;"
+          data-bind="text: selectedAuditLog().messageBody"></div>
+        <!-- /ko -->
+
+        <!-- Customer Identity & Account Selector Strip -->
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--nb-border); flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+            <span style="color: var(--nb-text-muted);">Target Customer:</span>
+            <strong style="font-family: monospace; color: var(--nb-text-dark); font-size: 0.9rem;"
+              data-bind="text: selectedAuditLog().customerId"></strong>
+          </div>
+
+          <!-- ko if: logCustomerAccounts().length > 0 -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-size: 0.82rem; font-weight: 600; color: var(--nb-text-dark);">Customer Accounts:</span>
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;" data-bind="foreach: logCustomerAccounts">
+              <button type="button" class="nb-btn nb-btn-sm"
+                data-bind="css: { 'nb-btn-primary': String($parent.selectedLogAccountId()) === String(id), 'nb-btn-outline': String($parent.selectedLogAccountId()) !== String(id) }, click: function() { $parent.selectedLogAccountId(String(id)); $parent.fetchLogLedger(id); }">
+                <span data-bind="text: (accountType || 'ACCOUNT') + ' #' + id"></span>
+                <!-- ko if: accountNumber -->
+                <span style="opacity: 0.8; font-size: 0.7rem; margin-left: 3px;"
+                  data-bind="text: '(' + accountNumber + ')'"></span>
+                <!-- /ko -->
+              </button>
+            </div>
+          </div>
+          <!-- /ko -->
+
+          <!-- Manual Account Lookup if needed -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <input type="number" class="nb-input" style="width: 140px; padding: 4px 8px; font-size: 0.82rem;"
+              placeholder="Account ID..." data-bind="textInput: selectedLogAccountId" />
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+              data-bind="click: function() { fetchLogLedger(selectedLogAccountId()); }, disable: !selectedLogAccountId() || isLoadingLogLedger()">
+              Inspect
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- /ko -->
+
+      <!-- Ledger Section Header -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h4
+            style="margin: 0; font-size: 1.05rem; color: var(--nb-text-dark); display: flex; align-items: center; gap: 0.4rem;">
+            <span class="oj-ux-ico-table" style="color: var(--nb-secondary);"></span>
+            10-Column Double-Entry Financial Ledger
+            <!-- ko if: selectedLogAccountId -->
+            <span style="font-size: 0.85rem; font-weight: normal; color: var(--nb-text-muted);"
+              data-bind="text: 'for Account #' + selectedLogAccountId()"></span>
+            <!-- /ko -->
+          </h4>
+        </div>
+        <div>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+            data-bind="click: function() { fetchLogLedger(selectedLogAccountId()); }, disable: !selectedLogAccountId() || isLoadingLogLedger()">
+            <span class="oj-ux-ico-refresh"></span> Refresh Ledger
+          </button>
+        </div>
+      </div>
+
+      <!-- Ledger Loading State -->
+      <!-- ko if: isLoadingLogLedger -->
+      <div style="text-align: center; padding: 2.5rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+        <p style="margin-top: 0.5rem;">Querying double-entry immutable ledger from Account-Service...</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- Ledger Error -->
+      <!-- ko if: logLedgerError -->
+      <div
+        style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 6px; padding: 0.85rem; color: #c53030; font-size: 0.85rem; margin-bottom: 1rem;"
+        data-bind="text: logLedgerError"></div>
+      <!-- /ko -->
+
+      <!-- Ledger Empty State -->
+      <!-- ko ifnot: isLoadingLogLedger -->
+      <!-- ko if: logAccountLedger().length === 0 && !logLedgerError() -->
+      <div
+        style="text-align: center; padding: 2.5rem 1rem; background: #fafaf8; border: 1px dashed var(--nb-border); border-radius: 8px; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-table"
+          style="font-size: 2rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+        <p style="font-size: 0.92rem; margin: 0;">No ledger postings recorded for Account #<span
+            data-bind="text: selectedLogAccountId"></span>.</p>
+        <p style="font-size: 0.8rem; margin: 0.25rem 0 0 0;">Transactions, credits, and debits processed via
+          Transaction-Service will appear here with full balances before and after.</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- 10-Column Ledger Table -->
+      <!-- ko if: logAccountLedger().length > 0 -->
+      <div
+        style="overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid var(--nb-border); border-radius: 8px;">
+        <table class="nb-table" style="font-size: 0.78rem; margin: 0; min-width: 1000px;">
+          <thead>
+            <tr style="position: sticky; top: 0; background: #f4f3ef; z-index: 2;">
+              <th style="white-space: nowrap;">TRANSACTION_REFERENCE</th>
+              <th style="white-space: nowrap;">ENTRY_REFERENCE</th>
+              <th style="white-space: nowrap;">ENTRY_TYPE</th>
+              <th style="white-space: nowrap; text-align: right;">AMOUNT</th>
+              <th style="white-space: nowrap; text-align: right;">BALANCE_BEFORE</th>
+              <th style="white-space: nowrap; text-align: right;">BALANCE_AFTER</th>
+              <th style="white-space: nowrap; text-align: right;">AVAILABLE_BALANCE_BEFORE</th>
+              <th style="white-space: nowrap; text-align: right;">AVAILABLE_BALANCE_AFTER</th>
+              <th style="white-space: nowrap;">DESCRIPTION</th>
+              <th style="white-space: nowrap;">CREATED_BY</th>
+              <th style="white-space: nowrap;">CREATED_AT</th>
+            </tr>
+          </thead>
+          <tbody data-bind="foreach: logAccountLedger">
+            <tr>
+              <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);"
+                data-bind="text: transactionReference || '-'"></td>
+              <td style="font-family: monospace; color: var(--nb-text-muted);" data-bind="text: entryReference || '-'">
+              </td>
+              <td>
+                <!-- ko if: entryType === 'CREDIT' -->
+                <span class="nb-badge nb-badge-customer"
+                  style="background: #eef8f1; color: #1e5a2f; border: 1px solid #c2e9cb; font-weight: 700;">CREDIT</span>
+                <!-- /ko -->
+                <!-- ko if: entryType !== 'CREDIT' -->
+                <span class="nb-badge nb-badge-admin"
+                  style="background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; font-weight: 700;">DEBIT</span>
+                <!-- /ko -->
+              </td>
+              <td style="text-align: right; font-weight: 700;"
+                data-bind="css: { 'nb-metric-positive': entryType === 'CREDIT', 'nb-metric-negative': entryType !== 'CREDIT' }, text: (entryType === 'CREDIT' ? '+₹' : '-₹') + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })">
+              </td>
+              <td style="text-align: right; font-family: monospace;"
+                data-bind="text: '₹' + parseFloat(balanceBefore || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })">
+              </td>
+              <td style="text-align: right; font-family: monospace; font-weight: 600;"
+                data-bind="text: '₹' + parseFloat(balanceAfter || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })">
+              </td>
+              <td style="text-align: right; font-family: monospace; color: var(--nb-text-muted);"
+                data-bind="text: '₹' + parseFloat(availableBalanceBefore || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })">
+              </td>
+              <td style="text-align: right; font-family: monospace; font-weight: 600; color: var(--nb-text-dark);"
+                data-bind="text: '₹' + parseFloat(availableBalanceAfter || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })">
+              </td>
+              <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                data-bind="text: description || '-'"></td>
+              <td style="white-space: nowrap; font-size: 0.72rem; color: var(--nb-text-muted);"
+                data-bind="text: createdBy || 'SYSTEM'"></td>
+              <td style="white-space: nowrap; font-size: 0.72rem; color: var(--nb-text-muted);"
+                data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- /ko -->
+      <!-- /ko -->
+    </div>
+    <div slot="footer">
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <!-- ko if: selectedLogAccountId -->
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
+          data-bind="click: function() { jumpToAccountInspector(selectedLogAccountId()); }">
+          <span class="oj-ux-ico-external-link" style="margin-right: 4px;"></span>
+          Open in Account Inspector (Tab 2)
+        </button>
+        <!-- /ko -->
+        <!-- ko ifnot: selectedLogAccountId -->
+        <div></div>
+        <!-- /ko -->
+        <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeLogLedgerDialog">Close
+          Inspector</button>
+      </div>
     </div>
   </oj-dialog>
 </div>

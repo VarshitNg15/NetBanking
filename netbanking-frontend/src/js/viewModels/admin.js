@@ -4,7 +4,7 @@
  * Ledger Inspection, Dual-Control Audit Passkeys, and Microservices Fleet Monitor.
  */
 define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 'ojs/ojbutton'],
-  function(ko, apiService) {
+  function (ko, apiService) {
     'use strict';
 
     function AdminViewModel() {
@@ -15,8 +15,8 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       this.errorMessage = ko.observable('');
       this.successMessage = ko.observable('');
 
-      // Operational Tabs: 'onboarding' | 'governance' | 'audit' | 'fleet'
-      this.activeTab = ko.observable('onboarding');
+      // Operational Tabs: 'governance' | 'audit' | 'fleet' (Default: 'governance')
+      this.activeTab = ko.observable('governance');
       this.switchTab = (tab) => {
         self.errorMessage('');
         self.successMessage('');
@@ -32,114 +32,21 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       this.adminUser = ko.observable(apiService.getUser() || {});
       this.adminId = ko.computed(() => self.adminUser().customerId || 'ADM100000001');
       this.adminEmail = ko.computed(() => self.adminUser().email || 'admin@netbanking.com');
-
-      // Metric Observables
-      this.pendingRequests = ko.observableArray([]);
-      this.pendingCount = ko.computed(() => self.pendingRequests().length);
       this.lastRefreshed = ko.observable(new Date().toLocaleTimeString());
 
-      // -------------------------------------------------------------
-      // Tab 1: Onboarding & KYC Approval Actions
-      // -------------------------------------------------------------
-      this.selectedRequestId = ko.observable('');
-      this.approvalReason = ko.observable('KYC documents verified and approved');
-      this.isSubmittingApproval = ko.observable(false);
-
-      this.rejectionReason = ko.observable('Incomplete KYC documentation');
-      this.isSubmittingRejection = ko.observable(false);
-
-      this.loadPendingRequests = async () => {
-        if (!apiService.isAdmin()) {
-          self.isAuthorized(false);
-          self.isLoading(false);
-          return;
-        }
-
-        self.isLoading(true);
-        self.errorMessage('');
-
-        try {
-          const res = await apiService.getPendingAccountOpenings();
-          self.pendingRequests(Array.isArray(res) ? res : []);
-          self.lastRefreshed(new Date().toLocaleTimeString());
-        } catch (err) {
-          console.error('Failed to load pending account opening requests', err);
-          self.errorMessage(err.message || 'Could not retrieve pending requests from User-Service.');
-        } finally {
-          self.isLoading(false);
-        }
-      };
-
-      this.openApproveDialog = (req) => {
-        self.selectedRequestId(req.requestId || req.id);
-        const dialog = document.getElementById('approveRequestDialog');
-        if (dialog) dialog.open();
-      };
-
-      this.closeApproveDialog = () => {
-        const dialog = document.getElementById('approveRequestDialog');
-        if (dialog) dialog.close();
-      };
-
-      this.confirmApprove = async () => {
-        self.isSubmittingApproval(true);
+      this.refreshAll = async () => {
+        self.lastRefreshed(new Date().toLocaleTimeString());
         self.errorMessage('');
         self.successMessage('');
-
-        try {
-          await apiService.approveAccountOpening(
-            self.selectedRequestId(),
-            self.adminId(),
-            self.approvalReason()
-          );
-
-          self.successMessage(`Application #${self.selectedRequestId()} approved! Account-Service provisioned active account via OpenFeign.`);
-          self.closeApproveDialog();
-          await self.loadPendingRequests();
-          await self.loadAllAccounts();
-        } catch (err) {
-          self.errorMessage(err.message || 'Failed to approve application.');
-        } finally {
-          self.isSubmittingApproval(false);
-        }
+        await Promise.all([
+          self.loadAllAccounts(),
+          self.loadAuditLogs()
+        ]);
       };
-
-      this.openRejectDialog = (req) => {
-        self.selectedRequestId(req.requestId || req.id);
-        const dialog = document.getElementById('rejectRequestDialog');
-        if (dialog) dialog.open();
-      };
-
-      this.closeRejectDialog = () => {
-        const dialog = document.getElementById('rejectRequestDialog');
-        if (dialog) dialog.close();
-      };
-
-      this.confirmReject = async () => {
-        self.isSubmittingRejection(true);
-        self.errorMessage('');
-        self.successMessage('');
-
-        try {
-          await apiService.rejectAccountOpening(
-            self.selectedRequestId(),
-            self.adminId(),
-            self.rejectionReason()
-          );
-
-          self.successMessage(`Application #${self.selectedRequestId()} rejected.`);
-          self.closeRejectDialog();
-          await self.loadPendingRequests();
-        } catch (err) {
-          self.errorMessage(err.message || 'Failed to reject request.');
-        } finally {
-          self.isSubmittingRejection(false);
-        }
-      };
+      this.loadPendingRequests = this.refreshAll;
 
       // -------------------------------------------------------------
-      // -------------------------------------------------------------
-      // Tab 2: Account Governance, Live Directory & Inspector
+      // Tab 1: Account Governance, Live Directory & Inspector
       // -------------------------------------------------------------
       this.allAccounts = ko.observableArray([]);
       this.isLoadingAccounts = ko.observable(false);
@@ -188,6 +95,19 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         }
       };
 
+      function scrollToSection(elementId) {
+        setTimeout(() => {
+          const el = document.getElementById(elementId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('nb-card-highlight');
+            setTimeout(() => {
+              el.classList.remove('nb-card-highlight');
+            }, 1800);
+          }
+        }, 80);
+      }
+
       this.selectAccountForInspect = async (acc) => {
         if (!acc) return;
         self.inspectSearchQuery(String(acc.id));
@@ -195,6 +115,32 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         self.depositAccountId(String(acc.id));
         self.depositAccountNumber(acc.accountNumber || '');
         await self.handleInspectAccount();
+        scrollToSection('accountInspectorSection');
+      };
+
+      this.selectAccountForDeposit = (acc) => {
+        if (!acc) return;
+        self.depositAccountId(String(acc.id));
+        self.depositAccountNumber(acc.accountNumber || '');
+        self.targetAccountId(String(acc.id));
+        scrollToSection('adminDepositSection');
+        setTimeout(() => {
+          const input = document.getElementById('adminDepAmount');
+          if (input) input.focus();
+        }, 300);
+      };
+
+      this.selectAccountForStatus = (acc) => {
+        if (!acc) return;
+        self.targetAccountId(String(acc.id));
+        if (acc.status) {
+          self.targetStatus(acc.status);
+        }
+        scrollToSection('statusOverrideSection');
+        setTimeout(() => {
+          const select = document.getElementById('targetStatusSelect');
+          if (select) select.focus();
+        }, 300);
       };
 
       // Admin Direct Deposit feature (Req 6)
@@ -338,14 +284,67 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       };
 
       // -------------------------------------------------------------
-      // Tab 3: Dual-Control Audit Passkey Vault & Live Audit Logs (Req 2)
+      // Tab 2: System Audit Logs & Double-Entry Ledger Inspector
       // -------------------------------------------------------------
-      this.auditReason = ko.observable('Quarterly Compliance Review');
-      this.auditPasskey = ko.observable('');
-      this.auditPasskeyExpiry = ko.observable('');
-      this.isRequestingAudit = ko.observable(false);
       this.auditLogs = ko.observableArray([]);
       this.isLoadingAuditLogs = ko.observable(false);
+      this.auditSearchFilter = ko.observable('');
+      this.auditCategoryFilter = ko.observable('ALL'); // 'ALL' | 'TRANSACTIONS' | 'OTP' | 'SECURITY'
+
+      this.auditCounts = ko.computed(() => {
+        const all = self.auditLogs() || [];
+        let tx = 0, otp = 0, sec = 0;
+        for (const log of all) {
+          const combined = `${String(log.eventType || '')} ${String(log.subject || '')} ${String(log.messageBody || '')}`.toUpperCase();
+          if (combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT')) {
+            tx++;
+          }
+          if (combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN')) {
+            otp++;
+          }
+          if (combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS')) {
+            sec++;
+          }
+        }
+        return { all: all.length, transactions: tx, otp: otp, security: sec };
+      });
+
+      this.filteredAuditLogs = ko.computed(() => {
+        const cat = (self.auditCategoryFilter() || 'ALL').toUpperCase();
+        const search = (self.auditSearchFilter() || '').trim().toLowerCase();
+        let logs = self.auditLogs();
+
+        // 1. Category Filter (Transactions, OTP, Security, All)
+        if (cat !== 'ALL') {
+          logs = logs.filter(log => {
+            const combined = `${String(log.eventType || '')} ${String(log.subject || '')} ${String(log.messageBody || '')}`.toUpperCase();
+            if (cat === 'TRANSACTIONS') {
+              return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT');
+            } else if (cat === 'OTP') {
+              return combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+            } else if (cat === 'SECURITY') {
+              return combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+            }
+            return combined.includes(cat);
+          });
+        }
+
+        // 2. Keyword Search
+        if (search) {
+          logs = logs.filter(log => {
+            const id = String(log.notificationId != null ? log.notificationId : (log.id || '')).toLowerCase();
+            const custId = String(log.customerId || '').toLowerCase();
+            const type = String(log.eventType || '').toLowerCase();
+            const email = String(log.recipientEmail || '').toLowerCase();
+            const subject = String(log.subject || '').toLowerCase();
+            const body = String(log.messageBody || '').toLowerCase();
+            const status = String(log.status || '').toLowerCase();
+            return id.includes(search) || custId.includes(search) || type.includes(search) || email.includes(search) || subject.includes(search) || body.includes(search) || status.includes(search);
+          });
+        }
+
+        return logs;
+      });
 
       this.loadAuditLogs = async () => {
         self.isLoadingAuditLogs(true);
@@ -359,23 +358,107 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         }
       };
 
-      this.requestAuditPasskey = async () => {
-        self.isRequestingAudit(true);
-        self.errorMessage('');
-        self.successMessage('');
+      // Ledger Inspector State for Individual Audit Logs
+      this.selectedAuditLog = ko.observable(null);
+      this.logCustomerAccounts = ko.observableArray([]);
+      this.selectedLogAccountId = ko.observable('');
+      this.logAccountLedger = ko.observableArray([]);
+      this.isLoadingLogLedger = ko.observable(false);
+      this.logLedgerError = ko.observable('');
 
-        try {
-          const res = await apiService.requestAuditAccess(self.adminId(), self.auditReason());
-          const passkey = res.passkey || res.auditToken || ('NB-AUDIT-' + Math.random().toString(36).substring(2, 9).toUpperCase() + '-' + Date.now().toString().slice(-4));
-          self.auditPasskey(passkey);
-          self.auditPasskeyExpiry('5 Minutes (Single-Use TTL)');
-          self.successMessage('Audit access granted under dual-control policy! Token generated with 5-minute single-use validity.');
-          await self.loadAuditLogs();
-        } catch (err) {
-          self.errorMessage(err.message || 'Failed to request compliance audit passkey.');
-        } finally {
-          self.isRequestingAudit(false);
+      this.inspectLogLedger = async (log) => {
+        if (!log) return;
+        self.selectedAuditLog(log);
+        self.logCustomerAccounts([]);
+        self.selectedLogAccountId('');
+        self.logAccountLedger([]);
+        self.logLedgerError('');
+
+        const dialog = document.getElementById('logLedgerDialog');
+        if (dialog) dialog.open();
+
+        const custId = log.customerId;
+        let accounts = [];
+
+        // 1. Fetch customer accounts via User/Account Service
+        if (custId) {
+          try {
+            const res = await apiService.getAccountsByCustomer(custId);
+            accounts = Array.isArray(res) ? res : [];
+          } catch (e) {
+            console.warn('Could not fetch accounts by customerId:', custId, e);
+          }
         }
+
+        // 2. Scan log subject or body for explicit account reference (e.g. "Account #22" or "NB...")
+        const textToScan = `${log.subject || ''} ${log.messageBody || ''}`;
+        let matchedAccountId = null;
+
+        const accMatch = textToScan.match(/(?:account\s*#?|acc\s*#?)\s*(\d+)/i);
+        if (accMatch && accMatch[1]) {
+          matchedAccountId = accMatch[1];
+        }
+
+        const nbMatch = textToScan.match(/\bNB\d+\b/i);
+        if (nbMatch) {
+          const accByNum = (self.allAccounts() || []).find(a => a.accountNumber === nbMatch[0]);
+          if (accByNum) {
+            matchedAccountId = String(accByNum.id);
+            if (!accounts.some(a => String(a.id) === String(accByNum.id))) {
+              accounts.push(accByNum);
+            }
+          }
+        }
+
+        self.logCustomerAccounts(accounts);
+
+        // 3. Select target account and fetch ledger
+        if (matchedAccountId) {
+          self.selectedLogAccountId(String(matchedAccountId));
+          await self.fetchLogLedger(matchedAccountId);
+        } else if (accounts.length > 0) {
+          self.selectedLogAccountId(String(accounts[0].id));
+          await self.fetchLogLedger(accounts[0].id);
+        } else {
+          const fallbackAcc = (self.allAccounts() || []).find(a => String(a.customerId) === String(custId) || String(a.id) === String(custId));
+          if (fallbackAcc) {
+            self.logCustomerAccounts([fallbackAcc]);
+            self.selectedLogAccountId(String(fallbackAcc.id));
+            await self.fetchLogLedger(fallbackAcc.id);
+          } else {
+            self.logLedgerError(`No bank accounts located for Customer ID "${custId}". You can enter an Account ID to inspect.`);
+          }
+        }
+      };
+
+      this.fetchLogLedger = async (accountId) => {
+        const id = accountId || self.selectedLogAccountId();
+        if (!id) return;
+        self.isLoadingLogLedger(true);
+        self.logLedgerError('');
+        try {
+          const list = await apiService.getAccountLedger(id);
+          self.logAccountLedger(Array.isArray(list) ? list : []);
+        } catch (err) {
+          console.warn('Failed to load ledger for account', id, err);
+          self.logLedgerError(err.message || `Failed to retrieve ledger entries for Account #${id}.`);
+          self.logAccountLedger([]);
+        } finally {
+          self.isLoadingLogLedger(false);
+        }
+      };
+
+      this.closeLogLedgerDialog = () => {
+        const dialog = document.getElementById('logLedgerDialog');
+        if (dialog) dialog.close();
+      };
+
+      this.jumpToAccountInspector = (accountId) => {
+        self.closeLogLedgerDialog();
+        self.switchTab('governance');
+        self.inspectSearchQuery(String(accountId));
+        self.handleInspectAccount();
+        scrollToSection('accountInspectorSection');
       };
 
       // -------------------------------------------------------------
@@ -393,11 +476,11 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
 
       // Lifecycle hooks
       this.connected = () => {
-        document.title = 'Operations Command Center - NetBanking Redwood';
+        document.title = 'NetBanking';
         self.isAuthorized(apiService.isAdmin());
         if (self.isAuthorized()) {
-          self.loadPendingRequests();
           self.loadAllAccounts();
+          self.loadAuditLogs();
         }
       };
     }
