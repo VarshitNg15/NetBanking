@@ -13,6 +13,8 @@ public class CustomerResponse {
 
     private String customerId;
 
+    private String customerName;
+
     private String customerStatus;
 
     private LocalDateTime createdAt;

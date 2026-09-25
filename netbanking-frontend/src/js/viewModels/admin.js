@@ -23,6 +23,8 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         self.activeTab(tab);
         if (tab === 'governance') {
           self.loadAllAccounts();
+        } else if (tab === 'audit') {
+          self.loadAuditLogs();
         }
       };
 
@@ -151,17 +153,34 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
           const id = String(acc.id != null ? acc.id : '').toLowerCase();
           const accNum = String(acc.accountNumber || '').toLowerCase();
           const custId = String(acc.customerId || '').toLowerCase();
+          const name = String(acc.customerName || '').toLowerCase();
           const status = String(acc.status || '').toLowerCase();
           const type = String(acc.accountType || '').toLowerCase();
-          return id.includes(filter) || accNum.includes(filter) || custId.includes(filter) || status.includes(filter) || type.includes(filter);
+          return id.includes(filter) || accNum.includes(filter) || custId.includes(filter) || name.includes(filter) || status.includes(filter) || type.includes(filter);
         });
       });
 
       this.loadAllAccounts = async () => {
         self.isLoadingAccounts(true);
         try {
-          const res = await apiService.getAllAccounts();
-          self.allAccounts(Array.isArray(res) ? res : []);
+          const [res, customers] = await Promise.all([
+            apiService.getAllAccounts(),
+            apiService.getAllCustomers().catch(() => [])
+          ]);
+
+          const customerMap = {};
+          (Array.isArray(customers) ? customers : []).forEach(c => {
+            if (c && c.customerId) {
+              customerMap[c.customerId] = c.customerName || (c.firstName ? (c.firstName + ' ' + (c.lastName || '')).trim() : c.customerId);
+            }
+          });
+
+          const accountsList = (Array.isArray(res) ? res : []).map(acc => ({
+            ...acc,
+            customerName: customerMap[acc.customerId] || acc.customerId
+          }));
+
+          self.allAccounts(accountsList);
         } catch (err) {
           console.warn('Failed to load accounts list', err);
         } finally {
@@ -288,6 +307,19 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
 
         try {
           const acc = await apiService.getAccount(query);
+          const found = self.allAccounts().find(a => String(a.id) === String(acc.id));
+          if (found && found.customerName) {
+            acc.customerName = found.customerName;
+          } else if (acc.customerId) {
+            try {
+              const cust = await apiService.getCustomer(acc.customerId);
+              if (cust) {
+                acc.customerName = cust.customerName || (cust.firstName ? (cust.firstName + ' ' + (cust.lastName || '')).trim() : cust.customerId);
+              }
+            } catch (ce) {
+              acc.customerName = acc.customerId;
+            }
+          }
           self.inspectedAccount(acc);
           self.targetAccountId(String(acc.id));
           self.depositAccountId(String(acc.id));
@@ -306,12 +338,26 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       };
 
       // -------------------------------------------------------------
-      // Tab 3: Dual-Control Audit Passkey Vault
+      // Tab 3: Dual-Control Audit Passkey Vault & Live Audit Logs (Req 2)
       // -------------------------------------------------------------
       this.auditReason = ko.observable('Quarterly Compliance Review');
       this.auditPasskey = ko.observable('');
       this.auditPasskeyExpiry = ko.observable('');
       this.isRequestingAudit = ko.observable(false);
+      this.auditLogs = ko.observableArray([]);
+      this.isLoadingAuditLogs = ko.observable(false);
+
+      this.loadAuditLogs = async () => {
+        self.isLoadingAuditLogs(true);
+        try {
+          const list = await apiService.getAllNotifications();
+          self.auditLogs(Array.isArray(list) ? list : []);
+        } catch (err) {
+          console.warn('Failed to load system audit logs:', err);
+        } finally {
+          self.isLoadingAuditLogs(false);
+        }
+      };
 
       this.requestAuditPasskey = async () => {
         self.isRequestingAudit(true);
@@ -324,6 +370,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
           self.auditPasskey(passkey);
           self.auditPasskeyExpiry('5 Minutes (Single-Use TTL)');
           self.successMessage('Audit access granted under dual-control policy! Token generated with 5-minute single-use validity.');
+          await self.loadAuditLogs();
         } catch (err) {
           self.errorMessage(err.message || 'Failed to request compliance audit passkey.');
         } finally {

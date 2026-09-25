@@ -44,14 +44,17 @@ public class StatementController {
     @Operation(summary = "Get statement request status", description = "Retrieves current status and metadata of a statement request.")
     public ResponseEntity<StatementResponse> getStatement(
             @PathVariable Long requestId,
-            @RequestHeader(value = "X-Customer-Id") String customerId) {
+            @RequestHeader(value = "X-Customer-Id", required = false) String customerId) {
         return ResponseEntity.ok(statementService.getStatement(requestId, customerId));
     }
 
     @GetMapping
     @Operation(summary = "List customer statements", description = "Returns all statement requests belonging to the authenticated customer.")
     public ResponseEntity<List<StatementResponse>> listCustomerStatements(
-            @RequestHeader(value = "X-Customer-Id") String customerId) {
+            @RequestHeader(value = "X-Customer-Id", required = false) String customerId) {
+        if (customerId == null || customerId.isBlank()) {
+            return ResponseEntity.ok(List.of());
+        }
         return ResponseEntity.ok(statementService.getStatementsByCustomer(customerId));
     }
 
@@ -59,7 +62,7 @@ public class StatementController {
     @Operation(summary = "Download statement content", description = "Downloads the generated statement as formatted text or CSV.")
     public ResponseEntity<String> downloadStatement(
             @PathVariable Long requestId,
-            @RequestHeader(value = "X-Customer-Id") String customerId) {
+            @RequestHeader(value = "X-Customer-Id", required = false) String customerId) {
         String content = statementService.generateDownloadContent(requestId, customerId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"statement-" + requestId + ".txt\"")

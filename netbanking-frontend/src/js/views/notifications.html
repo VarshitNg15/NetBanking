@@ -4,14 +4,16 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
       <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
-        Notification Center
+        <!-- ko if: isAdmin -->System Audit Log Records<!-- /ko -->
+        <!-- ko ifnot: isAdmin -->Notification Center<!-- /ko -->
       </h2>
       <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
-        Audit log of all security alerts, OTP dispatches, and email notifications delivered to your account.
+        <!-- ko if: isAdmin -->Enterprise immutable event stream, SMTP dispatches, and compliance audit trail.<!-- /ko -->
+        <!-- ko ifnot: isAdmin -->Real-time security alerts, PIN configurations, OTP verifications, and transaction notices delivered to your account.<!-- /ko -->
       </p>
     </div>
     <div>
-      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadNotifications">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadNotifications, disable: isLoading">
         <span class="oj-ux-ico-refresh"></span>
         Refresh
       </button>
@@ -20,16 +22,17 @@
 
   <!-- ko if: isLoading -->
   <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
-    <p>Loading notification events from Notification-Service...</p>
+    <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+    <p style="margin-top: 0.5rem;">Loading notification events from Notification-Service...</p>
   </div>
   <!-- /ko -->
 
   <!-- ko ifnot: isLoading -->
     <!-- ko if: notifications().length === 0 -->
-    <div class="nb-card" style="text-align: center; padding: 3rem 1rem;">
-      <span class="oj-ux-ico-bell" style="font-size: 3rem; color: #d1cfcb;"></span>
-      <h3 style="margin: 0.5rem 0 0.25rem 0;">No Notifications Yet</h3>
-      <p style="font-size: 0.88rem; color: var(--nb-text-muted);">You're all caught up! New account alerts will appear here.</p>
+    <div class="nb-card" style="text-align: center; padding: 3.5rem 1rem;">
+      <span class="oj-ux-ico-bell" style="font-size: 3rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+      <h3 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark);">No Notifications Recorded</h3>
+      <p style="font-size: 0.88rem; color: var(--nb-text-muted);">You're all caught up! New account alerts, PIN updates, and transfer receipts will appear here.</p>
     </div>
     <!-- /ko -->
 
@@ -42,20 +45,20 @@
             <strong style="font-size: 0.95rem; color: var(--nb-text-dark);" data-bind="text: subject || 'Security Alert'"></strong>
           </div>
           <div>
-            <span class="nb-badge nb-badge-customer" style="margin-right: 4px;" data-bind="text: notificationType || 'ALERT'"></span>
-            <!-- ko if: status === 'SENT' || status === 'DELIVERED' -->
+            <span class="nb-badge nb-badge-customer" style="margin-right: 4px;" data-bind="text: eventType || notificationType || 'ALERT'"></span>
+            <!-- ko if: status === 'SENT' || status === 'DELIVERED' || status === 'SUCCESS' -->
             <span class="nb-status nb-status-active">Delivered</span>
             <!-- /ko -->
-            <!-- ko if: status !== 'SENT' && status !== 'DELIVERED' -->
+            <!-- ko if: status !== 'SENT' && status !== 'DELIVERED' && status !== 'SUCCESS' -->
             <span class="nb-status nb-status-pending" data-bind="text: status || 'PENDING'"></span>
             <!-- /ko -->
           </div>
         </div>
 
-        <p style="font-size: 0.88rem; color: var(--nb-text-dark); margin: 0.5rem 0; white-space: pre-line;" data-bind="text: content || body"></p>
+        <p style="font-size: 0.88rem; color: var(--nb-text-dark); margin: 0.5rem 0; white-space: pre-line; line-height: 1.5;" data-bind="text: messageBody || content || body"></p>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--nb-text-muted); margin-top: 0.5rem; border-top: 1px solid var(--nb-border); padding-top: 0.5rem;">
-          <span>Recipient: <strong data-bind="text: recipientEmail || recipient || 'Email'"></strong></span>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--nb-text-muted); margin-top: 0.5rem; border-top: 1px solid var(--nb-border); padding-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <span>Event ID: <strong data-bind="text: notificationId || id"></strong> &bull; Recipient: <strong data-bind="text: recipientEmail || recipient || 'Registered Email'"></strong></span>
           <span>Timestamp: <span data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></span></span>
         </div>
       </div>

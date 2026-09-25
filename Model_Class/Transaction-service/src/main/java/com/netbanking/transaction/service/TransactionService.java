@@ -163,6 +163,20 @@ public class TransactionService {
             recordStatus(transaction, "PROCESSING", "SUCCESS", "Transfer completed successfully");
 
             eventProducer.publishTransactionEvent(transaction, userEmail);
+
+            // Notify Receiver as well (Req 13)
+            try {
+                if (transaction.getDestinationAccountId() != null) {
+                    AccountServiceClient.AccountResponse destAcc = accountServiceClient.getAccount(transaction.getDestinationAccountId());
+                    if (destAcc != null && destAcc.customerId() != null) {
+                        String receiverEmail = destAcc.customerId() + "@netbank.com";
+                        eventProducer.publishReceiverTransactionEvent(transaction, destAcc.customerId(), receiverEmail);
+                    }
+                }
+            } catch (Exception rcvEx) {
+                log.warn("Could not dispatch receiver transaction notification: {}", rcvEx.getMessage());
+            }
+
             completeIdempotency(idempotencyKey, transaction, "COMPLETED");
             return toResponse(transaction);
 

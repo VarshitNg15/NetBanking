@@ -49,4 +49,9 @@ public class NotificationService {
     public List<Notification> findByCustomer(String customerId) {
         return notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
     }
+
+    @Transactional(readOnly = true)
+    public List<Notification> findAll() {
+        return notificationRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+    }
 }

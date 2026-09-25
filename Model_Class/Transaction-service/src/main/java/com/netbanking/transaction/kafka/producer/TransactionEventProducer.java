@@ -34,6 +34,21 @@ public class TransactionEventProducer {
         kafkaTemplate.send(transactionTopic, transaction.getTransactionReference(), event);
     }
 
+    public void publishReceiverTransactionEvent(Transaction transaction, String receiverCustomerId, String receiverEmail) {
+        TransactionEvent event = new TransactionEvent(
+                transaction.getTransactionReference(),
+                "TRANSFER_CREDIT",
+                transaction.getTransactionStatus(),
+                receiverCustomerId,
+                receiverEmail,
+                transaction.getSourceAccountId(),
+                transaction.getDestinationAccountId(),
+                transaction.getAmount(),
+                transaction.getCurrency()
+        );
+        kafkaTemplate.send(transactionTopic, transaction.getTransactionReference() + "-RCV", event);
+    }
+
     public record TransactionEvent(
             String transactionReference,
             String transactionType,

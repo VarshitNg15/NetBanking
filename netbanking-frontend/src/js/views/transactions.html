@@ -1,0 +1,392 @@
+<!-- NetBanking Redwood Transaction History & Statements View -->
+<div>
+  <!-- Header Banner -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
+        Transaction History &amp; Account Statements
+      </h2>
+      <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
+        Review past fund transfers, inspect double-entry compliance ledgers, and download official account statements.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadData, disable: isLoading">
+        <span class="oj-ux-ico-refresh"></span>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <!-- ko if: errorMessage -->
+  <div class="nb-alert nb-alert-danger" style="margin-bottom: 1.25rem;">
+    <span class="oj-ux-ico-error" style="font-size: 1.25rem;"></span>
+    <span data-bind="text: errorMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- ko if: successMessage -->
+  <div class="nb-alert nb-alert-success" style="margin-bottom: 1.25rem;">
+    <span class="oj-ux-ico-check-circle-s" style="font-size: 1.25rem;"></span>
+    <span data-bind="text: successMessage"></span>
+  </div>
+  <!-- /ko -->
+
+  <!-- Statement Generation Card -->
+  <div class="nb-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #ffffff 0%, #fbfbf9 100%);">
+    <div class="nb-card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-file-text" style="font-size: 1.35rem; color: var(--nb-secondary);"></span>
+        <h3 class="nb-card-title">Generate Account Statement &amp; Ledger</h3>
+      </div>
+      <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem;">Official Compliance Ledger</span>
+    </div>
+
+    <form style="margin-top: 0.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; align-items: flex-end;">
+        <div class="nb-form-group" style="margin-bottom: 0;">
+          <label class="nb-form-label" for="stmtAccountSelect">Select Account</label>
+          <select id="stmtAccountSelect" class="nb-input" data-bind="value: stmtAccountId" required>
+            <!-- ko foreach: accounts -->
+            <option data-bind="value: id, text: accountNumber + ' (' + accountType + ')'"></option>
+            <!-- /ko -->
+          </select>
+        </div>
+
+        <div class="nb-form-group" style="margin-bottom: 0;">
+          <label class="nb-form-label" for="stmtFromDate">From Date</label>
+          <input id="stmtFromDate" type="date" class="nb-input" data-bind="value: stmtFromDate" />
+        </div>
+
+        <div class="nb-form-group" style="margin-bottom: 0;">
+          <label class="nb-form-label" for="stmtToDate">To Date</label>
+          <input id="stmtToDate" type="date" class="nb-input" data-bind="value: stmtToDate" />
+        </div>
+
+        <div class="nb-form-group" style="margin-bottom: 0;">
+          <label class="nb-form-label" for="stmtFormatSelect">Download Format</label>
+          <select id="stmtFormatSelect" class="nb-input" data-bind="value: stmtFormat">
+            <option value="CSV">CSV Spreadsheet (Full Ledger Columns)</option>
+            <option value="TXT">Official Plaintext Statement (.txt)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="nb-btn nb-btn-outline" data-bind="click: handlePreviewStatement, disable: isGeneratingStatement" style="padding: 0.65rem 0.85rem; flex: 1;" title="Preview statement on screen">
+            <span class="oj-ux-ico-view" style="margin-right: 4px;"></span>
+            Preview
+          </button>
+          <button type="button" class="nb-btn nb-btn-primary" data-bind="click: handleGenerateStatement, disable: isGeneratingStatement" style="padding: 0.65rem 0.85rem; flex: 1;">
+            <!-- ko if: isGeneratingStatement -->Working...<!-- /ko -->
+            <!-- ko ifnot: isGeneratingStatement -->
+            <span class="oj-ux-ico-download" style="margin-right: 4px;"></span>
+            Download
+            <!-- /ko -->
+          </button>
+        </div>
+      </div>
+    </form>
+    <div style="font-size: 0.76rem; color: var(--nb-text-muted); margin-top: 0.6rem;">
+      <span class="oj-ux-ico-information" style="vertical-align: middle;"></span>
+      Generated statement contains full double-entry ledger specifications: <code>TRANSACTION_REFERENCE</code>, <code>ENTRY_REFERENCE</code>, <code>ENTRY_TYPE</code>, <code>AMOUNT</code>, <code>BALANCE_BEFORE</code>, <code>BALANCE_AFTER</code>, <code>AVAILABLE_BALANCE_BEFORE</code>, <code>AVAILABLE_BALANCE_AFTER</code>, <code>DESCRIPTION</code>, <code>CREATED_BY</code>.
+    </div>
+  </div>
+
+  <!-- Navigation Sub-Tabs -->
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'transactions', 'nb-btn-outline': activeTab() !== 'transactions' }, click: function() { switchTab('transactions'); }">
+      <span class="oj-ux-ico-list" style="margin-right: 4px;"></span>
+      Transaction History
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'ledger', 'nb-btn-outline': activeTab() !== 'ledger' }, click: function() { switchTab('ledger'); }">
+      <span class="oj-ux-ico-table" style="margin-right: 4px;"></span>
+      Live Account Ledger (10 Columns)
+    </button>
+    <button type="button" class="nb-btn nb-btn-sm" data-bind="css: { 'nb-btn-primary': activeTab() === 'statements', 'nb-btn-outline': activeTab() !== 'statements' }, click: function() { switchTab('statements'); }">
+      <span class="oj-ux-ico-file-text" style="margin-right: 4px;"></span>
+      Statements Archive (<span data-bind="text: customerStatements().length"></span>)
+    </button>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- SUB-TAB 1: TRANSACTIONS LIST                                  -->
+  <!-- ============================================================= -->
+  <!-- ko if: activeTab() === 'transactions' -->
+  <div class="nb-card">
+    <div class="nb-card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-list" style="font-size: 1.3rem; color: var(--nb-secondary);"></span>
+        <h3 class="nb-card-title">All Completed &amp; Pending Transactions</h3>
+        <span class="nb-badge" style="background: var(--nb-secondary); color: #fff; font-size: 0.75rem;" data-bind="text: filteredTransactions().length + ' Records'"></span>
+      </div>
+
+      <!-- Filters -->
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <select class="nb-input" style="font-size: 0.82rem; min-width: 170px;" data-bind="value: selectedAccountFilter">
+          <option value="ALL">All My Accounts</option>
+          <!-- ko foreach: accounts -->
+          <option data-bind="value: id, text: 'Account #' + accountNumber"></option>
+          <!-- /ko -->
+        </select>
+        <input type="text" class="nb-input" placeholder="Search reference, description..." style="font-size: 0.82rem; min-width: 220px;" data-bind="textInput: searchQuery" />
+      </div>
+    </div>
+
+    <!-- ko if: isLoading -->
+    <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
+      <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+      <p style="margin-top: 0.5rem;">Loading customer transaction history...</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: isLoading -->
+      <!-- ko if: filteredTransactions().length === 0 -->
+      <div style="text-align: center; padding: 3.5rem 1rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-exchange" style="font-size: 3rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+        <h4 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark); font-size: 1.15rem;">No Transactions Found</h4>
+        <p style="font-size: 0.88rem; max-width: 440px; margin: 0 auto;">No transfers match your selected account or search filter. Initiated transfers will be recorded here automatically.</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko if: filteredTransactions().length > 0 -->
+      <div style="overflow-x: auto;">
+        <table class="nb-table">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Date &amp; Time</th>
+              <th>Source Acc</th>
+              <th>Destination Acc</th>
+              <th>Type / Mode</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody data-bind="foreach: filteredTransactions">
+            <tr>
+              <td>
+                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference"></span>
+              </td>
+              <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+              <td>
+                <span style="font-family: monospace;" data-bind="text: sourceAccountId || '-'"></span>
+              </td>
+              <td>
+                <span style="font-family: monospace;" data-bind="text: destinationAccountId || '-'"></span>
+              </td>
+              <td>
+                <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: transactionType || 'INTERNAL'"></span>
+                <!-- ko if: transferMode -->
+                <span style="font-size: 0.72rem; color: var(--nb-text-muted); margin-left: 2px;" data-bind="text: '(' + transferMode + ')'"></span>
+                <!-- /ko -->
+              </td>
+              <td style="font-weight: 700; white-space: nowrap;">
+                <span data-bind="text: '₹ ' + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), css: { 'nb-metric-positive': isCredit, 'nb-metric-negative': !isCredit }"></span>
+              </td>
+              <td>
+                <span class="nb-status" data-bind="text: transactionStatus, css: {
+                  'nb-status-active': transactionStatus === 'SUCCESS' || transactionStatus === 'COMPLETED',
+                  'nb-status-pending': transactionStatus === 'PROCESSING' || transactionStatus === 'INITIATED',
+                  'nb-status-closed': transactionStatus === 'FAILED'
+                }"></span>
+              </td>
+              <td style="font-size: 0.82rem; color: var(--nb-text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-bind="text: description || '-'"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- /ko -->
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+
+  <!-- ============================================================= -->
+  <!-- SUB-TAB 2: LIVE ACCOUNT LEDGER (10 COLUMNS - Req 5)           -->
+  <!-- ============================================================= -->
+  <!-- ko if: activeTab() === 'ledger' -->
+  <div class="nb-card">
+    <div class="nb-card-header" style="flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-table" style="font-size: 1.3rem; color: var(--nb-secondary);"></span>
+        <h3 class="nb-card-title">Official Double-Entry Account Ledger</h3>
+        <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem;">10 Columns Compliance</span>
+      </div>
+
+      <!-- Account Selector & Refresh -->
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <select class="nb-input" style="font-size: 0.82rem; min-width: 200px;" data-bind="value: selectedLedgerAccountId, event: { change: loadLedger }">
+          <!-- ko foreach: accounts -->
+          <option data-bind="value: id, text: 'Account #' + accountNumber + ' (' + accountType + ')'"></option>
+          <!-- /ko -->
+        </select>
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: loadLedger, disable: isLoadingLedger">
+          <span class="oj-ux-ico-refresh"></span> Refresh Ledger
+        </button>
+      </div>
+    </div>
+
+    <!-- ko if: isLoadingLedger -->
+    <div style="text-align: center; padding: 3rem; color: var(--nb-text-muted);">
+      <span class="oj-ux-ico-hourglass" style="font-size: 2rem;"></span>
+      <p style="margin-top: 0.5rem;">Querying immutable ledger entries from Account-Service...</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: isLoadingLedger -->
+      <!-- ko if: ledgerEntries().length === 0 -->
+      <div style="text-align: center; padding: 3.5rem 1rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-file-text" style="font-size: 3rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+        <h4 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark); font-size: 1.15rem;">No Ledger Entries Recorded</h4>
+        <p style="font-size: 0.88rem; max-width: 440px; margin: 0 auto;">No debit or credit postings have been recorded for this account yet.</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko if: ledgerEntries().length > 0 -->
+      <div style="overflow-x: auto;">
+        <table class="nb-table" style="font-size: 0.82rem;">
+          <thead>
+            <tr>
+              <th>TRANSACTION_REFERENCE</th>
+              <th>ENTRY_REFERENCE</th>
+              <th>ENTRY_TYPE</th>
+              <th>AMOUNT</th>
+              <th>BALANCE_BEFORE</th>
+              <th>BALANCE_AFTER</th>
+              <th>AVAILABLE_BALANCE_BEFORE</th>
+              <th>AVAILABLE_BALANCE_AFTER</th>
+              <th>DESCRIPTION</th>
+              <th>CREATED_BY</th>
+            </tr>
+          </thead>
+          <tbody data-bind="foreach: ledgerEntries">
+            <tr>
+              <td>
+                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference || '-'"></span>
+              </td>
+              <td>
+                <span style="font-family: monospace; font-size: 0.76rem;" data-bind="text: entryReference || '-'"></span>
+              </td>
+              <td>
+                <!-- ko if: entryType === 'CREDIT' -->
+                <span class="nb-status nb-status-active" style="font-size: 0.72rem;">CREDIT</span>
+                <!-- /ko -->
+                <!-- ko if: entryType === 'DEBIT' -->
+                <span class="nb-status nb-status-closed" style="font-size: 0.72rem;">DEBIT</span>
+                <!-- /ko -->
+              </td>
+              <td style="font-weight: 700; white-space: nowrap;">
+                ₹ <span data-bind="text: parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
+              </td>
+              <td style="font-family: monospace; white-space: nowrap;">
+                ₹ <span data-bind="text: parseFloat(balanceBefore || 0).toFixed(2)"></span>
+              </td>
+              <td style="font-family: monospace; font-weight: 700; white-space: nowrap; color: var(--nb-text-dark);">
+                ₹ <span data-bind="text: parseFloat(balanceAfter || 0).toFixed(2)"></span>
+              </td>
+              <td style="font-family: monospace; white-space: nowrap;">
+                ₹ <span data-bind="text: parseFloat(availableBalanceBefore || 0).toFixed(2)"></span>
+              </td>
+              <td style="font-family: monospace; font-weight: 700; white-space: nowrap; color: var(--nb-success);">
+                ₹ <span data-bind="text: parseFloat(availableBalanceAfter || 0).toFixed(2)"></span>
+              </td>
+              <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-bind="text: description || '-'"></td>
+              <td>
+                <span style="font-size: 0.76rem; color: var(--nb-text-muted);" data-bind="text: createdBy || 'SYSTEM'"></span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- /ko -->
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+
+  <!-- ============================================================= -->
+  <!-- SUB-TAB 3: STATEMENTS ARCHIVE                                 -->
+  <!-- ============================================================= -->
+  <!-- ko if: activeTab() === 'statements' -->
+  <div class="nb-card">
+    <div class="nb-card-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-file-text" style="font-size: 1.3rem; color: var(--nb-secondary);"></span>
+        <h3 class="nb-card-title">Generated Statements Archive</h3>
+      </div>
+      <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: loadCustomerStatements">
+        <span class="oj-ux-ico-refresh"></span> Refresh List
+      </button>
+    </div>
+
+    <!-- ko if: customerStatements().length === 0 -->
+    <div style="text-align: center; padding: 3rem 1rem; color: var(--nb-text-muted);">
+      <span class="oj-ux-ico-file-text" style="font-size: 2.5rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+      <h4 style="margin: 0.5rem 0 0.25rem 0; color: var(--nb-text-dark); font-size: 1.1rem;">No Statements Requested Yet</h4>
+      <p style="font-size: 0.85rem; max-width: 440px; margin: 0 auto;">Use the form above to generate your first account ledger statement in CSV or TXT format.</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: customerStatements().length > 0 -->
+    <div style="overflow-x: auto;">
+      <table class="nb-table" style="font-size: 0.85rem;">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Account ID</th>
+            <th>Format</th>
+            <th>Status</th>
+            <th>Requested Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody data-bind="foreach: customerStatements">
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
+            <td>
+              <span style="font-family: monospace; font-weight: 600;" data-bind="text: accountId"></span>
+            </td>
+            <td>
+              <span class="nb-badge nb-badge-customer" data-bind="text: requestType || 'CSV'"></span>
+            </td>
+            <td>
+              <span class="nb-status nb-status-active" data-bind="text: status || 'COMPLETED'"></span>
+            </td>
+            <td style="color: var(--nb-text-muted);" data-bind="text: (requestedAt || '').substring(0, 19).replace('T', ' ')"></td>
+            <td>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: $parent.viewSpecificStatement">
+                  <span class="oj-ux-ico-view"></span> View
+                </button>
+                <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: $parent.downloadSpecificStatement">
+                  <span class="oj-ux-ico-download"></span> Download
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- /ko -->
+  </div>
+  <!-- /ko -->
+
+  <!-- Dialog: Statement Preview Modal -->
+  <oj-dialog id="statementPreviewDialog" :dialog-title="[[previewStatementTitle]]" aria-describedby="descStmtPrev" style="width: 820px; max-width: 95%;">
+    <div slot="body">
+      <p id="descStmtPrev" style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 0.75rem;">
+        Official compliance ledger content generated by <strong>Transaction-Service</strong>.
+      </p>
+      <div style="background: #1e1e24; color: #a9ffb0; border-radius: 6px; padding: 1rem; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.8rem; line-height: 1.5; max-height: 420px; overflow-y: auto; overflow-x: auto; white-space: pre;">
+        <code data-bind="text: previewStatementContent"></code>
+      </div>
+    </div>
+    <div slot="footer">
+      <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closePreviewDialog">Close</button>
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: handleGenerateStatement">
+        <span class="oj-ux-ico-download"></span>
+        Download File
+      </button>
+    </div>
+  </oj-dialog>
+</div>

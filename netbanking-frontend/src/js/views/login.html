@@ -98,14 +98,14 @@
   </form>
   <!-- /ko -->
 
-  <!-- 3. FORGOT / RESET PASSWORD FORM -->
+  <!-- 3. FORGOT / RESET PASSWORD FORM (3-Step OTP Validation Flow - Req 10) -->
   <!-- ko if: activeTab() === 'forgot' -->
   <div>
-    <!-- Step 1: Request Password Reset -->
+    <!-- Step 1: Request Password Reset OTP -->
     <!-- ko if: resetStep() === 1 -->
-    <form data-bind="submit: handleForgotPassword">
+    <form data-bind="submit: handleSendResetOtp">
       <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-        Enter your registered email address to verify your account and reset your password.
+        Enter your registered email address. A 6-digit OTP will be issued to authorize your password change.
       </p>
       <div class="nb-form-group">
         <label class="nb-form-label" for="forgotEmail">Registered Email</label>
@@ -113,21 +113,49 @@
       </div>
       <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" data-bind="disable: isLoading">
         <span class="oj-ux-ico-lock"></span>
-        <span data-bind="text: isLoading() ? 'Verifying Account...' : 'Verify Account & Continue'"></span>
+        <span data-bind="text: isLoading() ? 'Sending OTP Code...' : 'Send OTP for Password Reset'"></span>
       </button>
     </form>
     <!-- /ko -->
 
-    <!-- Step 2: Set New Password -->
+    <!-- Step 2: Validate OTP Code -->
     <!-- ko if: resetStep() === 2 -->
+    <form data-bind="submit: handleVerifyResetOtp">
+      <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
+        A 6-digit verification OTP was sent to <strong data-bind="text: forgotEmail"></strong>. Enter the OTP code below to validate your identity.
+      </p>
+
+      <div class="nb-form-group">
+        <label class="nb-form-label" for="resetOtpInput">6-Digit Verification OTP</label>
+        <input id="resetOtpInput" type="text" maxlength="6" class="nb-input" placeholder="e.g. 123456" data-bind="textInput: resetOtp" style="letter-spacing: 0.2em; font-family: monospace; font-size: 1.15rem; font-weight: 700; text-align: center;" required />
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
+        <button type="button" class="nb-btn nb-btn-outline" data-bind="click: function() { resetStep(1); }">Back</button>
+        <button type="submit" class="nb-btn nb-btn-primary" style="flex: 1;" data-bind="disable: isLoading">
+          <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
+          <span data-bind="text: isLoading() ? 'Validating OTP...' : 'Validate OTP Code'"></span>
+        </button>
+      </div>
+
+      <div style="text-align: center; margin-top: 1rem;">
+        <button type="button" class="nb-link-btn" data-bind="click: handleSendResetOtp" style="font-size: 0.78rem;">
+          Didn't receive the OTP? Resend Code
+        </button>
+      </div>
+    </form>
+    <!-- /ko -->
+
+    <!-- Step 3: Set New Password -->
+    <!-- ko if: resetStep() === 3 -->
     <form data-bind="submit: handleResetPassword">
       <p style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-        Account verified for <strong data-bind="text: forgotEmail"></strong>. Please enter your new password below.
+        OTP validated for <strong data-bind="text: forgotEmail"></strong>. Enter and confirm your new secure password.
       </p>
 
       <div class="nb-form-group">
         <label class="nb-form-label" for="newPassword">New Password</label>
-        <input id="newPassword" type="password" class="nb-input" placeholder="Enter new password" data-bind="textInput: newPassword" required />
+        <input id="newPassword" type="password" class="nb-input" placeholder="Enter new password (min 8 chars)" data-bind="textInput: newPassword" required />
       </div>
 
       <div class="nb-form-group">
@@ -136,9 +164,9 @@
       </div>
 
       <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
-        <button type="button" class="nb-btn nb-btn-outline" data-bind="click: function() { resetStep(1); }">Back</button>
+        <button type="button" class="nb-btn nb-btn-outline" data-bind="click: function() { resetStep(2); }">Back</button>
         <button type="submit" class="nb-btn nb-btn-primary" style="flex: 1;" data-bind="disable: isLoading">
-          <span data-bind="text: isLoading() ? 'Updating Password...' : 'Confirm Password Reset'"></span>
+          <span data-bind="text: isLoading() ? 'Updating Password...' : 'Save New Password & Sign In'"></span>
         </button>
       </div>
     </form>

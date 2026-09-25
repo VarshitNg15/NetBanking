@@ -83,6 +83,9 @@
             <div class="oj-flex-bar-end oj-sm-align-items-center nb-header-right">
               <!-- When Logged In -->
               <div class="nb-user-chip" data-bind="visible: isLoggedIn">
+                <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" style="border: none; padding: 4px 8px; font-size: 1.1rem; color: var(--nb-primary); cursor: pointer;" data-bind="click: goToNotifications" title="Notification Center">
+                  <span class="oj-ux-ico-bell"></span>
+                </button>
                 <div class="nb-user-avatar">
                   <span class="oj-ux-ico-contact"></span>
                 </div>
@@ -124,7 +127,8 @@
           <oj-module config="[[moduleAdapter.koObservableConfig]]"></oj-module>
         </main>
 
-        <!-- Redwood Footer -->
+        <!-- ko if: isAdmin() -->
+        <!-- Redwood Footer (Admin Command Center Only - Req 8) -->
         <footer class="oj-web-applayout-footer nb-footer" role="contentinfo">
           <div class="oj-web-applayout-footer-item oj-web-applayout-max-width">
             <ul class="nb-footer-list">
@@ -143,6 +147,7 @@
             NetBanking Microservices Platform &bull; Built with Oracle JET & Redwood Design System &bull; Spring Cloud Gateway :8080
           </div>
         </footer>
+        <!-- /ko -->
       </div>
     </div>
 

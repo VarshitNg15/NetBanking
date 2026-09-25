@@ -29,7 +29,7 @@ public class CustomerService {
         Customer customer = new Customer();
 
         customer.setCustomerId(request.getCustomerId());
-        customer.setCustomerStatus("PENDING_APPROVAL");
+        customer.setCustomerStatus("ACTIVE");
 
         Customer savedCustomer = customerRepository.save(customer);
 
@@ -87,7 +87,7 @@ public class CustomerService {
                 .orElseGet(() -> {
                     Customer customer = new Customer();
                     customer.setCustomerId(customerId);
-                    customer.setCustomerStatus("PENDING_APPROVAL");
+                    customer.setCustomerStatus("ACTIVE");
                     return customerRepository.save(customer);
                 });
     }
@@ -118,9 +118,19 @@ public class CustomerService {
     }
 
     private CustomerResponse toResponse(Customer customer) {
+        String name = customer.getCustomerId();
+        if (customer.getCustomerProfile() != null) {
+            String first = customer.getCustomerProfile().getFirstName() != null ? customer.getCustomerProfile().getFirstName().trim() : "";
+            String last = customer.getCustomerProfile().getLastName() != null ? customer.getCustomerProfile().getLastName().trim() : "";
+            String full = (first + " " + last).trim();
+            if (!full.isEmpty()) {
+                name = full;
+            }
+        }
 
         return CustomerResponse.builder()
                 .customerId(customer.getCustomerId())
+                .customerName(name)
                 .customerStatus(customer.getCustomerStatus())
                 .createdAt(customer.getCreatedAt())
                 .updatedAt(customer.getUpdatedAt())

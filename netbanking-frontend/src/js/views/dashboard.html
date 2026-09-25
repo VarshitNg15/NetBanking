@@ -14,7 +14,7 @@
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: openProfileDialog">
         <span class="oj-ux-ico-user"></span>
-        My Profile &amp; KYC
+        My Profile
       </button>
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadDashboardData">
         <span class="oj-ux-ico-refresh"></span>
@@ -51,7 +51,7 @@
   <div class="nb-alert nb-alert-info" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <span class="oj-ux-ico-information-s" style="font-size: 1.25rem;"></span>
-      <span><strong>Customer Profile Pending:</strong> Complete your personal and KYC address details to personalize your account.</span>
+      <span><strong>Customer Profile Pending:</strong> Complete your personal and address details to personalize your account.</span>
     </div>
     <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: openProfileDialog">
       Complete Profile Now
@@ -126,7 +126,6 @@
               <th>Type</th>
               <th>Status</th>
               <th>Available Balance</th>
-              <th>Current Balance</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -154,7 +153,6 @@
                 <!-- /ko -->
               </td>
               <td style="font-weight: 700; color: var(--nb-success); font-size: 1.05rem;" data-bind="text: formattedAvailableBalance"></td>
-              <td style="color: var(--nb-text-muted);" data-bind="text: formattedCurrentBalance"></td>
               <td>
                 <!-- ko if: status === 'ACTIVE' -->
                 <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: $parent.goToTransfers">
@@ -169,6 +167,62 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- /ko -->
+    <!-- /ko -->
+  </div>
+
+  <!-- Notification Center Section (Req 12) -->
+  <div class="nb-card" style="margin-top: 1.5rem;">
+    <div class="nb-card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="oj-ux-ico-bell" style="font-size: 1.3rem; color: var(--nb-secondary);"></span>
+        <h3 class="nb-card-title">Notification Center</h3>
+        <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: recentNotifications().length + ' Alerts'"></span>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: loadNotifications, disable: isLoadingNotifications">
+          <span class="oj-ux-ico-refresh"></span> Refresh
+        </button>
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: goToNotifications">
+          View All Notifications &rarr;
+        </button>
+      </div>
+    </div>
+
+    <!-- ko if: isLoadingNotifications -->
+    <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
+      <p>Loading recent notifications...</p>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: isLoadingNotifications -->
+      <!-- ko if: recentNotifications().length === 0 -->
+      <div style="text-align: center; padding: 2.5rem 1rem; color: var(--nb-text-muted);">
+        <span class="oj-ux-ico-bell" style="font-size: 2.5rem; color: #d1cfcb; display: block; margin-bottom: 0.5rem;"></span>
+        <h4 style="margin: 0.25rem 0; color: var(--nb-text-dark); font-size: 1.05rem;">No New Notifications</h4>
+        <p style="font-size: 0.85rem; margin: 0;">Security alerts, PIN updates, and fund transfer receipts will appear here.</p>
+      </div>
+      <!-- /ko -->
+
+      <!-- ko if: recentNotifications().length > 0 -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;" data-bind="foreach: recentNotifications">
+        <div style="border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.85rem 1rem; background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 250px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span class="oj-ux-ico-mail" style="color: var(--nb-primary); font-size: 1.1rem;"></span>
+              <strong style="font-size: 0.92rem; color: var(--nb-text-dark);" data-bind="text: subject || 'Account Notification'"></strong>
+              <span class="nb-badge nb-badge-customer" style="font-size: 0.68rem;" data-bind="text: eventType || 'ALERT'"></span>
+            </div>
+            <p style="margin: 0; font-size: 0.82rem; color: var(--nb-text-muted); line-height: 1.4; white-space: pre-line;" data-bind="text: messageBody"></p>
+          </div>
+          <div style="text-align: right; font-size: 0.75rem; color: var(--nb-text-muted); white-space: nowrap;">
+            <div style="margin-bottom: 0.25rem;">
+              <span class="nb-status nb-status-active" style="font-size: 0.68rem;">Delivered</span>
+            </div>
+            <span data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></span>
+          </div>
+        </div>
       </div>
       <!-- /ko -->
     <!-- /ko -->
@@ -216,11 +270,11 @@
     </div>
   </oj-dialog>
 
-  <!-- Dialog: Customer Profile & KYC Management (Req 4) -->
-  <oj-dialog id="customerProfileDialog" dialog-title="Customer Profile & KYC Details" aria-describedby="descProfile" style="width: 520px; max-width: 95%;">
+  <!-- Dialog: Customer Profile Management (Req 6) -->
+  <oj-dialog id="customerProfileDialog" dialog-title="Customer Profile Details" aria-describedby="descProfile" style="width: 520px; max-width: 95%;">
     <div slot="body">
       <p id="descProfile" style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
-        Manage your registered identity, contact information, and KYC residential address.
+        Manage your registered identity, contact information, and residential address.
       </p>
 
       <form data-bind="submit: saveProfile">
@@ -283,7 +337,7 @@
         <!-- ko if: isSavingProfile -->Saving Profile...<!-- /ko -->
         <!-- ko ifnot: isSavingProfile -->
         <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
-        Save Profile &amp; KYC
+        Save Profile
         <!-- /ko -->
       </button>
     </div>

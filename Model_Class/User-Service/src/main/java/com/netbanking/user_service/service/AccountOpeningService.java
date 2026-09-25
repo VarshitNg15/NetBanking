@@ -223,11 +223,23 @@ public class AccountOpeningService {
                         .map(AccountOpeningRequestType::getAccountType)
                         .toList();
 
+        String custName = request.getCustomer().getCustomerId();
+        if (request.getCustomer().getCustomerProfile() != null) {
+            var prof = request.getCustomer().getCustomerProfile();
+            String first = prof.getFirstName() != null ? prof.getFirstName().trim() : "";
+            String last = prof.getLastName() != null ? prof.getLastName().trim() : "";
+            String full = (first + " " + last).trim();
+            if (!full.isEmpty()) {
+                custName = full;
+            }
+        }
+
         return AccountOpeningResponseDto.builder()
                 .requestId(request.getRequestId())
                 .customerId(
                         request.getCustomer().getCustomerId()
                 )
+                .customerName(custName)
                 .requestStatus(request.getRequestStatus())
                 .accountTypes(accountTypes)
                 .submittedAt(request.getSubmittedAt())

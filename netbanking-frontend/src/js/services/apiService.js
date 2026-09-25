@@ -107,6 +107,16 @@ define([], function() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const user = this.getUser();
+      if (user) {
+        if (user.customerId && !headers['X-Customer-Id']) {
+          headers['X-Customer-Id'] = user.customerId;
+        }
+        if (user.email && !headers['X-Customer-Email']) {
+          headers['X-Customer-Email'] = user.email;
+        }
+      }
+
       options.headers = headers;
 
       try {
@@ -244,12 +254,22 @@ define([], function() {
     // -------------------------------------------------------------
     // Account & Ledger Endpoints
     // -------------------------------------------------------------
+    async getMyAccounts() {
+      const user = this.getUser();
+      if (!user || !user.customerId) return [];
+      return this.getAccountsByCustomer(user.customerId);
+    }
+
     async getAllAccounts() {
       return this.request('/api/v1/accounts');
     }
 
     async getAccountsByCustomer(customerId) {
       return this.request(`/api/v1/accounts?customerId=${encodeURIComponent(customerId)}`);
+    }
+
+    async getAccountLedger(accountId) {
+      return this.request(`/api/v1/accounts/${accountId}/ledger`);
     }
 
     async getAccount(accountId) {
@@ -425,8 +445,95 @@ define([], function() {
     }
 
     // -------------------------------------------------------------
-    // Customer Profiles & KYC
+    // Transactions & Statements (Req 1 & 5)
     // -------------------------------------------------------------
+    async getCustomerTransactions(customerId) {
+      if (!customerId) return [];
+      try {
+        return await this.request(`/api/v1/transactions/customer/${encodeURIComponent(customerId)}`);
+      } catch (e) {
+        console.warn('Customer transactions fetch warning:', e.message);
+        return [];
+      }
+    }
+
+    async getAccountTransactions(accountId) {
+      if (!accountId) return [];
+      try {
+        return await this.request(`/api/v1/transactions/account/${encodeURIComponent(accountId)}`);
+      } catch (e) {
+        console.warn('Account transactions fetch warning:', e.message);
+        return [];
+      }
+    }
+
+    async requestStatement(accountId, fromDate = null, toDate = null, requestType = 'CSV') {
+      const user = this.getUser();
+      const customerId = user ? user.customerId : '';
+      return this.request('/api/v1/statements', {
+        method: 'POST',
+        headers: {
+          'X-Customer-Id': customerId,
+          'X-Initiated-By': 'CUSTOMER'
+        },
+        body: JSON.stringify({
+          accountId: Number(accountId),
+          requestType: requestType,
+          fromDate: fromDate || null,
+          toDate: toDate || null
+        })
+      });
+    }
+
+    async getCustomerStatements(customerId) {
+      const user = this.getUser();
+      const custId = customerId || (user ? user.customerId : '');
+      try {
+        return await this.request('/api/v1/statements', {
+          headers: {
+            'X-Customer-Id': custId
+          }
+        });
+      } catch (e) {
+        console.warn('Statements fetch warning:', e.message);
+        return [];
+      }
+    }
+
+    async downloadStatement(requestId) {
+      const token = this.getToken();
+      const user = this.getUser();
+      const custId = user ? user.customerId : '';
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (custId) headers['X-Customer-Id'] = custId;
+
+      const res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
+        headers: headers
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to download statement (${res.status} ${res.statusText})`);
+      }
+      return await res.text();
+    }
+
+    async getPinStatus(accountId) {
+      return this.request(`/api/v1/accounts/${accountId}/pin/status`);
+    }
+
+    async getAllCustomers() {
+      try {
+        return await this.request('/api/v1/customers');
+      } catch (e) {
+        console.warn('Customers fetch warning:', e.message);
+        return [];
+      }
+    }
+
+    async getAllNotifications() {
+      return this.request('/api/v1/notifications');
+    }
+
     async getCustomerProfile(customerId) {
       return this.request(`/api/v1/customers/${encodeURIComponent(customerId)}/profile`);
     }

@@ -99,11 +99,13 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       };
 
       // -----------------------------------------------------------
-      // Forgot Password Actions (Token hidden from user)
+      // Forgot Password Actions (3-Step OTP Validation Flow - Req 10)
       // -----------------------------------------------------------
+      this.resetOtp = ko.observable('');
       this.confirmNewPassword = ko.observable('');
 
-      this.handleForgotPassword = async () => {
+      // Step 1: Send OTP to Email
+      this.handleSendResetOtp = async () => {
         self.clearMessages();
         if (!self.forgotEmail()) {
           self.errorMessage('Please enter your registered email address.');
@@ -115,22 +117,46 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           const res = await apiService.forgotPassword(self.forgotEmail().trim());
           if (res.resetToken) {
             self.resetToken(res.resetToken);
-            self.resetStep(2);
-            self.successMessage('Password reset authorized! Please enter your new password below.');
-          } else {
-            self.successMessage(res.message || 'Password reset instructions issued.');
           }
+          self.resetStep(2);
+          self.successMessage('A 6-digit verification OTP has been sent to ' + self.forgotEmail().trim() + '. Please validate your OTP below.');
         } catch (err) {
-          self.errorMessage(err.message || 'Failed to request password reset.');
+          self.errorMessage(err.message || 'Failed to request password reset OTP.');
         } finally {
           self.isLoading(false);
         }
       };
 
+      // Step 2: Validate OTP before password change
+      this.handleVerifyResetOtp = async () => {
+        self.clearMessages();
+        const code = (self.resetOtp() || '').trim();
+        if (!code || code.length !== 6 || isNaN(code)) {
+          self.errorMessage('Please enter a valid 6-digit numeric OTP code.');
+          return;
+        }
+
+        self.isLoading(true);
+        try {
+          await apiService.verifyOtp(self.forgotEmail().trim(), code, 'PASSWORD_RESET');
+          self.resetStep(3);
+          self.successMessage('OTP validated successfully! Please enter your new password below.');
+        } catch (err) {
+          self.errorMessage(err.message || 'Invalid or expired OTP. Please verify the code and try again.');
+        } finally {
+          self.isLoading(false);
+        }
+      };
+
+      // Step 3: Set New Password
       this.handleResetPassword = async () => {
         self.clearMessages();
         if (!self.newPassword()) {
           self.errorMessage('Please enter your new password.');
+          return;
+        }
+        if (self.newPassword().length < 8) {
+          self.errorMessage('Password must be at least 8 characters in length.');
           return;
         }
         if (self.confirmNewPassword() && self.newPassword() !== self.confirmNewPassword()) {
@@ -146,6 +172,9 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           self.password(self.newPassword());
           setTimeout(() => {
             self.resetStep(1);
+            self.resetOtp('');
+            self.newPassword('');
+            self.confirmNewPassword('');
             self.switchTab('login');
           }, 1500);
         } catch (err) {

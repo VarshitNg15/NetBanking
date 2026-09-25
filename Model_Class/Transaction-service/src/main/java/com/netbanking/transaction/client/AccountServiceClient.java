@@ -45,7 +45,12 @@ public interface AccountServiceClient {
             String entryReference,
             @JsonAlias({"entryType", "type"}) String entryType,
             BigDecimal amount,
+            BigDecimal balanceBefore,
             BigDecimal balanceAfter,
+            BigDecimal availableBalanceBefore,
+            BigDecimal availableBalanceAfter,
+            String description,
+            String createdBy,
             java.time.LocalDateTime createdAt
     ) {}
 }

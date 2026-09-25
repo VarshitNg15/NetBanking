@@ -33,6 +33,11 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping
+    public ResponseEntity<List<Notification>> findAll() {
+        return ResponseEntity.ok(notificationService.findAll());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Notification> findById(@PathVariable Long id) {
         return ResponseEntity.ok(notificationService.findById(id));

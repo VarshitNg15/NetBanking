@@ -196,6 +196,7 @@
               <tr>
                 <th>Request ID</th>
                 <th>Customer ID</th>
+                <th>Account User Name</th>
                 <th>Account Type</th>
                 <th>Status</th>
                 <th>Submission Date</th>
@@ -207,6 +208,9 @@
                 <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
                 <td>
                   <span style="font-weight: 700; color: var(--nb-text-dark);" data-bind="text: customerId"></span>
+                </td>
+                <td>
+                  <strong style="color: var(--nb-text-dark);" data-bind="text: customerName || customerId"></strong>
                 </td>
                 <td>
                   <span class="nb-badge nb-badge-customer" data-bind="text: accountType || 'SAVINGS'"></span>
@@ -284,6 +288,7 @@
                 <th>DB ID</th>
                 <th>Account Number</th>
                 <th>Customer ID</th>
+                <th>Account User Name</th>
                 <th>Type</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -300,6 +305,9 @@
                 </td>
                 <td>
                   <span data-bind="text: $data.customerId"></span>
+                </td>
+                <td>
+                  <strong style="color: var(--nb-text-dark);" data-bind="text: $data.customerName || $data.customerId"></strong>
                 </td>
                 <td>
                   <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: $data.accountType"></span>
@@ -388,6 +396,10 @@
                   <strong data-bind="text: inspectedAccount().customerId"></strong>
                 </div>
                 <div>
+                  <span style="color: var(--nb-text-muted);">Account User Name:</span>
+                  <strong style="color: var(--nb-secondary);" data-bind="text: inspectedAccount().customerName || inspectedAccount().customerId"></strong>
+                </div>
+                <div>
                   <span style="color: var(--nb-text-muted);">Account Type:</span>
                   <strong data-bind="text: inspectedAccount().accountType"></strong>
                 </div>
@@ -398,17 +410,11 @@
               </div>
 
               <!-- ko if: inspectedBalance -->
-              <div style="background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.75rem; display: flex; justify-content: space-around; text-align: center; margin-bottom: 1rem;">
+              <div style="background: #fff; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.75rem; text-align: center; margin-bottom: 1rem;">
                 <div>
-                  <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase;">Available Balance</div>
-                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--nb-success);">
+                  <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase; font-weight: 700;">Available Balance</div>
+                  <div style="font-size: 1.3rem; font-weight: 800; color: var(--nb-success);">
                     ₹ <span data-bind="text: parseFloat(inspectedBalance().availableBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
-                  </div>
-                </div>
-                <div style="border-left: 1px solid var(--nb-border); padding-left: 1rem;">
-                  <div style="font-size: 0.72rem; color: var(--nb-text-muted); text-transform: uppercase;">Current Balance</div>
-                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--nb-text-dark);">
-                    ₹ <span data-bind="text: parseFloat(inspectedBalance().currentBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })"></span>
                   </div>
                 </div>
               </div>
@@ -560,7 +566,7 @@
       </div>
 
       <!-- ko if: auditPasskey -->
-      <div style="background: #eef8f1; border: 1px solid #c2e9cb; border-radius: 8px; padding: 1.25rem; text-align: center;">
+      <div style="background: #eef8f1; border: 1px solid #c2e9cb; border-radius: 8px; padding: 1.25rem; text-align: center; margin-bottom: 1.5rem;">
         <span class="oj-ux-ico-check-circle-s" style="font-size: 2rem; color: var(--nb-success); display: block; margin-bottom: 0.25rem;"></span>
         <h4 style="margin: 0 0 0.25rem 0; color: #1e5a2f;">Audit Passkey Authorized</h4>
         <p style="font-size: 0.8rem; color: #2e7d32; margin: 0 0 0.75rem 0;">Valid for 5 minutes. Authorizes inspection of all email and security event logs.</p>
@@ -568,11 +574,73 @@
         <div style="margin-top: 1rem;">
           <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { apiService.navigate('notifications'); }">
             <span class="oj-ux-ico-bell"></span>
-            Inspect System Audit Logs
+            Inspect System Audit Logs Page
           </button>
         </div>
       </div>
       <!-- /ko -->
+
+      <!-- Live Audit Records Table (Req 2) -->
+      <div style="margin-top: 1rem; background: #fff; border: 1px solid var(--nb-border); border-radius: 8px; padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h4 style="margin: 0; font-size: 1.05rem; color: var(--nb-text-dark);">
+            <span class="oj-ux-ico-list" style="margin-right: 6px; color: var(--nb-secondary);"></span>
+            Live Compliance Audit Records
+          </h4>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: loadAuditLogs, disable: isLoadingAuditLogs">
+            <span class="oj-ux-ico-refresh"></span> Refresh Logs
+          </button>
+        </div>
+
+        <!-- ko if: isLoadingAuditLogs -->
+        <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
+          Loading audit events from Notification-Service...
+        </div>
+        <!-- /ko -->
+
+        <!-- ko ifnot: isLoadingAuditLogs -->
+          <!-- ko if: auditLogs().length === 0 -->
+          <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
+            No audit records logged yet in Notification-Service.
+          </div>
+          <!-- /ko -->
+
+          <!-- ko if: auditLogs().length > 0 -->
+          <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+            <table class="nb-table" style="font-size: 0.82rem;">
+              <thead>
+                <tr style="position: sticky; top: 0; background: #fff; z-index: 2;">
+                  <th>Log ID</th>
+                  <th>Event Type</th>
+                  <th>Customer ID</th>
+                  <th>Recipient Email</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody data-bind="foreach: auditLogs">
+                <tr>
+                  <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: notificationId || id"></td>
+                  <td>
+                    <span class="nb-badge nb-badge-customer" style="font-size: 0.7rem;" data-bind="text: eventType || 'ALERT'"></span>
+                  </td>
+                  <td>
+                    <span style="font-weight: 600;" data-bind="text: customerId"></span>
+                  </td>
+                  <td data-bind="text: recipientEmail"></td>
+                  <td style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-bind="text: subject"></td>
+                  <td>
+                    <span class="nb-status nb-status-active" data-bind="text: status"></span>
+                  </td>
+                  <td style="color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- /ko -->
+        <!-- /ko -->
+      </div>
     </div>
     <!-- /ko -->
 

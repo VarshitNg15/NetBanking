@@ -83,6 +83,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           self.activeAccountsCount(activeCnt);
           self.pendingAccountsCount(pendingCnt);
           self.totalAvailableBalance('₹ ' + totalBal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+          self.loadNotifications();
         } catch (err) {
           console.error('Failed to load dashboard accounts', err);
           self.errorMessage('Could not load accounts. Ensure microservices are running on port 8080.');
@@ -186,7 +187,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           const res = await apiService.saveCustomerProfile(self.customerId(), payload);
           self.customerProfile(res);
           self.hasProfile(true);
-          self.successMessage('Customer Profile & KYC details saved successfully!');
+          self.successMessage('Customer Profile details saved successfully!');
           self.closeProfileDialog();
         } catch (err) {
           self.errorMessage(err.message || 'Failed to save customer profile.');
@@ -251,6 +252,38 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         apiService.navigate('accounts');
       };
 
+      // Notification Center in User Dashboard (Req 12)
+      this.recentNotifications = ko.observableArray([]);
+      this.isLoadingNotifications = ko.observable(false);
+
+      this.loadNotifications = async () => {
+        const user = apiService.getUser();
+        if (!user || !user.customerId) return;
+
+        self.isLoadingNotifications(true);
+        try {
+          const list = await apiService.getCustomerNotifications(user.customerId);
+          const mapped = (Array.isArray(list) ? list : []).map(n => ({
+            id: n.notificationId || n.id,
+            eventType: n.eventType || n.notificationType || 'ALERT',
+            subject: n.subject || 'Account Notification',
+            messageBody: n.messageBody || n.content || n.body || '',
+            status: n.status || 'DELIVERED',
+            createdAt: n.createdAt || new Date().toISOString()
+          }));
+          self.recentNotifications(mapped.slice(0, 5));
+        } catch (e) {
+          console.warn('Could not load dashboard notifications:', e);
+          self.recentNotifications([]);
+        } finally {
+          self.isLoadingNotifications(false);
+        }
+      };
+
+      this.goToNotifications = () => {
+        apiService.navigate('notifications');
+      };
+
       // Lifecycle hooks
       this.connected = () => {
         if (apiService.isAdmin()) {
@@ -260,6 +293,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         document.title = 'Dashboard - NetBanking Redwood Portal';
         self.loadDashboardData();
         self.loadCustomerProfile();
+        self.loadNotifications();
       };
     }
 

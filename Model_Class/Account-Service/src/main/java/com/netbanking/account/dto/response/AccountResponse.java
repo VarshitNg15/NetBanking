@@ -13,7 +13,8 @@ public record AccountResponse(
         AccountStatus status,
         String currencyCode,
         LocalDateTime createdAt,
-        LocalDateTime approvedAt
+        LocalDateTime approvedAt,
+        Boolean pinSet
 ) {
     public Long accountId() {
         return id;
@@ -24,6 +25,10 @@ public record AccountResponse(
     }
 
     public static AccountResponse from(Account a) {
+        return from(a, null);
+    }
+
+    public static AccountResponse from(Account a, Boolean pinSet) {
         return new AccountResponse(
                 a.getId(),
                 a.getCustomerId(),
@@ -32,7 +37,8 @@ public record AccountResponse(
                 a.getAccountStatus(),
                 a.getCurrencyCode(),
                 a.getCreatedAt(),
-                a.getApprovedAt()
+                a.getApprovedAt(),
+                pinSet
         );
     }
 }

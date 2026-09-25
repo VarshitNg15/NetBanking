@@ -162,6 +162,9 @@ public class AuthService {
         AuthUser user = userRepository.findByEmailIgnoreCase(request.email().trim())
                 .orElseThrow(() -> new IllegalArgumentException("No account found with email: " + request.email()));
 
+        // Issue 6-digit OTP for PASSWORD_RESET verification
+        issueOtp(user, OtpPurpose.PASSWORD_RESET);
+
         // Generate temporary 15-minute access token specifically for password reset
         JwtService.TokenData tokenData = jwtService.generatePasswordResetToken(user);
         String resetToken = tokenData.token();
@@ -173,9 +176,8 @@ public class AuthService {
                 .expiresAt(LocalDateTime.now().plusMinutes(15))
                 .build());
 
-        // Note: As requested, no Kafka notification of the token is sent
         return new ForgotPasswordResponse(
-                "Temporary password reset token generated successfully. Valid for 15 minutes.",
+                "A 6-digit verification OTP has been dispatched to your registered email address.",
                 resetToken,
                 "Bearer",
                 tokenData.expiresIn()

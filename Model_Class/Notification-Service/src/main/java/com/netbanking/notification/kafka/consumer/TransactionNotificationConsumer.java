@@ -34,14 +34,25 @@ public class TransactionNotificationConsumer {
             String recipientEmail = root.path("recipientEmail").asText(null);
 
             if (recipientEmail != null && !recipientEmail.isBlank() && !recipientEmail.equalsIgnoreCase("null")) {
-                log.info("Dispatching transaction alert email to {} for txn {}", recipientEmail, ref);
+                String txnType = root.path("transactionType").asText("");
+                boolean isCredit = "TRANSFER_CREDIT".equalsIgnoreCase(txnType);
+
+                String subject = isCredit
+                        ? "NetBanking Alert: Account Credited (" + currency + " " + amount + ")"
+                        : "NetBanking Alert: Transaction " + status + " (" + currency + " " + amount + ")";
+
+                String body = isCredit
+                        ? "Dear Customer,\n\nYour account has been credited with " + currency + " " + amount + " via transaction " + ref + ".\n\nWarm regards,\nNetBanking Alerts"
+                        : "Dear Customer,\n\nYour transfer of " + currency + " " + amount + " (Ref: " + ref + ") has been processed with status: " + status + ".\n\nIf you did not initiate this transfer, please contact customer support immediately.\n\nWarm regards,\nNetBanking Alerts";
+
+                log.info("Dispatching {} transaction alert email to {} for txn {}", isCredit ? "CREDIT" : "DEBIT", recipientEmail, ref);
                 Notification notification = notificationService.create(new NotificationCreateRequest(
                         "TXN-" + UUID.randomUUID(),
-                        "TRANSACTION_ALERT",
+                        isCredit ? "TRANSFER_CREDIT" : "TRANSACTION_ALERT",
                         customerId,
                         recipientEmail,
-                        "NetBanking Alert: Transaction " + status + " (" + currency + " " + amount + ")",
-                        "Dear Customer,\n\nYour transaction " + ref + " of " + currency + " " + amount + " has been processed with status: " + status + ".\n\nIf you did not initiate this transfer, please contact customer support immediately.\n\nWarm regards,\nNetBanking Alerts"
+                        subject,
+                        body
                 ));
                 emailService.send(notification);
             }

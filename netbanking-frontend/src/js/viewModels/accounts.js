@@ -83,9 +83,12 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       // -----------------------------------------------------------
       // 4-Digit PIN Dialog
       // -----------------------------------------------------------
+      this.isUpdatingPin = ko.observable(false);
+
       this.openPinDialog = (account) => {
         self.selectedAccountId(account.id);
         self.selectedAccountNumber(account.accountNumber);
+        self.isUpdatingPin(!!account.pinSet);
         self.pinCode('');
         self.confirmPinCode('');
         const dialog = document.getElementById('setPinDialog');
@@ -109,11 +112,16 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
 
         self.isSubmittingPin(true);
         try {
+          const isUpdate = self.isUpdatingPin();
           await apiService.setPin(self.selectedAccountId(), self.pinCode());
-          self.successMessage(`4-digit security PIN set successfully for account ${self.selectedAccountNumber()}!`);
+          self.successMessage(isUpdate
+            ? `4-digit security PIN updated successfully for account ${self.selectedAccountNumber()}! Notification dispatched.`
+            : `4-digit security PIN set successfully for account ${self.selectedAccountNumber()}! Notification dispatched.`
+          );
           self.closePinDialog();
+          await self.loadAccounts();
         } catch (err) {
-          self.errorMessage(err.message || 'Failed to set PIN.');
+          self.errorMessage(err.message || 'Failed to configure PIN.');
         } finally {
           self.isSubmittingPin(false);
         }

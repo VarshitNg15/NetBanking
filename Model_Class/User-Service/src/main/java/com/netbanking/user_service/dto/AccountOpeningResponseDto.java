@@ -16,6 +16,8 @@ public class AccountOpeningResponseDto {
 
     private String customerId;
 
+    private String customerName;
+
     private String requestStatus;
 
     private List<String> accountTypes;

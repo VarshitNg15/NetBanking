@@ -48,6 +48,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
           { path: 'dashboard', detail: { label: 'Customer Dashboard', iconClass: 'oj-ux-ico-bar-chart' } },
           { path: 'accounts', detail: { label: 'My Accounts', iconClass: 'oj-ux-ico-credit-card' } },
           { path: 'transfers', detail: { label: 'Fund Transfers', iconClass: 'oj-ux-ico-exchange' } },
+          { path: 'transactions', detail: { label: 'Transaction History', iconClass: 'oj-ux-ico-history' } },
           { path: 'notifications', detail: { label: self.isAdmin() ? 'System Audit Logs' : 'Notifications', iconClass: 'oj-ux-ico-bell' } },
           { path: 'login', detail: { label: 'Sign In', iconClass: 'oj-ux-ico-lock' } }
         ];
@@ -72,6 +73,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
           { path: 'dashboard', detail: { label: 'My Dashboard', iconClass: 'oj-ux-ico-bar-chart' } },
           { path: 'accounts', detail: { label: 'My Accounts', iconClass: 'oj-ux-ico-credit-card' } },
           { path: 'transfers', detail: { label: 'Fund Transfers', iconClass: 'oj-ux-ico-exchange' } },
+          { path: 'transactions', detail: { label: 'Transactions & Statements', iconClass: 'oj-ux-ico-history' } },
           { path: 'notifications', detail: { label: 'Notifications', iconClass: 'oj-ux-ico-bell' } }
         ];
       };
@@ -105,7 +107,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         }
 
         // Protect Admin from being diverted into customer retail views
-        if ((targetPath === 'dashboard' || targetPath === 'accounts' || targetPath === 'transfers') && apiService.isAdmin()) {
+        if ((targetPath === 'dashboard' || targetPath === 'accounts' || targetPath === 'transfers' || targetPath === 'transactions') && apiService.isAdmin()) {
           change.accept(Promise.reject('Redirecting admin to Admin Command Center'));
           setTimeout(() => { self.router.go({ path: 'admin' }); }, 0);
           return;

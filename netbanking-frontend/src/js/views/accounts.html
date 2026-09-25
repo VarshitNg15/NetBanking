@@ -96,15 +96,11 @@
           </div>
         </div>
 
-        <!-- Balance Info -->
+        <!-- Balance Info (Available Balance Only - Req 11) -->
         <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 6px; padding: 0.85rem; margin: 0.85rem 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <span style="font-size: 0.8rem; color: var(--nb-text-muted); font-weight: 600;">AVAILABLE BALANCE:</span>
-            <span style="font-size: 1.25rem; font-weight: 800; color: var(--nb-success);" data-bind="text: formattedAvailableBalance"></span>
-          </div>
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 0.75rem; color: var(--nb-text-muted);">Current (Ledger) Balance:</span>
-            <span style="font-size: 0.85rem; color: var(--nb-text-dark); font-weight: 600;" data-bind="text: formattedCurrentBalance"></span>
+            <span style="font-size: 0.8rem; color: var(--nb-text-muted); font-weight: 700;">AVAILABLE BALANCE:</span>
+            <span style="font-size: 1.35rem; font-weight: 800; color: var(--nb-success);" data-bind="text: formattedAvailableBalance"></span>
           </div>
         </div>
 
@@ -122,7 +118,8 @@
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: $parent.openPinDialog">
             <span class="oj-ux-ico-lock"></span>
-            Set 4-Digit PIN
+            <!-- ko if: pinSet -->Update 4-Digit PIN<!-- /ko -->
+            <!-- ko ifnot: pinSet -->Set 4-Digit PIN<!-- /ko -->
           </button>
           <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { window.location.hash = '#transfers'; }">
             <span class="oj-ux-ico-exchange"></span>
@@ -141,15 +138,17 @@
     </div>
   <!-- /ko -->
 
-  <!-- Dialog: Set 4-Digit PIN -->
-  <oj-dialog id="setPinDialog" dialog-title="Configure Security PIN" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
+  <!-- Dialog: Set / Update 4-Digit PIN (Req 4) -->
+  <oj-dialog id="setPinDialog" :dialog-title="[[isUpdatingPin() ? 'Update Security PIN' : 'Configure Security PIN']]" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
     <div slot="body">
       <p id="descPin" style="font-size: 0.88rem; color: var(--nb-text-muted);">
         Account: <strong class="nb-account-number" data-bind="text: selectedAccountNumber"></strong>
-        <br />Enter a 4-digit PIN used to authorize fund transfers and debit transactions.
+        <br />
+        <!-- ko if: isUpdatingPin -->Enter your new 4-digit PIN to update your account security credential.<!-- /ko -->
+        <!-- ko ifnot: isUpdatingPin -->Enter a 4-digit PIN used to authorize fund transfers and debit transactions.<!-- /ko -->
       </p>
       <div class="nb-form-group">
-        <label class="nb-form-label" for="pinCodeInput">4-Digit PIN</label>
+        <label class="nb-form-label" for="pinCodeInput">New 4-Digit PIN</label>
         <input id="pinCodeInput" type="password" maxlength="4" class="nb-input" placeholder="e.g. 1234" data-bind="textInput: pinCode" required />
       </div>
       <div class="nb-form-group">
@@ -161,7 +160,10 @@
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closePinDialog">Cancel</button>
       <button type="button" class="nb-btn nb-btn-primary" data-bind="click: submitPin, disable: isSubmittingPin">
         <!-- ko if: isSubmittingPin -->Saving...<!-- /ko -->
-        <!-- ko ifnot: isSubmittingPin -->Save Security PIN<!-- /ko -->
+        <!-- ko ifnot: isSubmittingPin -->
+          <!-- ko if: isUpdatingPin -->Update Security PIN<!-- /ko -->
+          <!-- ko ifnot: isUpdatingPin -->Save Security PIN<!-- /ko -->
+        <!-- /ko -->
       </button>
     </div>
   </oj-dialog>
