@@ -176,6 +176,10 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         }
       };
 
+      this.goToTransfers = () => {
+        apiService.navigate('transfers');
+      };
+
       this.connected = () => {
         if (apiService.isAdmin()) {
           apiService.navigate('admin');

@@ -215,14 +215,30 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
         self.successMessage('');
 
         try {
+          const accId = self.targetAccountId().trim();
+          const targetStatus = self.targetStatus();
           const res = await apiService.changeAccountStatus(
-            self.targetAccountId().trim(),
-            self.targetStatus(),
-            self.targetStatus() === 'CLOSED' ? (self.closureReason() || 'Administrative compliance closure') : null
+            accId,
+            targetStatus,
+            targetStatus === 'CLOSED' ? (self.closureReason() || 'Administrative compliance closure') : null
           );
-          self.successMessage(`Account #${self.targetAccountId()} status successfully transitioned to ${res.status}!`);
+
+          // If approved/activated, also ensure customer status in User-Service is active (Req 6)
+          if (targetStatus === 'ACTIVE') {
+            const acc = (self.allAccounts() || []).find(a => String(a.id) === String(accId));
+            const custId = acc ? acc.customerId : (self.inspectedAccount() ? self.inspectedAccount().customerId : null);
+            if (custId) {
+              try {
+                await apiService.updateCustomerStatus(custId, 'ACTIVE');
+              } catch (e) {
+                console.warn('Customer status sync warning:', e);
+              }
+            }
+          }
+
+          self.successMessage(`Account #${accId} status successfully transitioned to ${res.status}!`);
           await self.loadAllAccounts();
-          if (self.inspectedAccount() && String(self.inspectedAccount().id) === String(self.targetAccountId())) {
+          if (self.inspectedAccount() && String(self.inspectedAccount().id) === String(accId)) {
             await self.handleInspectAccount();
           }
         } catch (err) {
@@ -289,47 +305,36 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
       this.auditLogs = ko.observableArray([]);
       this.isLoadingAuditLogs = ko.observable(false);
       this.auditSearchFilter = ko.observable('');
-      this.auditCategoryFilter = ko.observable('ALL'); // 'ALL' | 'TRANSACTIONS' | 'OTP' | 'SECURITY'
+      this.auditCategoryFilter = ko.observable('TRANSACTIONS'); // Exclusively transactions (Req 7)
 
       this.auditCounts = ko.computed(() => {
         const all = self.auditLogs() || [];
-        let tx = 0, otp = 0, sec = 0;
+        let tx = 0;
         for (const log of all) {
           const combined = `${String(log.eventType || '')} ${String(log.subject || '')} ${String(log.messageBody || '')}`.toUpperCase();
-          if (combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT')) {
+          const isOtp = combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+          const isSecurity = combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+          if (!isOtp && !isSecurity && (combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT') || combined.includes('DEPOSIT') || combined.includes('LEDGER') || combined.includes('SUCCESS') || combined.includes('FUND'))) {
             tx++;
           }
-          if (combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN')) {
-            otp++;
-          }
-          if (combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS')) {
-            sec++;
-          }
         }
-        return { all: all.length, transactions: tx, otp: otp, security: sec };
+        return { transactions: tx };
       });
 
       this.filteredAuditLogs = ko.computed(() => {
-        const cat = (self.auditCategoryFilter() || 'ALL').toUpperCase();
         const search = (self.auditSearchFilter() || '').trim().toLowerCase();
-        let logs = self.auditLogs();
+        let logs = self.auditLogs() || [];
 
-        // 1. Category Filter (Transactions, OTP, Security, All)
-        if (cat !== 'ALL') {
-          logs = logs.filter(log => {
-            const combined = `${String(log.eventType || '')} ${String(log.subject || '')} ${String(log.messageBody || '')}`.toUpperCase();
-            if (cat === 'TRANSACTIONS') {
-              return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT');
-            } else if (cat === 'OTP') {
-              return combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
-            } else if (cat === 'SECURITY') {
-              return combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
-            }
-            return combined.includes(cat);
-          });
-        }
+        // Exclude OTP & Auth and PIN & Security, strictly keep transactions (Req 7)
+        logs = logs.filter(log => {
+          const combined = `${String(log.eventType || '')} ${String(log.subject || '')} ${String(log.messageBody || '')}`.toUpperCase();
+          const isOtp = combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+          const isSecurity = combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+          if (isOtp || isSecurity) return false;
+          return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT') || combined.includes('DEPOSIT') || combined.includes('LEDGER') || combined.includes('SUCCESS') || combined.includes('FUND');
+        });
 
-        // 2. Keyword Search
+        // Search Filter
         if (search) {
           logs = logs.filter(log => {
             const id = String(log.notificationId != null ? log.notificationId : (log.id || '')).toLowerCase();

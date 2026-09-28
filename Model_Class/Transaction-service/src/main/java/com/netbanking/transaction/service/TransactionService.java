@@ -248,9 +248,13 @@ public class TransactionService {
     private void verifyCustomerActive(String customerId) {
         try {
             UserServiceClient.CustomerResponse customer = userServiceClient.getCustomer(customerId);
-            if (customer != null && customer.customerStatus() != null &&
-                    !"ACTIVE".equalsIgnoreCase(customer.customerStatus())) {
-                throw new IllegalStateException("Customer account is not active (Status: " + customer.customerStatus() + ")");
+            if (customer != null && customer.customerStatus() != null) {
+                String status = customer.customerStatus();
+                if ("BLOCKED".equalsIgnoreCase(status) || "REJECTED".equalsIgnoreCase(status) ||
+                        "FROZEN".equalsIgnoreCase(status) || "DISABLED".equalsIgnoreCase(status) ||
+                        "INACTIVE".equalsIgnoreCase(status)) {
+                    throw new IllegalStateException("Customer account is blocked (Status: " + status + ")");
+                }
             }
         } catch (FeignException.NotFound ex) {
             log.warn("Customer {} not found in User-Service; proceeding with edge token claims", customerId);

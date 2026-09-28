@@ -91,6 +91,26 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       // Listen for router transitions to protect authenticated and role-based routes
       this.router.beforeStateChange.subscribe((change) => {
         const targetPath = change.state ? change.state.path : '';
+        if (targetPath && targetPath !== 'login') {
+          try { localStorage.setItem('nb_last_path', targetPath); } catch (e) {}
+        }
+
+        // If authenticated user attempts to load or refresh into login, redirect to active portal (Req 5)
+        if (targetPath === 'login' && apiService.isAuthenticated()) {
+          const savedPath = localStorage.getItem('nb_last_path');
+          let target = self.isAdmin() ? 'admin' : 'dashboard';
+          if (savedPath && savedPath !== 'login') {
+            if (self.isAdmin() && (savedPath === 'admin' || savedPath === 'notifications')) {
+              target = savedPath;
+            } else if (!self.isAdmin() && savedPath !== 'admin') {
+              target = savedPath;
+            }
+          }
+          change.accept(Promise.reject('Already authenticated'));
+          setTimeout(() => { self.router.go({ path: target }); }, 0);
+          return;
+        }
+
         if (!targetPath || targetPath === 'login') return;
 
         if (!apiService.isAuthenticated()) {
@@ -114,7 +134,30 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         }
       });
 
-      this.router.sync();
+      this.router.sync().then(() => {
+        // Handle page reload/refresh persistence (Req 5):
+        if (apiService.isAuthenticated()) {
+          const currentPath = self.router.currentState ? self.router.currentState.value.path : '';
+          const savedPath = localStorage.getItem('nb_last_path');
+
+          if (!currentPath || currentPath === 'login' || currentPath === '') {
+            let target = self.isAdmin() ? 'admin' : 'dashboard';
+            if (savedPath && savedPath !== 'login') {
+              if (self.isAdmin() && (savedPath === 'admin' || savedPath === 'notifications')) {
+                target = savedPath;
+              } else if (!self.isAdmin() && savedPath !== 'admin') {
+                target = savedPath;
+              }
+            }
+            self.router.go({ path: target });
+          }
+        } else {
+          const currentPath = self.router.currentState ? self.router.currentState.value.path : '';
+          if (currentPath !== 'login') {
+            self.router.go({ path: 'login' });
+          }
+        }
+      });
 
       // Direct navigation helper
       this.goTo = (path) => {

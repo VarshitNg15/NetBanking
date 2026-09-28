@@ -44,8 +44,8 @@ public class StatementService {
         }
 
         String type = request.normalizedRequestType();
-        LocalDateTime from = request.fromDate() != null ? request.fromDate() : LocalDateTime.now().minusDays(30);
-        LocalDateTime to = request.toDate() != null ? request.toDate() : LocalDateTime.now();
+        LocalDateTime from = request.fromDate();
+        LocalDateTime to = request.toDate() != null ? request.toDate() : LocalDateTime.now().plusDays(1);
 
         StatementRequest entity = new StatementRequest();
         entity.setAccountId(request.accountId());
@@ -66,9 +66,11 @@ public class StatementService {
                 ledgerEntries = Collections.emptyList();
             }
 
-            // Filter entries by date range
+            // Filter entries by date range (inclusive)
             List<AccountServiceClient.LedgerEntryResponse> filtered = ledgerEntries.stream()
-                    .filter(e -> e.createdAt() != null && !e.createdAt().isBefore(from) && !e.createdAt().isAfter(to))
+                    .filter(e -> e.createdAt() == null ||
+                            ((from == null || !e.createdAt().isBefore(from)) &&
+                             (to == null || !e.createdAt().isAfter(to))))
                     .toList();
 
             String ext = "CSV".equalsIgnoreCase(type) ? ".csv" : ".txt";

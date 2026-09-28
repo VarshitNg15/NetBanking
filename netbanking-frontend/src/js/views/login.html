@@ -45,14 +45,25 @@
 
     <div class="nb-form-group">
       <label class="nb-form-label" for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" class="nb-input" placeholder="Enter password" data-bind="textInput: password" required />
+      <div style="position: relative;">
+        <input id="loginPassword" :type="[[showPassword() ? 'text' : 'password']]" class="nb-input" style="padding-right: 2.75rem;" placeholder="Enter password" data-bind="textInput: password" required />
+        <button type="button" data-bind="click: toggleShowPassword" style="position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--nb-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Show or hide password">
+          <span :class="[[showPassword() ? 'oj-ux-ico-eye-off' : 'oj-ux-ico-eye']]" style="font-size: 1.15rem;"></span>
+        </button>
+      </div>
     </div>
 
     <!-- ko if: mfaRequired -->
     <div class="nb-form-group" style="background: #fbfbf9; padding: 0.75rem; border: 1px dashed var(--nb-primary); border-radius: 6px;">
       <label class="nb-form-label" for="loginOtp" style="color: var(--nb-primary); font-weight: 700;">6-Digit Email OTP</label>
       <input id="loginOtp" type="text" maxlength="6" class="nb-input" placeholder="123456" data-bind="textInput: otp" />
-      <span style="font-size: 0.75rem; color: var(--nb-text-muted);">A verification code was dispatched via Google SMTP to your email.</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <span style="font-size: 0.75rem; color: var(--nb-text-muted);">A verification code was dispatched via Google SMTP to your email.</span>
+        <button type="button" class="nb-link-btn" data-bind="click: handleResendLoginOtp, disable: isResendingOtp" style="font-size: 0.78rem; font-weight: 700; color: var(--nb-primary); background: none; border: none; cursor: pointer; text-decoration: underline; white-space: nowrap;">
+          <!-- ko if: isResendingOtp -->Sending...<!-- /ko -->
+          <!-- ko ifnot: isResendingOtp -->Resend OTP<!-- /ko -->
+        </button>
+      </div>
     </div>
     <!-- /ko -->
 

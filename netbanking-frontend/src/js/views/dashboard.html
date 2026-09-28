@@ -291,12 +291,14 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           <div class="nb-form-group">
-            <label class="nb-form-label" for="profPhone">Phone Number</label>
-            <input id="profPhone" type="tel" class="nb-input" placeholder="+91 9876543210" data-bind="textInput: profilePhoneNumber" />
+            <label class="nb-form-label" for="profPhone">Mobile Number (10 Digits) *</label>
+            <input id="profPhone" type="tel" maxlength="10" class="nb-input" placeholder="e.g. 9876543210" pattern="[0-9]{10}" data-bind="textInput: profilePhoneNumber" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Provide your 10-digit mobile number.</span>
           </div>
           <div class="nb-form-group">
             <label class="nb-form-label" for="profDob">Date of Birth</label>
-            <input id="profDob" type="date" class="nb-input" data-bind="textInput: profileDateOfBirth" />
+            <input id="profDob" type="date" class="nb-input" data-bind="textInput: profileDateOfBirth, attr: { max: maxDobDate }" />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Must be on or before today.</span>
           </div>
         </div>
 

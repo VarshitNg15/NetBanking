@@ -52,11 +52,18 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.ledgerEntries = ko.observableArray([]);
       this.isLoadingLedger = ko.observable(false);
 
+      // Auto-reload ledger on account selection change
+      this.selectedLedgerAccountId.subscribe((newVal) => {
+        if (newVal) {
+          self.loadLedger();
+        }
+      });
+
       // Filtered Transactions
       this.filteredTransactions = ko.computed(() => {
         const filterAcc = self.selectedAccountFilter();
         const search = (self.searchQuery() || '').trim().toLowerCase();
-        let list = self.transactions();
+        let list = self.transactions() || [];
 
         if (filterAcc !== 'ALL') {
           list = list.filter(t => String(t.sourceAccountId) === String(filterAcc) || String(t.destinationAccountId) === String(filterAcc));
@@ -72,7 +79,16 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           });
         }
 
-        return list;
+        const myAccountIds = new Set((self.accounts() || []).map(a => String(a.id)));
+        return list.map(t => {
+          let isCredit = false;
+          if (filterAcc !== 'ALL') {
+            isCredit = String(t.destinationAccountId) === String(filterAcc);
+          } else {
+            isCredit = myAccountIds.has(String(t.destinationAccountId)) && !myAccountIds.has(String(t.sourceAccountId));
+          }
+          return Object.assign({}, t, { isCredit: isCredit });
+        });
       });
 
       this.loadData = async () => {
@@ -86,12 +102,18 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         }
 
         try {
-          // 1. Load customer accounts
-          const accs = typeof apiService.getMyAccounts === 'function'
-            ? await apiService.getMyAccounts()
-            : await apiService.getAccountsByCustomer(user.customerId);
+          const transactionErrors = [];
+          let validAccounts = [];
 
-          const validAccounts = Array.isArray(accs) ? accs : [];
+          try {
+            const accs = typeof apiService.getMyAccounts === 'function'
+              ? await apiService.getMyAccounts()
+              : await apiService.getAccountsByCustomer(user.customerId);
+            validAccounts = Array.isArray(accs) ? accs : [];
+          } catch (err) {
+            console.warn('Could not load accounts for transaction filters:', err);
+          }
+
           self.accounts(validAccounts);
 
           if (validAccounts.length > 0) {
@@ -101,10 +123,17 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
             if (!self.selectedLedgerAccountId()) {
               self.selectedLedgerAccountId(String(validAccounts[0].id));
             }
+            self.loadLedger();
           }
 
           // 2. Load transactions
-          let txns = await apiService.getCustomerTransactions(user.customerId);
+          let txns = [];
+          try {
+            txns = await apiService.getCustomerTransactions(user.customerId);
+          } catch (err) {
+            transactionErrors.push(err);
+          }
+
           if (!Array.isArray(txns) || txns.length === 0) {
             const perAccountTxns = [];
             for (const acc of validAccounts) {
@@ -113,38 +142,38 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
                 if (Array.isArray(accTx)) {
                   perAccountTxns.push(...accTx);
                 }
-              } catch (e) {
-                // ignore
+              } catch (err) {
+                transactionErrors.push(err);
               }
             }
             txns = perAccountTxns;
           }
 
-          // Deduplicate by transactionReference
+          // Deduplicate by transactionReference / ID
           const seen = new Set();
           const uniqueTxns = [];
-          const myAccountIds = new Set(validAccounts.map(a => String(a.id)));
 
           (Array.isArray(txns) ? txns : []).forEach(t => {
-            const key = t.transactionReference || (t.id ? String(t.id) : JSON.stringify(t));
+            const key = t.transactionReference || (t.transactionId ? String(t.transactionId) : (t.id ? String(t.id) : JSON.stringify(t)));
             if (!seen.has(key)) {
               seen.add(key);
-              const isCredit = myAccountIds.has(String(t.destinationAccountId)) && !myAccountIds.has(String(t.sourceAccountId));
-              t.isCredit = isCredit;
               uniqueTxns.push(t);
             }
           });
 
-          // Sort by createdAt descending
-          uniqueTxns.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          uniqueTxns.sort((a, b) => new Date(b.initiatedAt || b.completedAt || b.createdAt || 0) - new Date(a.initiatedAt || a.completedAt || a.createdAt || 0));
           self.transactions(uniqueTxns);
+
+          if (uniqueTxns.length === 0 && transactionErrors.length > 0) {
+            self.errorMessage('Could not load transaction history: ' + transactionErrors[0].message);
+          }
 
           // 3. Load statements history in background
           self.loadCustomerStatements();
 
         } catch (err) {
           console.warn('Error loading transactions data:', err);
-          self.errorMessage('Failed to load transaction history.');
+          self.errorMessage('Failed to load transaction history: ' + err.message);
         } finally {
           self.isLoading(false);
         }

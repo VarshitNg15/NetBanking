@@ -17,46 +17,36 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.isAdmin = ko.observable(apiService.isAdmin());
       this.customerId = ko.computed(() => (self.user() ? self.user().customerId : '') || '');
 
-      // Filters for Audit Logs & Notifications
-      this.categoryFilter = ko.observable('ALL');
+      // Filters for Audit Logs & Notifications - Only Transactions (Req 7)
+      this.categoryFilter = ko.observable('TRANSACTIONS');
       this.searchFilter = ko.observable('');
 
       this.categoryCounts = ko.computed(() => {
         const all = self.notifications() || [];
-        let tx = 0, otp = 0, sec = 0;
+        let tx = 0;
         for (const n of all) {
           const combined = `${String(n.eventType || '')} ${String(n.subject || '')} ${String(n.messageBody || '')}`.toUpperCase();
-          if (combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT')) {
+          const isOtp = combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+          const isSecurity = combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+          if (!isOtp && !isSecurity && (combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT') || combined.includes('DEPOSIT') || combined.includes('LEDGER') || combined.includes('SUCCESS') || combined.includes('FUND'))) {
             tx++;
           }
-          if (combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN')) {
-            otp++;
-          }
-          if (combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS')) {
-            sec++;
-          }
         }
-        return { all: all.length, transactions: tx, otp: otp, security: sec };
+        return { transactions: tx };
       });
 
       this.filteredNotifications = ko.computed(() => {
-        const cat = (self.categoryFilter() || 'ALL').toUpperCase();
         const search = (self.searchFilter() || '').trim().toLowerCase();
-        let items = self.notifications();
+        let items = self.notifications() || [];
 
-        if (cat !== 'ALL') {
-          items = items.filter(n => {
-            const combined = `${String(n.eventType || '')} ${String(n.subject || '')} ${String(n.messageBody || '')}`.toUpperCase();
-            if (cat === 'TRANSACTIONS') {
-              return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT');
-            } else if (cat === 'OTP') {
-              return combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
-            } else if (cat === 'SECURITY') {
-              return combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
-            }
-            return combined.includes(cat);
-          });
-        }
+        // Exclude OTP & Auth and PIN & Security, strictly keep transactions (Req 7)
+        items = items.filter(n => {
+          const combined = `${String(n.eventType || '')} ${String(n.subject || '')} ${String(n.messageBody || '')}`.toUpperCase();
+          const isOtp = combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+          const isSecurity = combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+          if (isOtp || isSecurity) return false;
+          return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT') || combined.includes('DEPOSIT') || combined.includes('LEDGER') || combined.includes('SUCCESS') || combined.includes('FUND');
+        });
 
         if (search) {
           items = items.filter(n => {

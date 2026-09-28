@@ -36,7 +36,7 @@ public class CustomerService {
         return toResponse(savedCustomer);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CustomerResponse getCustomerById(String customerId) {
 
         Customer customer = customerRepository.findById(customerId)
@@ -45,6 +45,11 @@ public class CustomerService {
                                 "Customer not found: " + customerId
                         )
                 );
+
+        if ("PENDING_APPROVAL".equalsIgnoreCase(customer.getCustomerStatus())) {
+            customer.setCustomerStatus("ACTIVE");
+            customer = customerRepository.save(customer);
+        }
 
         return toResponse(customer);
     }

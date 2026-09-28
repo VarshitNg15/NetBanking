@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.netbanking.transaction.dto.request.TransferRequest;
@@ -49,6 +50,20 @@ public class TransactionController {
             @Parameter(description = "Unique transaction reference string")
             @PathVariable String transactionReference) {
         return ResponseEntity.ok(transferService.getByReference(transactionReference));
+    }
+
+    @GetMapping
+    @Operation(summary = "Query transactions", description = "Query transactions by account ID or customer ID")
+    public ResponseEntity<List<TransactionResponse>> queryTransactions(
+            @RequestParam(required = false) Long accountId,
+            @RequestParam(required = false) String customerId) {
+        if (accountId != null) {
+            return ResponseEntity.ok(transferService.getByAccount(accountId));
+        }
+        if (customerId != null && !customerId.isBlank()) {
+            return ResponseEntity.ok(transferService.getByCustomer(customerId));
+        }
+        return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/customer/{customerId}")

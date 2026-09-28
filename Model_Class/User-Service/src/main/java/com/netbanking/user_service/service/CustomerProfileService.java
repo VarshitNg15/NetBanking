@@ -113,9 +113,20 @@ public class CustomerProfileService {
 
         profile.setLastName(request.getLastName());
 
+        if (request.getDateOfBirth() != null && request.getDateOfBirth().isAfter(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("Date of birth cannot be greater than current date");
+        }
         profile.setDateOfBirth(request.getDateOfBirth());
 
-        profile.setPhoneNumber(request.getPhoneNumber());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            String cleanPhone = request.getPhoneNumber().replaceAll("\\D", "");
+            if (cleanPhone.length() != 10) {
+                throw new IllegalArgumentException("Mobile number must be exactly 10 digits");
+            }
+            profile.setPhoneNumber(cleanPhone);
+        } else {
+            profile.setPhoneNumber(request.getPhoneNumber());
+        }
 
         profile.setAddressLine1(request.getAddressLine1());
 

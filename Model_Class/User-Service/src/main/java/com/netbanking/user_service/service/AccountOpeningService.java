@@ -130,6 +130,14 @@ public class AccountOpeningService {
         request.setReviewedAt(LocalDateTime.now());
         request.setUpdatedAt(LocalDateTime.now());
 
+        if (request.getCustomer() != null && request.getCustomer().getCustomerId() != null) {
+            try {
+                customerService.updateCustomerStatus(request.getCustomer().getCustomerId(), "ACTIVE");
+            } catch (Exception e) {
+                // If already active or error, do not fail approval
+            }
+        }
+
         return toResponse(
                 requestRepository.save(request)
         );

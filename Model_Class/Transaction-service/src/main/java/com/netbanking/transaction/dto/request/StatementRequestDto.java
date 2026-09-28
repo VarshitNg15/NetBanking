@@ -16,12 +16,12 @@ public record StatementRequestDto(
 ) {
     public String normalizedRequestType() {
         if (requestType == null || requestType.isBlank()) {
-            return "PDF";
-        }
-        String upper = requestType.trim().toUpperCase();
-        if ("CSV".equals(upper)) {
             return "CSV";
         }
-        return "PDF";
+        String upper = requestType.trim().toUpperCase();
+        if ("TXT".equals(upper)) {
+            return "TXT";
+        }
+        return "CSV";
     }
 }

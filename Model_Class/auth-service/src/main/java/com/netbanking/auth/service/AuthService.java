@@ -62,7 +62,7 @@ public class AuthService {
         try {
             if (customerServiceClient != null) {
                 customerServiceClient.createCustomer(new CustomerServiceClient.CustomerCreateRequest(
-                        user.getCustomerId(), user.getEmail(), "PENDING_APPROVAL"));
+                        user.getCustomerId(), user.getEmail(), "ACTIVE"));
             }
         } catch (Exception ex) {
             log.warn("Customer sync with user-service via OpenFeign was skipped or failed ({}), falling back to Kafka event: {}",

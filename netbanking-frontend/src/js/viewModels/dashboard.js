@@ -114,6 +114,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
       this.profileLastName = ko.observable('');
       this.profilePhoneNumber = ko.observable('');
       this.profileDateOfBirth = ko.observable('');
+      this.maxDobDate = ko.observable(new Date().toISOString().split('T')[0]);
       this.profileAddressLine1 = ko.observable('');
       this.profileAddressLine2 = ko.observable('');
       this.profileCity = ko.observable('');
@@ -166,6 +167,24 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           return;
         }
 
+        // Validate 10-digit mobile number (Req 3)
+        const rawPhone = (self.profilePhoneNumber() || '').trim().replace(/\D/g, '');
+        if (rawPhone.length !== 10) {
+          self.errorMessage('Please provide a valid 10-digit mobile number.');
+          return;
+        }
+
+        // Validate Date of Birth <= today (Req 3)
+        if (self.profileDateOfBirth()) {
+          const dob = new Date(self.profileDateOfBirth());
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          if (dob > today) {
+            self.errorMessage('Date of birth cannot be greater than the current date.');
+            return;
+          }
+        }
+
         self.isSavingProfile(true);
         self.errorMessage('');
         self.successMessage('');
@@ -173,7 +192,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         const payload = {
           firstName: self.profileFirstName().trim(),
           lastName: (self.profileLastName() || '').trim(),
-          phoneNumber: (self.profilePhoneNumber() || '').trim(),
+          phoneNumber: rawPhone,
           dateOfBirth: self.profileDateOfBirth() || null,
           addressLine1: (self.profileAddressLine1() || '').trim(),
           addressLine2: (self.profileAddressLine2() || '').trim(),
@@ -263,14 +282,22 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         self.isLoadingNotifications(true);
         try {
           const list = await apiService.getCustomerNotifications(user.customerId);
-          const mapped = (Array.isArray(list) ? list : []).map(n => ({
-            id: n.notificationId || n.id,
-            eventType: n.eventType || n.notificationType || 'ALERT',
-            subject: n.subject || 'Account Notification',
-            messageBody: n.messageBody || n.content || n.body || '',
-            status: n.status || 'DELIVERED',
-            createdAt: n.createdAt || new Date().toISOString()
-          }));
+          const mapped = (Array.isArray(list) ? list : [])
+            .filter(n => {
+              const combined = `${String(n.eventType || '')} ${String(n.subject || '')} ${String(n.messageBody || '')}`.toUpperCase();
+              const isOtp = combined.includes('OTP') || combined.includes('VERIFICATION') || combined.includes('AUTH') || combined.includes('PASSWORD') || combined.includes('LOGIN');
+              const isSecurity = combined.includes('PIN') || combined.includes('SECURITY') || combined.includes('ACCESS');
+              if (isOtp || isSecurity) return false;
+              return combined.includes('TRANSACTION') || combined.includes('TRANSFER') || combined.includes('CREDIT') || combined.includes('DEBIT') || combined.includes('DEPOSIT') || combined.includes('LEDGER') || combined.includes('SUCCESS') || combined.includes('FUND');
+            })
+            .map(n => ({
+              id: n.notificationId || n.id,
+              eventType: n.eventType || n.notificationType || 'TRANSACTION',
+              subject: n.subject || 'Transaction Notice',
+              messageBody: n.messageBody || n.content || n.body || '',
+              status: n.status || 'DELIVERED',
+              createdAt: n.createdAt || new Date().toISOString()
+            }));
           self.recentNotifications(mapped.slice(0, 5));
         } catch (e) {
           console.warn('Could not load dashboard notifications:', e);

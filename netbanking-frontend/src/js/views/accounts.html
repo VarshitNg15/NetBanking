@@ -121,7 +121,7 @@
             <!-- ko if: pinSet -->Update 4-Digit PIN<!-- /ko -->
             <!-- ko ifnot: pinSet -->Set 4-Digit PIN<!-- /ko -->
           </button>
-          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { window.location.hash = '#transfers'; }">
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: $parent.goToTransfers">
             <span class="oj-ux-ico-exchange"></span>
             Transfer
           </button>

@@ -18,8 +18,32 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       // Sign In Form
       this.email = ko.observable('');
       this.password = ko.observable('');
+      this.showPassword = ko.observable(false);
+      this.toggleShowPassword = () => {
+        self.showPassword(!self.showPassword());
+      };
       this.otp = ko.observable('');
       this.mfaRequired = ko.observable(false);
+      this.isResendingOtp = ko.observable(false);
+
+      this.handleResendLoginOtp = async () => {
+        self.clearMessages();
+        if (!self.email() || !self.password()) {
+          self.errorMessage('Please ensure email and password are provided.');
+          return;
+        }
+        self.isResendingOtp(true);
+        try {
+          const res = await apiService.login(self.email().trim(), self.password(), null);
+          if (res.mfaRequired) {
+            self.successMessage('A fresh 6-digit OTP code has been dispatched to your email.');
+          }
+        } catch (err) {
+          self.errorMessage(err.message || 'Failed to resend OTP.');
+        } finally {
+          self.isResendingOtp(false);
+        }
+      };
 
       // Registration Form
       this.regEmail = ko.observable('');

@@ -118,8 +118,10 @@ public class AccountController {
     @RequestMapping(value = "/{id}/pin", method = {RequestMethod.PUT, RequestMethod.POST})
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void setPin(@PathVariable Long id, @Valid @RequestBody SetPinRequest r,
-                       @RequestHeader(value = "X-Customer-Email", required = false) String customerEmail) {
-        pins.set(id, r.pin(), customerEmail);
+                       @RequestHeader(value = "X-Customer-Email", required = false) String customerEmail,
+                       @RequestHeader(value = "X-User-Email", required = false) String userEmail) {
+        String email = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail : userEmail;
+        pins.set(id, r.pin(), email);
     }
 
     @GetMapping("/{id}/pin/status")

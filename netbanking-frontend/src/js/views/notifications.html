@@ -4,12 +4,12 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
       <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--nb-text-dark); letter-spacing: -0.02em;">
-        <!-- ko if: isAdmin -->System Audit Log Records<!-- /ko -->
-        <!-- ko ifnot: isAdmin -->Notification Center<!-- /ko -->
+        <!-- ko if: isAdmin -->Transaction Audit Log Records<!-- /ko -->
+        <!-- ko ifnot: isAdmin -->Transaction Audit Trail<!-- /ko -->
       </h2>
       <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: var(--nb-text-muted);">
-        <!-- ko if: isAdmin -->Enterprise immutable event stream, SMTP dispatches, and compliance audit trail.<!-- /ko -->
-        <!-- ko ifnot: isAdmin -->Real-time security alerts, PIN configurations, OTP verifications, and transaction notices delivered to your account.<!-- /ko -->
+        <!-- ko if: isAdmin -->Enterprise immutable financial transaction event stream and compliance audit trail.<!-- /ko -->
+        <!-- ko ifnot: isAdmin -->Real-time transaction notices, transfer dispatches, and financial ledger audit records delivered to your account.<!-- /ko -->
       </p>
     </div>
     <div>
@@ -20,42 +20,18 @@
     </div>
   </div>
 
-  <!-- Filter Option Controls (Transactions, OTP, Security, All) -->
+  <!-- Filter Option Controls (Transactions Only - Req 7) -->
   <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
     <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
       <!-- Category Segmented Filters -->
       <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-        <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">Filter:</span>
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">View:</span>
 
-        <button type="button" class="nb-btn nb-btn-sm"
-          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'ALL', 'nb-btn-outline': categoryFilter() !== 'ALL' }, click: function() { categoryFilter('ALL'); }">
-          All
-          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-            data-bind="text: categoryCounts().all, css: { 'nb-badge-customer': categoryFilter() !== 'ALL' }"></span>
-        </button>
-
-        <button type="button" class="nb-btn nb-btn-sm"
-          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'TRANSACTIONS', 'nb-btn-outline': categoryFilter() !== 'TRANSACTIONS' }, click: function() { categoryFilter('TRANSACTIONS'); }">
+        <button type="button" class="nb-btn nb-btn-sm nb-btn-primary">
           <span class="oj-ux-ico-swap" style="margin-right: 4px;"></span>
           Transactions
           <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-            data-bind="text: categoryCounts().transactions, css: { 'nb-badge-customer': categoryFilter() !== 'TRANSACTIONS' }"></span>
-        </button>
-
-        <button type="button" class="nb-btn nb-btn-sm"
-          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'OTP', 'nb-btn-outline': categoryFilter() !== 'OTP' }, click: function() { categoryFilter('OTP'); }">
-          <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
-          OTP &amp; Auth
-          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-            data-bind="text: categoryCounts().otp, css: { 'nb-badge-customer': categoryFilter() !== 'OTP' }"></span>
-        </button>
-
-        <button type="button" class="nb-btn nb-btn-sm"
-          data-bind="css: { 'nb-btn-primary': categoryFilter() === 'SECURITY', 'nb-btn-outline': categoryFilter() !== 'SECURITY' }, click: function() { categoryFilter('SECURITY'); }">
-          <span class="oj-ux-ico-shield" style="margin-right: 4px;"></span>
-          PIN &amp; Security
-          <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-            data-bind="text: categoryCounts().security, css: { 'nb-badge-customer': categoryFilter() !== 'SECURITY' }"></span>
+            data-bind="text: categoryCounts().transactions"></span>
         </button>
       </div>
 
@@ -63,14 +39,14 @@
       <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 250px; max-width: 400px;">
         <input type="text" class="nb-input" placeholder="Search by Keyword, Email, Subject..."
           data-bind="textInput: searchFilter" style="font-size: 0.85rem;" />
-        <!-- ko if: searchFilter() || categoryFilter() !== 'ALL' -->
+        <!-- ko if: searchFilter() -->
         <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
-          data-bind="click: function() { searchFilter(''); categoryFilter('ALL'); }" title="Clear filters">
+          data-bind="click: function() { searchFilter(''); }" title="Clear search">
           Reset
         </button>
         <!-- /ko -->
         <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem; white-space: nowrap;"
-          data-bind="text: filteredNotifications().length + ' Events'"></span>
+          data-bind="text: filteredNotifications().length + ' Transaction Events'"></span>
       </div>
     </div>
   </div>

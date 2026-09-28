@@ -167,9 +167,9 @@
           <tbody data-bind="foreach: filteredTransactions">
             <tr>
               <td>
-                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference"></span>
+                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference || ('TXN-' + (transactionId || id || ''))"></span>
               </td>
-              <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+              <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (initiatedAt || completedAt || createdAt || '').substring(0, 19).replace('T', ' ')"></td>
               <td>
                 <span style="font-family: monospace;" data-bind="text: sourceAccountId || '-'"></span>
               </td>
@@ -183,7 +183,7 @@
                 <!-- /ko -->
               </td>
               <td style="font-weight: 700; white-space: nowrap;">
-                <span data-bind="text: '₹ ' + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), css: { 'nb-metric-positive': isCredit, 'nb-metric-negative': !isCredit }"></span>
+                <span data-bind="text: (isCredit ? '+ ₹ ' : '- ₹ ') + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), css: { 'nb-metric-positive': isCredit, 'nb-metric-negative': !isCredit }"></span>
               </td>
               <td>
                 <span class="nb-status" data-bind="text: transactionStatus, css: {
@@ -269,10 +269,10 @@
                 <span style="font-family: monospace; font-size: 0.76rem;" data-bind="text: entryReference || '-'"></span>
               </td>
               <td>
-                <!-- ko if: entryType === 'CREDIT' -->
+                <!-- ko if: String(entryType || '').toUpperCase() === 'CREDIT' -->
                 <span class="nb-status nb-status-active" style="font-size: 0.72rem;">CREDIT</span>
                 <!-- /ko -->
-                <!-- ko if: entryType === 'DEBIT' -->
+                <!-- ko if: String(entryType || '').toUpperCase() === 'DEBIT' -->
                 <span class="nb-status nb-status-closed" style="font-size: 0.72rem;">DEBIT</span>
                 <!-- /ko -->
               </td>

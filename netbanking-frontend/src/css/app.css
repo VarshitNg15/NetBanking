@@ -435,6 +435,12 @@ body.oj-web-applayout-body {
   box-shadow: 0 0 0 3px rgba(186, 61, 29, 0.15);
 }
 
+/* Hide native Edge/IE password reveal so custom toggle doesn't vanish or conflict */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* Alert Boxes */
 .nb-alert {
   padding: 0.75rem 1rem;

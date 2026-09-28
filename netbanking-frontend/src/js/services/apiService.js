@@ -29,18 +29,18 @@ define([], function() {
     }
 
     // -------------------------------------------------------------
-    // Session & Auth State Management
+    // Session & Auth State Management (Persists on Refresh - Req 5)
     // -------------------------------------------------------------
     getToken() {
-      return sessionStorage.getItem('nb_access_token');
+      return localStorage.getItem('nb_access_token') || sessionStorage.getItem('nb_access_token');
     }
 
     getRefreshToken() {
-      return sessionStorage.getItem('nb_refresh_token');
+      return localStorage.getItem('nb_refresh_token') || sessionStorage.getItem('nb_refresh_token');
     }
 
     getUser() {
-      const raw = sessionStorage.getItem('nb_user');
+      const raw = localStorage.getItem('nb_user') || sessionStorage.getItem('nb_user');
       try {
         return raw ? JSON.parse(raw) : null;
       } catch (e) {
@@ -59,9 +59,11 @@ define([], function() {
 
     setSession(tokenResponse) {
       if (tokenResponse.accessToken) {
+        localStorage.setItem('nb_access_token', tokenResponse.accessToken);
         sessionStorage.setItem('nb_access_token', tokenResponse.accessToken);
       }
       if (tokenResponse.refreshToken) {
+        localStorage.setItem('nb_refresh_token', tokenResponse.refreshToken);
         sessionStorage.setItem('nb_refresh_token', tokenResponse.refreshToken);
       }
       const user = {
@@ -70,14 +72,20 @@ define([], function() {
         isAdmin: (tokenResponse.roles || []).includes('ADMIN'),
         email: tokenResponse.email || (this.getUser() ? this.getUser().email : '')
       };
+      localStorage.setItem('nb_user', JSON.stringify(user));
       sessionStorage.setItem('nb_user', JSON.stringify(user));
       this.notifyAuthChange(user);
     }
 
     clearSession() {
+      localStorage.removeItem('nb_access_token');
+      localStorage.removeItem('nb_refresh_token');
+      localStorage.removeItem('nb_user');
+      localStorage.removeItem('nb_last_path');
       sessionStorage.removeItem('nb_access_token');
       sessionStorage.removeItem('nb_refresh_token');
       sessionStorage.removeItem('nb_user');
+      sessionStorage.removeItem('nb_last_path');
       this.notifyAuthChange(null);
       this.navigate('login');
     }
@@ -112,8 +120,9 @@ define([], function() {
         if (user.customerId && !headers['X-Customer-Id']) {
           headers['X-Customer-Id'] = user.customerId;
         }
-        if (user.email && !headers['X-Customer-Email']) {
-          headers['X-Customer-Email'] = user.email;
+        if (user.email) {
+          if (!headers['X-Customer-Email']) headers['X-Customer-Email'] = user.email;
+          if (!headers['X-User-Email']) headers['X-User-Email'] = user.email;
         }
       }
 
@@ -449,22 +458,12 @@ define([], function() {
     // -------------------------------------------------------------
     async getCustomerTransactions(customerId) {
       if (!customerId) return [];
-      try {
-        return await this.request(`/api/v1/transactions/customer/${encodeURIComponent(customerId)}`);
-      } catch (e) {
-        console.warn('Customer transactions fetch warning:', e.message);
-        return [];
-      }
+      return this.request(`/api/v1/transactions/customer/${encodeURIComponent(customerId)}`);
     }
 
     async getAccountTransactions(accountId) {
       if (!accountId) return [];
-      try {
-        return await this.request(`/api/v1/transactions/account/${encodeURIComponent(accountId)}`);
-      } catch (e) {
-        console.warn('Account transactions fetch warning:', e.message);
-        return [];
-      }
+      return this.request(`/api/v1/transactions/account/${encodeURIComponent(accountId)}`);
     }
 
     async requestStatement(accountId, fromDate = null, toDate = null, requestType = 'CSV') {
@@ -504,13 +503,24 @@ define([], function() {
       const token = this.getToken();
       const user = this.getUser();
       const custId = user ? user.customerId : '';
-      const headers = {};
+      const headers = { 'Accept': 'text/plain, text/csv, */*' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (custId) headers['X-Customer-Id'] = custId;
 
-      const res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
+      let res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
         headers: headers
       });
+
+      if (res.status === 401 && this.getRefreshToken()) {
+        const refreshed = await this.refresh();
+        if (refreshed) {
+          headers['Authorization'] = `Bearer ${this.getToken()}`;
+          res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
+            headers: headers
+          });
+        }
+      }
+
       if (!res.ok) {
         throw new Error(`Failed to download statement (${res.status} ${res.statusText})`);
       }
@@ -528,6 +538,12 @@ define([], function() {
         console.warn('Customers fetch warning:', e.message);
         return [];
       }
+    }
+
+    async updateCustomerStatus(customerId, status) {
+      return this.request(`/api/v1/customers/${encodeURIComponent(customerId)}/status?status=${encodeURIComponent(status)}`, {
+        method: 'PATCH'
+      });
     }
 
     async getAllNotifications() {
