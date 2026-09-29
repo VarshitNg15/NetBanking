@@ -196,7 +196,7 @@ INSERT INTO AUTH_SCHEMA.AUTH_USER (
     UPDATED_AT
 ) VALUES (
     'admin@netbanking.com',
-    '$2a$10$w09u7g77yF522lJ.36sJ1OTYv5x0hM6Z0G8L4sW3N34oYp9N3Uf1K', -- BCrypt hash of "AdminPassword123!"
+    '$2a$10$cll5NY66Csd61L7KuuuTh.OSDkF4DLPX8y8DvH8yf4Yw09eF2ZgS.', -- BCrypt hash of "AdminPassword123!"
     'ADM101',
     'ACTIVE',
     'Y',

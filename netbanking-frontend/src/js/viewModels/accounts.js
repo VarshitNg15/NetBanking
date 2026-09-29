@@ -165,6 +165,37 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
         self.successMessage('');
 
         try {
+          if (user && user.customerId) {
+            try {
+              const prof = await apiService.getCustomerProfile(user.customerId);
+              if (prof && prof.dateOfBirth) {
+                const dobVal = prof.dateOfBirth;
+                if (dobVal < '1925-01-01') {
+                  self.errorMessage('Date of birth should start from 01-01-1925, not before that. Please update your profile.');
+                  self.isSubmittingNewAccount(false);
+                  return;
+                }
+                const parts = dobVal.split('-');
+                const birthYear = parseInt(parts[0], 10);
+                const birthMonth = parseInt(parts[1], 10) - 1;
+                const birthDay = parseInt(parts[2], 10);
+                const today = new Date();
+                let age = today.getFullYear() - birthYear;
+                const mDiff = today.getMonth() - birthMonth;
+                if (mDiff < 0 || (mDiff === 0 && today.getDate() < birthDay)) {
+                  age--;
+                }
+                if (age < 18) {
+                  self.errorMessage('Minimum age to open account is 18 years from current date.');
+                  self.isSubmittingNewAccount(false);
+                  return;
+                }
+              }
+            } catch (pErr) {
+              // Gracefully proceed if profile service is unreachable or profile is not yet initialized
+            }
+          }
+
           const res = await apiService.createAccount(user.customerId, self.newAccountType(), 'INR');
           self.successMessage(`Account application for ${self.newAccountType()} submitted! Status: ${res.status}. Account Number: ${res.accountNumber}`);
           self.closeCreateAccountDialog();

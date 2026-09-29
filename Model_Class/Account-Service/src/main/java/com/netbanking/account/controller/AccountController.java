@@ -63,6 +63,11 @@ public class AccountController {
         return accounts.get(id);
     }
 
+    @GetMapping({"/number/{accountNumber}", "/by-number/{accountNumber}"})
+    public AccountResponse getByAccountNumber(@PathVariable String accountNumber) {
+        return accounts.getByAccountNumber(accountNumber);
+    }
+
     @GetMapping
     public List<AccountResponse> byCustomer(@RequestParam(required = false) String customerId) {
         if (customerId == null || customerId.isBlank()) {

@@ -42,6 +42,17 @@ public class AccountOpeningService {
             );
         }
 
+        if (customer.getCustomerProfile() != null && customer.getCustomerProfile().getDateOfBirth() != null) {
+            java.time.LocalDate minDob = java.time.LocalDate.of(1925, 1, 1);
+            if (customer.getCustomerProfile().getDateOfBirth().isBefore(minDob)) {
+                throw new IllegalArgumentException("Date of birth should start from 01-01-1925, not before that");
+            }
+            java.time.LocalDate maxDob = java.time.LocalDate.now().minusYears(18);
+            if (customer.getCustomerProfile().getDateOfBirth().isAfter(maxDob)) {
+                throw new IllegalArgumentException("Minimum age to open account is 18 years from current date");
+            }
+        }
+
         validateAccountTypes(request.getAccountTypes());
 
         AccountOpeningRequest openingRequest =

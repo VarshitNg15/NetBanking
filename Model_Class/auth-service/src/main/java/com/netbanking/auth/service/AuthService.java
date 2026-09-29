@@ -346,4 +346,11 @@ public class AuthService {
                 .userAgent(userAgent)
                 .build());
     }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getUserByCustomerId(String customerId) {
+        AuthUser user = userRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for customerId: " + customerId));
+        return new UserSummaryResponse(user.getCustomerId(), user.getEmail(), user.getAccountStatus().name());
+    }
 }

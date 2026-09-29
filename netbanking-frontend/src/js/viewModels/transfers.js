@@ -18,7 +18,6 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.activeAccounts = ko.observableArray([]);
       this.sourceAccountId = ko.observable('');
       this.targetAccountNumber = ko.observable('');
-      this.targetAccountId = ko.observable('');
       this.transferAmount = ko.observable('');
       this.transferDescription = ko.observable('Fund Transfer');
       this.securityPin = ko.observable('');
@@ -32,6 +31,16 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         const acc = self.activeAccounts().find(a => String(a.id) === String(id));
         return acc ? acc.formattedAvailableBalance : '₹ 0.00';
       });
+
+      // Other active accounts of the user (for quick transfer to own account)
+      this.otherAccounts = ko.computed(() => {
+        const currentSrc = self.sourceAccountId();
+        return (self.activeAccounts() || []).filter(a => String(a.id) !== String(currentSrc));
+      });
+
+      this.selectBeneficiaryAccount = (accNumber) => {
+        self.targetAccountNumber(accNumber);
+      };
 
       this.loadUserAccounts = async () => {
         self.isLoading(true);
@@ -90,8 +99,14 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           return;
         }
 
-        if (!self.targetAccountId() && !self.targetAccountNumber()) {
-          self.errorMessage('Please specify a destination account ID or number.');
+        const targetAcc = (self.targetAccountNumber() || '').trim().toUpperCase();
+        if (!targetAcc) {
+          self.errorMessage('Please enter the beneficiary account number (starting with NB).');
+          return;
+        }
+
+        if (!targetAcc.startsWith('NB')) {
+          self.errorMessage('Invalid Beneficiary Account Number. NetBanking transfers require an 18-digit Account Number starting with "NB" (e.g. NB221992311862871354). Transfers using Database IDs are not permitted.');
           return;
         }
 
@@ -100,13 +115,11 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           return;
         }
 
-        const targetId = self.targetAccountId() || self.targetAccountNumber();
-
         self.isSubmitting(true);
         try {
           const receipt = await apiService.transfer(
             self.sourceAccountId(),
-            targetId,
+            targetAcc,
             amt,
             self.transferDescription() || 'Fund Transfer',
             self.securityPin()
@@ -117,6 +130,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
 
           // Reset inputs
           self.transferAmount('');
+          self.targetAccountNumber('');
           self.securityPin('');
 
           // Refresh account balances

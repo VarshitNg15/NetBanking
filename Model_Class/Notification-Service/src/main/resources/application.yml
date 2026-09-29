@@ -68,3 +68,7 @@ notification:
     audit-topic: ${AUDIT_KAFKA_TOPIC:audit-events}
     auth-topic: ${AUTH_KAFKA_TOPIC:auth-events}
     transaction-topic: ${TRANSACTION_KAFKA_TOPIC:transaction-events}
+    auth-group-id: ${NOTIFICATION_AUTH_GROUP_ID:notification-service-auth-group}
+    transaction-group-id: ${NOTIFICATION_TXN_GROUP_ID:notification-service-transaction-group}
+    audit-group-id: ${NOTIFICATION_AUDIT_GROUP_ID:notification-service-audit-group}
+    notification-group-id: ${NOTIFICATION_KAFKA_GROUP_ID:notification-service-group}

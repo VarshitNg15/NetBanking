@@ -114,12 +114,23 @@ public class CustomerProfileService {
             CustomerProfile profile
     ) {
 
-        profile.setFirstName(request.getFirstName());
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name is required");
+        }
+        profile.setFirstName(request.getFirstName().trim());
 
-        profile.setLastName(request.getLastName());
+        profile.setLastName(request.getLastName() != null ? request.getLastName().trim() : null);
 
-        if (request.getDateOfBirth() != null && request.getDateOfBirth().isAfter(java.time.LocalDate.now())) {
-            throw new IllegalArgumentException("Date of birth cannot be greater than current date");
+        if (request.getDateOfBirth() == null) {
+            throw new IllegalArgumentException("Date of birth is required");
+        }
+        java.time.LocalDate minDob = java.time.LocalDate.of(1925, 1, 1);
+        if (request.getDateOfBirth().isBefore(minDob)) {
+            throw new IllegalArgumentException("Date of birth should start from 01-01-1925, not before that");
+        }
+        java.time.LocalDate maxDob = java.time.LocalDate.now().minusYears(18);
+        if (request.getDateOfBirth().isAfter(maxDob)) {
+            throw new IllegalArgumentException("Minimum age to open account is 18 years from current date");
         }
         profile.setDateOfBirth(request.getDateOfBirth());
 
@@ -133,17 +144,32 @@ public class CustomerProfileService {
             profile.setPhoneNumber(request.getPhoneNumber());
         }
 
-        profile.setAddressLine1(request.getAddressLine1());
+        if (request.getAddressLine1() == null || request.getAddressLine1().trim().isEmpty()) {
+            throw new IllegalArgumentException("Address Line 1 is required");
+        }
+        profile.setAddressLine1(request.getAddressLine1().trim());
 
-        profile.setAddressLine2(request.getAddressLine2());
+        profile.setAddressLine2(request.getAddressLine2() != null ? request.getAddressLine2().trim() : null);
 
-        profile.setCity(request.getCity());
+        if (request.getCity() == null || request.getCity().trim().isEmpty()) {
+            throw new IllegalArgumentException("City is required");
+        }
+        profile.setCity(request.getCity().trim());
 
-        profile.setState(request.getState());
+        if (request.getState() == null || request.getState().trim().isEmpty()) {
+            throw new IllegalArgumentException("State is required");
+        }
+        profile.setState(request.getState().trim());
 
-        profile.setPostalCode(request.getPostalCode());
+        if (request.getPostalCode() == null || request.getPostalCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("PIN code is required");
+        }
+        profile.setPostalCode(request.getPostalCode().trim());
 
-        profile.setCountry(request.getCountry());
+        if (request.getCountry() == null || request.getCountry().trim().isEmpty()) {
+            throw new IllegalArgumentException("Country is required");
+        }
+        profile.setCountry(request.getCountry().trim());
     }
 
 

@@ -171,10 +171,10 @@
               </td>
               <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (initiatedAt || completedAt || createdAt || '').substring(0, 19).replace('T', ' ')"></td>
               <td>
-                <span style="font-family: monospace;" data-bind="text: sourceAccountId || '-'"></span>
+                <span style="font-family: monospace;" data-bind="text: sourceAccountDisplay || sourceAccountId || '-'"></span>
               </td>
               <td>
-                <span style="font-family: monospace;" data-bind="text: destinationAccountId || '-'"></span>
+                <span style="font-family: monospace;" data-bind="text: destinationAccountDisplay || destinationAccountId || '-'"></span>
               </td>
               <td>
                 <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: transactionType || 'INTERNAL'"></span>
@@ -333,7 +333,7 @@
         <thead>
           <tr>
             <th>Request ID</th>
-            <th>Account ID</th>
+            <th>Account Number</th>
             <th>Format</th>
             <th>Status</th>
             <th>Requested Date</th>
@@ -344,7 +344,7 @@
           <tr>
             <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
             <td>
-              <span style="font-family: monospace; font-weight: 600;" data-bind="text: accountId"></span>
+              <span style="font-family: monospace; font-weight: 600;" data-bind="text: accountDisplay || accountId"></span>
             </td>
             <td>
               <span class="nb-badge nb-badge-customer" data-bind="text: requestType || 'CSV'"></span>
@@ -383,7 +383,7 @@
     </div>
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closePreviewDialog">Close</button>
-      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: handleGenerateStatement">
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: downloadPreviewedStatement">
         <span class="oj-ux-ico-download"></span>
         Download File
       </button>

@@ -60,6 +60,13 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
+    public AccountResponse getByAccountNumber(String accountNumber) {
+        Account a = accounts.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new NotFoundException("Account not found for number: " + accountNumber));
+        return toResponse(a);
+    }
+
+    @Transactional(readOnly = true)
     public List<AccountResponse> getAll() {
         return accounts.findAll().stream().map(this::toResponse).toList();
     }
