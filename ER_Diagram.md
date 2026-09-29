@@ -1,4 +1,4 @@
-# NetBanking System - Entity Relationship (ER) Documentation
+# NetBanking System - Entity Relationship (ER) Documentations
 
 This document provides complete Entity Relationship (ER) diagrams and comprehensive data dictionaries for all 5 microservices in the NetBanking system:
 1. [Auth Service (`AUTH_SCHEMA`)](#1-auth-service-auth_schema)
