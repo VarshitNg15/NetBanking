@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class TransactionController {
 
     private final TransferService transferService;
+    private final com.netbanking.transaction.metrics.TransactionMetrics metrics;
 
     @PostMapping({"/transfers", "/transfer", ""})
     @Operation(summary = "Create fund transfer", description = "Executes immediate or schedules future fund transfer with automated compensation and idempotency guarantees.")
@@ -39,9 +40,18 @@ public class TransactionController {
             @RequestHeader(value = "X-User-Email", required = false) String userEmail,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
 
-        return ResponseEntity.ok(
-                transferService.transfer(request, customerId, initiatedBy, userEmail, idempotencyKey)
-        );
+        long start = System.nanoTime();
+        String type = request.transferType() != null ? request.transferType() : "INTERNAL";
+        try {
+            TransactionResponse resp = transferService.transfer(request, customerId, initiatedBy, userEmail, idempotencyKey);
+            metrics.recordTransfer(type, request.amount(), "SUCCESS");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            metrics.recordTransfer(type, request.amount(), "FAILURE");
+            throw e;
+        } finally {
+            metrics.recordTransferDuration(System.nanoTime() - start);
+        }
     }
 
     @GetMapping("/{transactionReference}")
@@ -49,6 +59,7 @@ public class TransactionController {
     public ResponseEntity<TransactionResponse> getByReference(
             @Parameter(description = "Unique transaction reference string")
             @PathVariable String transactionReference) {
+        metrics.recordHistoryQuery("BY_REFERENCE", "SUCCESS");
         return ResponseEntity.ok(transferService.getByReference(transactionReference));
     }
 
@@ -58,23 +69,28 @@ public class TransactionController {
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) String customerId) {
         if (accountId != null) {
+            metrics.recordHistoryQuery("BY_ACCOUNT", "SUCCESS");
             return ResponseEntity.ok(transferService.getByAccount(accountId));
         }
         if (customerId != null && !customerId.isBlank()) {
+            metrics.recordHistoryQuery("BY_CUSTOMER", "SUCCESS");
             return ResponseEntity.ok(transferService.getByCustomer(customerId));
         }
+        metrics.recordHistoryQuery("ALL", "SUCCESS");
         return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Get transactions by customer ID", description = "Returns transaction list for a given customer.")
     public ResponseEntity<List<TransactionResponse>> getByCustomer(@PathVariable String customerId) {
+        metrics.recordHistoryQuery("BY_CUSTOMER", "SUCCESS");
         return ResponseEntity.ok(transferService.getByCustomer(customerId));
     }
 
     @GetMapping("/account/{accountId}")
     @Operation(summary = "Get transactions by account ID", description = "Returns transaction list associated with an account ID (as source or destination).")
     public ResponseEntity<List<TransactionResponse>> getByAccount(@PathVariable Long accountId) {
+        metrics.recordHistoryQuery("BY_ACCOUNT", "SUCCESS");
         return ResponseEntity.ok(transferService.getByAccount(accountId));
     }
 }

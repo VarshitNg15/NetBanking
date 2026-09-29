@@ -10,7 +10,7 @@ $rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $modelDir = Join-Path $rootDir "Model_Class"
 
 # 1. Start Infrastructure Containers via Podman
-Write-Host "`n[1/4] Starting Podman Infrastructure Containers (Oracle, Kafka, Redis)..." -ForegroundColor Yellow
+Write-Host "`n[1/6] Starting Podman Infrastructure Containers (Oracle, Kafka, Redis)..." -ForegroundColor Yellow
 try {
     podman start oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy 2>$null
     Write-Host "Infrastructure containers active." -ForegroundColor Green
@@ -19,7 +19,7 @@ try {
 }
 
 # 2. Launch Eureka Server (Port 8761)
-Write-Host "`n[2/4] Starting Eureka Discovery Server (Port 8761)..." -ForegroundColor Yellow
+Write-Host "`n[2/6] Starting Eureka Discovery Server (Port 8761)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\eureka-server'; `$host.UI.RawUI.WindowTitle = 'Eureka Server (8761)'; Write-Host '--- EUREKA SERVER (8761) ---' -ForegroundColor Green; mvn spring-boot:run"
 
 # Wait for Eureka to initialize
@@ -27,7 +27,7 @@ Write-Host "Waiting 12 seconds for Eureka Server to initialize..." -ForegroundCo
 Start-Sleep -Seconds 12
 
 # 3. Launch Backend Microservices
-Write-Host "`n[3/4] Launching Core Microservices..." -ForegroundColor Yellow
+Write-Host "`n[3/6] Launching Core Microservices..." -ForegroundColor Yellow
 
 # Auth Service (:8081)
 Write-Host " -> Launching Auth Service (:8081)..." -ForegroundColor Cyan
@@ -50,14 +50,16 @@ Write-Host " -> Launching Notification Service (:8085)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\Notification-Service'; `$host.UI.RawUI.WindowTitle = 'Notification Service (8085)'; Write-Host '--- NOTIFICATION SERVICE (8085) ---' -ForegroundColor Green; mvn spring-boot:run"
 
 # 4. Launch API Gateway (:8080)
-Write-Host "`n[4/5] Starting API Gateway (Port 8080)..." -ForegroundColor Yellow
+Write-Host "`n[4/6] Starting API Gateway (Port 8080)..." -ForegroundColor Yellow
 Start-Sleep -Seconds 6
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\api-gateway'; `$host.UI.RawUI.WindowTitle = 'API Gateway (8080)'; Write-Host '--- API GATEWAY (8080) ---' -ForegroundColor Green; mvn spring-boot:run"
 
 # 5. Launch Oracle JET Frontend (:8000)
-Write-Host "`n[5/5] Starting Oracle JET Frontend (Port 8000)..." -ForegroundColor Yellow
+Write-Host "`n[5/6] Starting Oracle JET Frontend (Port 8000)..." -ForegroundColor Yellow
 $frontendDir = Join-Path $rootDir "netbanking-frontend"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendDir'; `$host.UI.RawUI.WindowTitle = 'Oracle JET Frontend (8000)'; Write-Host '--- ORACLE JET REDWOOD FRONTEND (8000) ---' -ForegroundColor Green; node server.js"
+
+
 
 Write-Host "`n==================================================================" -ForegroundColor Green
 Write-Host "All services have been launched in separate console windows." -ForegroundColor Green
