@@ -1,0 +1,352 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "1. Authentication, MFA & Session Operations (Frontend Triggered)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Total user and admin logins performed from frontend",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineWidth": 2, "spanNulls": false }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (role, status) (increase(netbanking_auth_login_requests_total[5m]))",
+          "legendFormat": "{{role}} - {{status}}"
+        }
+      ],
+      "title": "Login Attempts by Role & Status (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "MFA and email verification OTPs issued vs verified",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 15, "lineWidth": 2 }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "id": 2,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (purpose) (increase(netbanking_auth_otp_issued_total[5m]))",
+          "legendFormat": "OTP Issued ({{purpose}})"
+        },
+        {
+          "expr": "sum by (purpose, status) (increase(netbanking_auth_otp_verified_total[5m]))",
+          "legendFormat": "OTP Verified ({{purpose}} - {{status}})"
+        }
+      ],
+      "title": "OTP Generation & Verification (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Customer registrations, token refresh, and sign-outs",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "sum(netbanking_auth_registration_requests_total)",
+          "legendFormat": "Total Registrations"
+        },
+        {
+          "expr": "sum(netbanking_auth_token_refresh_total)",
+          "legendFormat": "Token Refreshes"
+        },
+        {
+          "expr": "sum(netbanking_auth_logout_requests_total)",
+          "legendFormat": "Total Logouts"
+        }
+      ],
+      "title": "Lifecycle Activity Totals",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "2. Customer Onboarding, KYC & Administration",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Customer KYC Profile creation, lookups and updates",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 10 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (action, status) (increase(netbanking_customer_profile_requests_total[5m]))",
+          "legendFormat": "Profile {{action}} ({{status}})"
+        }
+      ],
+      "title": "Customer Profile KYC Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Account opening requests submitted vs approved vs rejected",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 10 },
+      "id": 5,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (action, status) (netbanking_customer_account_opening_requests_total)",
+          "legendFormat": "{{action}} ({{status}})"
+        }
+      ],
+      "title": "Account Opening Governance Requests",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Admin status updates for customers (Active, Blocked, Rejected)",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 10 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "sum by (target_status) (netbanking_customer_status_changes_total)",
+          "legendFormat": "Status -> {{target_status}}"
+        }
+      ],
+      "title": "Customer Status Modifications",
+      "type": "piechart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 102,
+      "title": "3. Bank Accounts, Balances, Deposits & PIN Security",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "New Accounts Created & Cash Deposits",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+      "id": 7,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (type) (netbanking_account_create_requests_total)",
+          "legendFormat": "Account Opened ({{type}})"
+        },
+        {
+          "expr": "sum(netbanking_account_deposit_requests_total)",
+          "legendFormat": "Deposits Count"
+        }
+      ],
+      "title": "Account Openings & Deposits",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Total volume of cash deposits processed in INR",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "currencyINR"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+      "id": 8,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "sum(netbanking_account_deposit_amount_sum)",
+          "legendFormat": "Total Deposit Volume"
+        }
+      ],
+      "title": "Cumulative Deposit Value (INR)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "4-Digit PIN setups, updates, and verifications",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+      "id": 9,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (action, status) (netbanking_account_pin_operations_total)",
+          "legendFormat": "PIN {{action}} ({{status}})"
+        }
+      ],
+      "title": "Account PIN Security Operations",
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 103,
+      "title": "4. Fund Transfers, Ledger & Statement Downloads",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Fund transfers executed from frontend by type and status",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 27 },
+      "id": 10,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (type, status) (increase(netbanking_transfer_requests_total[5m]))",
+          "legendFormat": "Transfer {{type}} ({{status}})"
+        }
+      ],
+      "title": "Fund Transfers Rate (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Total value of transfers executed in INR",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "currencyINR"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 27 },
+      "id": 11,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "sum(netbanking_transfer_amount_sum)",
+          "legendFormat": "Transferred Volume"
+        }
+      ],
+      "title": "Cumulative Transferred Amount (INR)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Statement generation, history queries, and file downloads",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 27 },
+      "id": 12,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (action) (netbanking_statement_requests_total)",
+          "legendFormat": "Statement {{action}}"
+        },
+        {
+          "expr": "sum by (scope) (netbanking_transaction_history_queries_total)",
+          "legendFormat": "History Query ({{scope}})"
+        }
+      ],
+      "title": "Statements & History Queries",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 104,
+      "title": "5. Email Notifications (Google SMTP) & Audit Trails",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Emails sent to customers via Google SMTP by type",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "id": 13,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "sum by (type, status) (netbanking_notification_email_dispatched_total)",
+          "legendFormat": "Email {{type}} ({{status}})"
+        }
+      ],
+      "title": "Email Notifications Dispatched",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "Average duration of SMTP email delivery in milliseconds",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "id": 14,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        {
+          "expr": "rate(netbanking_notification_email_duration_seconds_sum[5m]) / rate(netbanking_notification_email_duration_seconds_count[5m])",
+          "legendFormat": "Avg SMTP Latency"
+        },
+        {
+          "expr": "rate(netbanking_transfer_duration_seconds_sum[5m]) / rate(netbanking_transfer_duration_seconds_count[5m])",
+          "legendFormat": "Avg Transfer Execution Latency"
+        }
+      ],
+      "title": "Average Operation Latencies (SMTP & Transfers)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["netbanking", "microservices", "frontend-metrics", "operations"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] },
+  "timezone": "browser",
+  "title": "NetBanking Frontend Operations & Business Metrics",
+  "uid": "netbanking-operations"
+}

@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerProfileService {
 
     private final CustomerProfileRepository customerProfileRepository;
-
     private final CustomerService customerService;
+    private final com.netbanking.user_service.metrics.UserMetrics userMetrics;
 
     // ============================================================
     // CREATE PROFILE
@@ -47,6 +47,7 @@ public class CustomerProfileService {
         CustomerProfile savedProfile =
                 customerProfileRepository.save(profile);
 
+        userMetrics.recordProfileOperation("CREATE", "SUCCESS");
         return toResponse(savedProfile);
     }
 
@@ -62,13 +63,15 @@ public class CustomerProfileService {
 
         CustomerProfile profile =
                 customerProfileRepository.findById(customerId)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Profile not found for customer: "
-                                                + customerId
-                                )
-                        );
+                        .orElseThrow(() -> {
+                            userMetrics.recordProfileOperation("GET", "NOT_FOUND");
+                            return new IllegalArgumentException(
+                                    "Profile not found for customer: "
+                                            + customerId
+                            );
+                        });
 
+        userMetrics.recordProfileOperation("GET", "SUCCESS");
         return toResponse(profile);
     }
 
@@ -84,18 +87,20 @@ public class CustomerProfileService {
 
         CustomerProfile existingProfile =
                 customerProfileRepository.findById(customerId)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Profile not found for customer: "
-                                                + customerId
-                                )
-                        );
+                        .orElseThrow(() -> {
+                            userMetrics.recordProfileOperation("UPDATE", "NOT_FOUND");
+                            return new IllegalArgumentException(
+                                    "Profile not found for customer: "
+                                            + customerId
+                            );
+                        });
 
         copyRequestToEntity(request, existingProfile);
 
         CustomerProfile updatedProfile =
                 customerProfileRepository.save(existingProfile);
 
+        userMetrics.recordProfileOperation("UPDATE", "SUCCESS");
         return toResponse(updatedProfile);
     }
 

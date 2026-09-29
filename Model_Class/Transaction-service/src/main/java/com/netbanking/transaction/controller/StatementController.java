@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class StatementController {
 
     private final StatementService statementService;
+    private final com.netbanking.transaction.metrics.TransactionMetrics metrics;
 
     @PostMapping
     @Operation(summary = "Request statement", description = "Initiates statement generation for a specified account and date range.")
@@ -37,7 +38,14 @@ public class StatementController {
             @RequestHeader(value = "X-Customer-Id") String customerId,
             @RequestHeader(value = "X-Initiated-By", required = false, defaultValue = "CUSTOMER") String requestedBy) {
 
-        return ResponseEntity.ok(statementService.requestStatement(request, customerId, requestedBy));
+        try {
+            StatementResponse resp = statementService.requestStatement(request, customerId, requestedBy);
+            metrics.recordStatementAction("REQUEST", "SUCCESS");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            metrics.recordStatementAction("REQUEST", "FAILURE");
+            throw e;
+        }
     }
 
     @GetMapping("/{requestId}")
@@ -45,6 +53,7 @@ public class StatementController {
     public ResponseEntity<StatementResponse> getStatement(
             @PathVariable Long requestId,
             @RequestHeader(value = "X-Customer-Id", required = false) String customerId) {
+        metrics.recordStatementAction("STATUS", "SUCCESS");
         return ResponseEntity.ok(statementService.getStatement(requestId, customerId));
     }
 
@@ -55,6 +64,7 @@ public class StatementController {
         if (customerId == null || customerId.isBlank()) {
             return ResponseEntity.ok(List.of());
         }
+        metrics.recordStatementAction("LIST", "SUCCESS");
         return ResponseEntity.ok(statementService.getStatementsByCustomer(customerId));
     }
 
@@ -63,9 +73,18 @@ public class StatementController {
     public ResponseEntity<String> downloadStatement(
             @PathVariable Long requestId,
             @RequestHeader(value = "X-Customer-Id", required = false) String customerId) {
-        String content = statementService.generateDownloadContent(requestId, customerId);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"statement-" + requestId + ".txt\"")
-                .body(content);
+        long start = System.nanoTime();
+        try {
+            String content = statementService.generateDownloadContent(requestId, customerId);
+            metrics.recordStatementAction("DOWNLOAD", "SUCCESS");
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"statement-" + requestId + ".txt\"")
+                    .body(content);
+        } catch (Exception e) {
+            metrics.recordStatementAction("DOWNLOAD", "FAILURE");
+            throw e;
+        } finally {
+            metrics.recordStatementDownloadDuration(System.nanoTime() - start);
+        }
     }
 }

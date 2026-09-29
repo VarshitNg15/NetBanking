@@ -20,6 +20,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final com.netbanking.notification.metrics.NotificationMetrics metrics;
 
     @PostMapping
     public ResponseEntity<Notification> create(@Valid @RequestBody NotificationCreateRequest request) {
@@ -35,16 +36,19 @@ public class NotificationController {
 
     @GetMapping
     public ResponseEntity<List<Notification>> findAll() {
+        metrics.recordFetch("ALL");
         return ResponseEntity.ok(notificationService.findAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Notification> findById(@PathVariable Long id) {
+        metrics.recordFetch("BY_ID");
         return ResponseEntity.ok(notificationService.findById(id));
     }
 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<Notification>> findByCustomer(@PathVariable String customerId) {
+        metrics.recordFetch("BY_CUSTOMER");
         return ResponseEntity.ok(notificationService.findByCustomer(customerId));
     }
 }

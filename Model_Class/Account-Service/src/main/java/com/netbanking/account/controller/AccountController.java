@@ -33,35 +33,57 @@ public class AccountController {
     private final BalanceService balances;
     private final LedgerService ledger;
     private final PinService pins;
+    private final com.netbanking.account.metrics.AccountMetrics metrics;
 
-    public AccountController(AccountService a, BalanceService b, LedgerService l, PinService p) {
+    public AccountController(AccountService a, BalanceService b, LedgerService l, PinService p,
+                             com.netbanking.account.metrics.AccountMetrics m) {
         accounts = a;
         balances = b;
         ledger = l;
         pins = p;
+        metrics = m;
     }
 
     @PostMapping
     public ResponseEntity<AccountResponse> create(@Valid @RequestBody CreateAccountRequest r) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(accounts.create(r));
+        String typeStr = r.accountType() != null ? r.accountType().name() : "UNKNOWN";
+        try {
+            AccountResponse response = accounts.create(r);
+            metrics.recordAccountCreation(typeStr, "SUCCESS");
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            metrics.recordAccountCreation(typeStr, "FAILURE");
+            throw e;
+        }
     }
 
     @GetMapping("/{id}")
     public AccountResponse get(@PathVariable Long id) {
+        metrics.recordAccountFetch("SINGLE");
         return accounts.get(id);
     }
 
     @GetMapping
     public List<AccountResponse> byCustomer(@RequestParam(required = false) String customerId) {
         if (customerId == null || customerId.isBlank()) {
+            metrics.recordAccountFetch("ALL");
             return accounts.getAll();
         }
+        metrics.recordAccountFetch("BY_CUSTOMER");
         return accounts.byCustomer(customerId);
     }
 
     @PatchMapping("/{id}/status")
     public AccountResponse status(@PathVariable Long id, @Valid @RequestBody ChangeStatusRequest r) {
-        return accounts.changeStatus(id, r);
+        String newStatus = r.status() != null ? r.status().name() : "UNKNOWN";
+        try {
+            AccountResponse resp = accounts.changeStatus(id, r);
+            metrics.recordStatusChange(newStatus, "SUCCESS");
+            return resp;
+        } catch (Exception e) {
+            metrics.recordStatusChange(newStatus, "FAILURE");
+            throw e;
+        }
     }
 
     @PatchMapping("/{id}/type")
@@ -71,48 +93,88 @@ public class AccountController {
 
     @GetMapping("/{id}/balance")
     public BalanceResponse balance(@PathVariable Long id) {
-        return balances.get(id);
+        try {
+            BalanceResponse resp = balances.get(id);
+            metrics.recordBalanceCheck("SUCCESS");
+            return resp;
+        } catch (Exception e) {
+            metrics.recordBalanceCheck("FAILURE");
+            throw e;
+        }
     }
 
     @PostMapping("/{id}/credits")
     public LedgerResponse credit(@PathVariable Long id, @Valid @RequestBody PostingRequest r) {
-        return balances.post(id, EntryType.CREDIT, r);
+        try {
+            LedgerResponse resp = balances.post(id, EntryType.CREDIT, r);
+            metrics.recordDeposit(r.amount(), "SUCCESS");
+            return resp;
+        } catch (Exception e) {
+            metrics.recordDeposit(r.amount(), "FAILURE");
+            throw e;
+        }
     }
 
     @PostMapping("/{id}/debits")
     public LedgerResponse debit(@PathVariable Long id, @Valid @RequestBody PostingRequest r) {
-        return balances.post(id, EntryType.DEBIT, r);
+        try {
+            LedgerResponse resp = balances.post(id, EntryType.DEBIT, r);
+            metrics.recordDebit(r.amount(), "SUCCESS");
+            return resp;
+        } catch (Exception e) {
+            metrics.recordDebit(r.amount(), "FAILURE");
+            throw e;
+        }
     }
 
     @PostMapping("/{id}/debit")
     public BalanceOperationResponse debitOperation(@PathVariable Long id, @Valid @RequestBody BalanceOperationRequest r) {
-        PostingRequest posting = new PostingRequest(
-                r.transactionReference(),
-                r.transactionReference() + "-DEBIT",
-                r.amount(),
-                r.description(),
-                r.initiatedBy() != null ? r.initiatedBy() : "SYSTEM"
-        );
-        balances.post(id, EntryType.DEBIT, posting);
-        return new BalanceOperationResponse(true, "Account debited successfully");
+        try {
+            PostingRequest posting = new PostingRequest(
+                    r.transactionReference(),
+                    r.transactionReference() + "-DEBIT",
+                    r.amount(),
+                    r.description(),
+                    r.initiatedBy() != null ? r.initiatedBy() : "SYSTEM"
+            );
+            balances.post(id, EntryType.DEBIT, posting);
+            metrics.recordDebit(r.amount(), "SUCCESS");
+            return new BalanceOperationResponse(true, "Account debited successfully");
+        } catch (Exception e) {
+            metrics.recordDebit(r.amount(), "FAILURE");
+            throw e;
+        }
     }
 
     @PostMapping("/{id}/credit")
     public BalanceOperationResponse creditOperation(@PathVariable Long id, @Valid @RequestBody BalanceOperationRequest r) {
-        PostingRequest posting = new PostingRequest(
-                r.transactionReference(),
-                r.transactionReference() + "-CREDIT",
-                r.amount(),
-                r.description(),
-                r.initiatedBy() != null ? r.initiatedBy() : "SYSTEM"
-        );
-        balances.post(id, EntryType.CREDIT, posting);
-        return new BalanceOperationResponse(true, "Account credited successfully");
+        try {
+            PostingRequest posting = new PostingRequest(
+                    r.transactionReference(),
+                    r.transactionReference() + "-CREDIT",
+                    r.amount(),
+                    r.description(),
+                    r.initiatedBy() != null ? r.initiatedBy() : "SYSTEM"
+            );
+            balances.post(id, EntryType.CREDIT, posting);
+            metrics.recordDeposit(r.amount(), "SUCCESS");
+            return new BalanceOperationResponse(true, "Account credited successfully");
+        } catch (Exception e) {
+            metrics.recordDeposit(r.amount(), "FAILURE");
+            throw e;
+        }
     }
 
     @GetMapping("/{id}/ledger")
     public List<LedgerResponse> ledger(@PathVariable Long id) {
-        return ledger.list(id);
+        try {
+            List<LedgerResponse> resp = ledger.list(id);
+            metrics.recordLedgerQuery("SUCCESS");
+            return resp;
+        } catch (Exception e) {
+            metrics.recordLedgerQuery("FAILURE");
+            throw e;
+        }
     }
 
     @RequestMapping(value = "/{id}/pin", method = {RequestMethod.PUT, RequestMethod.POST})
@@ -121,7 +183,13 @@ public class AccountController {
                        @RequestHeader(value = "X-Customer-Email", required = false) String customerEmail,
                        @RequestHeader(value = "X-User-Email", required = false) String userEmail) {
         String email = (customerEmail != null && !customerEmail.isBlank()) ? customerEmail : userEmail;
-        pins.set(id, r.pin(), email);
+        try {
+            pins.set(id, r.pin(), email);
+            metrics.recordPinOperation("SET", "SUCCESS");
+        } catch (Exception e) {
+            metrics.recordPinOperation("SET", "FAILURE");
+            throw e;
+        }
     }
 
     @GetMapping("/{id}/pin/status")
@@ -131,6 +199,8 @@ public class AccountController {
 
     @PostMapping("/{id}/pin/verify")
     public Map<String, Boolean> verifyPin(@PathVariable Long id, @Valid @RequestBody SetPinRequest r) {
-        return Map.of("valid", pins.verify(id, r.pin()));
+        boolean valid = pins.verify(id, r.pin());
+        metrics.recordPinOperation("VERIFY", valid ? "SUCCESS" : "INVALID");
+        return Map.of("valid", valid);
     }
 }

@@ -21,12 +21,10 @@ import java.util.List;
 public class AccountOpeningService {
 
     private final AccountOpeningRequestRepository requestRepository;
-
     private final AccountOpeningRequestTypeRepository requestTypeRepository;
-
     private final AccountServiceClient accountServiceClient;
-    
     private final CustomerService customerService;
+    private final com.netbanking.user_service.metrics.UserMetrics userMetrics;
 
     public AccountOpeningResponseDto createRequest(
             AccountOpeningRequestDto request
@@ -73,7 +71,10 @@ public class AccountOpeningService {
             requestTypeRepository.save(requestType);
         }
 
-        return toResponse(savedRequest);
+        AccountOpeningResponseDto response = toResponse(savedRequest);
+        String types = request.getAccountTypes() != null ? String.join(",", request.getAccountTypes()) : "UNKNOWN";
+        userMetrics.recordAccountOpening("SUBMIT", types, "SUCCESS");
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -107,7 +108,7 @@ public class AccountOpeningService {
 
     @Transactional(readOnly = true)
     public List<AccountOpeningResponseDto> getPendingRequests() {
-
+        userMetrics.recordGovernanceQuery("PENDING_ONBOARDING");
         return requestRepository
                 .findByRequestStatus("PENDING")
                 .stream()
@@ -138,6 +139,7 @@ public class AccountOpeningService {
             }
         }
 
+        userMetrics.recordAccountOpening("APPROVE", "ALL", "SUCCESS");
         return toResponse(
                 requestRepository.save(request)
         );
@@ -166,6 +168,7 @@ public class AccountOpeningService {
         request.setRejectionReason(reason);
         request.setUpdatedAt(LocalDateTime.now());
 
+        userMetrics.recordAccountOpening("REJECT", "ALL", "SUCCESS");
         return toResponse(
                 requestRepository.save(request)
         );

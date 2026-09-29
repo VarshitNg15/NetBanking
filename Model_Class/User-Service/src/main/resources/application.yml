@@ -37,6 +37,7 @@ spring:
 
 
 server:
+  address: 0.0.0.0
   port: ${USER_SERVER_PORT:${SERVER_PORT:8082}}
 
 
@@ -44,11 +45,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
 
   endpoint:
     health:
       show-details: always
+      access: unrestricted
 
 
 logging:

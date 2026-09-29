@@ -16,6 +16,7 @@ import java.util.List;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final com.netbanking.user_service.metrics.UserMetrics userMetrics;
 
     public CustomerResponse createCustomer(CustomerRequest request) {
 
@@ -51,12 +52,13 @@ public class CustomerService {
             customer = customerRepository.save(customer);
         }
 
+        userMetrics.recordGovernanceQuery("CUSTOMER_INSPECT");
         return toResponse(customer);
     }
 
     @Transactional(readOnly = true)
     public List<CustomerResponse> getAllCustomers() {
-
+        userMetrics.recordGovernanceQuery("ALL_CUSTOMERS");
         return customerRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -69,17 +71,20 @@ public class CustomerService {
     ) {
 
         Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Customer not found: " + customerId
-                        )
-                );
+                .orElseThrow(() -> {
+                    userMetrics.recordStatusChange(status, "FAILURE");
+                    return new IllegalArgumentException(
+                            "Customer not found: " + customerId
+                    );
+                });
 
         validateCustomerStatus(status);
 
         customer.setCustomerStatus(status);
 
-        return toResponse(customerRepository.save(customer));
+        Customer updated = customerRepository.save(customer);
+        userMetrics.recordStatusChange(status, "SUCCESS");
+        return toResponse(updated);
     }
 
     /**

@@ -19,18 +19,32 @@ import java.util.Map;
 public class AuditController {
 
     private final AuditAccessService auditAccessService;
+    private final com.netbanking.notification.metrics.NotificationMetrics metrics;
 
     @PostMapping("/request")
     public ResponseEntity<AuditAccessRequest> requestAccess(
             @Valid @RequestBody AuditAccessRequestDto request) {
-        return ResponseEntity.ok(auditAccessService.requestAccess(request));
+        try {
+            AuditAccessRequest resp = auditAccessService.requestAccess(request);
+            metrics.recordAuditAccess("REQUEST", "SUCCESS");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            metrics.recordAuditAccess("REQUEST", "FAILURE");
+            throw e;
+        }
     }
 
     @PostMapping("/{requestId}/approve")
     public ResponseEntity<Map<String, String>> approve(
             @PathVariable Long requestId,
             @Valid @RequestBody AuditAccessApprovalDto request) {
-        String token = auditAccessService.approve(requestId, request.approvedBy());
-        return ResponseEntity.ok(Map.of("token", token));
+        try {
+            String token = auditAccessService.approve(requestId, request.approvedBy());
+            metrics.recordAuditAccess("APPROVE", "SUCCESS");
+            return ResponseEntity.ok(Map.of("token", token));
+        } catch (Exception e) {
+            metrics.recordAuditAccess("APPROVE", "FAILURE");
+            throw e;
+        }
     }
 }
