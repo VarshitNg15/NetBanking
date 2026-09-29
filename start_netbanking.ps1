@@ -12,7 +12,7 @@ $modelDir = Join-Path $rootDir "Model_Class"
 # 1. Start Infrastructure Containers via Podman
 Write-Host "`n[1/4] Starting Podman Infrastructure Containers (Oracle, Kafka, Redis)..." -ForegroundColor Yellow
 try {
-    podman start oracle-db-full kafka springboot-podman-demo-redis-1 2>$null
+    podman start oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy 2>$null
     Write-Host "Infrastructure containers active." -ForegroundColor Green
 } catch {
     Write-Host "Warning: Podman containers could not be verified automatically. Ensure Oracle (:1521), Kafka (:9092), and Redis (:6379) are running." -ForegroundColor DarkYellow

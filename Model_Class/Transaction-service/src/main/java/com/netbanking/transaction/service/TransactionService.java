@@ -1,6 +1,7 @@
 package com.netbanking.transaction.service;
 
 import com.netbanking.transaction.client.AccountServiceClient;
+import com.netbanking.transaction.client.AuthServiceClient;
 import com.netbanking.transaction.client.UserServiceClient;
 import com.netbanking.transaction.dto.request.TransferRequest;
 import com.netbanking.transaction.dto.response.TransactionResponse;
@@ -35,6 +36,7 @@ public class TransactionService {
     private final IdempotencyService idempotencyService;
     private final AccountServiceClient accountServiceClient;
     private final UserServiceClient userServiceClient;
+    private final AuthServiceClient authServiceClient;
     private final TransactionEventProducer eventProducer;
 
     public TransactionResponse createTransfer(TransferRequest request, String customerId, String initiatedBy, String idempotencyKey) {
@@ -46,27 +48,96 @@ public class TransactionService {
         if (customerId == null || customerId.isBlank()) {
             throw new IllegalArgumentException("Customer ID header (X-Customer-Id) is required");
         }
-        if (request.sourceAccountId().equals(request.destinationAccountId())) {
-            throw new IllegalArgumentException("Source and destination accounts cannot be identical");
-        }
         if (initiatedBy == null || initiatedBy.isBlank()) {
             initiatedBy = "CUSTOMER";
         }
 
-        // 2. Pre-flight verification: customer status check
+        // 2. Enforce Account Number transfers for customers - reject Database ID transfers
+        String destAccountNumber = request.destinationAccountNumber();
+        if ("CUSTOMER".equalsIgnoreCase(initiatedBy)) {
+            if (request.destinationAccountId() != null) {
+                throw new IllegalArgumentException("Customer transfers using internal Database Account IDs are not permitted. Please use the beneficiary's Account Number starting with 'NB'.");
+            }
+            if (destAccountNumber == null || destAccountNumber.isBlank() || !destAccountNumber.trim().toUpperCase().startsWith("NB")) {
+                throw new IllegalArgumentException("Customer fund transfers must be made using a valid NetBanking Account Number starting with 'NB' (e.g. NB221992311862871354). Transfers with Database IDs are not permitted.");
+            }
+        }
+
+        // 3. Resolve destination account
+        AccountServiceClient.AccountResponse destAcc;
+        if (destAccountNumber != null && !destAccountNumber.isBlank()) {
+            try {
+                destAcc = accountServiceClient.getByAccountNumber(destAccountNumber.trim().toUpperCase());
+            } catch (Exception ex) {
+                throw new ResourceNotFoundException("Beneficiary account number not found: " + destAccountNumber);
+            }
+            if (destAcc == null || destAcc.accountId() == null) {
+                throw new ResourceNotFoundException("Beneficiary account number not found: " + destAccountNumber);
+            }
+            if (destAcc.accountStatus() != null && !"ACTIVE".equalsIgnoreCase(destAcc.accountStatus())) {
+                throw new IllegalStateException("Destination account is not ACTIVE (Status: " + destAcc.accountStatus() + ")");
+            }
+            if (destAcc.currencyCode() != null && !destAcc.currencyCode().equalsIgnoreCase(request.currency())) {
+                throw new IllegalArgumentException("Destination account currency (" + destAcc.currencyCode() + ") does not match transfer currency (" + request.currency() + ")");
+            }
+        } else if (request.destinationAccountId() != null) {
+            destAcc = verifyDestinationAccount(request.destinationAccountId(), request.currency());
+        } else {
+            throw new IllegalArgumentException("Beneficiary account number is required");
+        }
+
+        // 4. Resolve source account
+        AccountServiceClient.AccountResponse sourceAcc;
+        if (request.sourceAccountNumber() != null && !request.sourceAccountNumber().isBlank()) {
+            try {
+                sourceAcc = accountServiceClient.getByAccountNumber(request.sourceAccountNumber().trim().toUpperCase());
+            } catch (Exception ex) {
+                throw new ResourceNotFoundException("Source account number not found: " + request.sourceAccountNumber());
+            }
+            if (sourceAcc == null || sourceAcc.accountId() == null) {
+                throw new ResourceNotFoundException("Source account number not found: " + request.sourceAccountNumber());
+            }
+            if (sourceAcc.customerId() != null && !sourceAcc.customerId().equalsIgnoreCase(customerId)) {
+                throw new SecurityException("Unauthorized: Source account does not belong to customer " + customerId);
+            }
+            if (sourceAcc.accountStatus() != null && !"ACTIVE".equalsIgnoreCase(sourceAcc.accountStatus())) {
+                throw new IllegalStateException("Source account is not ACTIVE (Status: " + sourceAcc.accountStatus() + ")");
+            }
+            if (sourceAcc.currencyCode() != null && !sourceAcc.currencyCode().equalsIgnoreCase(request.currency())) {
+                throw new IllegalArgumentException("Source account currency (" + sourceAcc.currencyCode() + ") does not match transfer currency (" + request.currency() + ")");
+            }
+        } else if (request.sourceAccountId() != null) {
+            sourceAcc = verifySourceAccount(request.sourceAccountId(), customerId, request.currency());
+        } else {
+            throw new IllegalArgumentException("Source account is required");
+        }
+
+        if (sourceAcc.accountId().equals(destAcc.accountId())) {
+            throw new IllegalArgumentException("Source and destination accounts cannot be identical");
+        }
+
+        // If sender email is not provided in headers, attempt to resolve from auth-service
+        if (userEmail == null || userEmail.isBlank()) {
+            try {
+                AuthServiceClient.UserSummaryResponse senderSummary = authServiceClient.getUserByCustomerId(customerId);
+                if (senderSummary != null && senderSummary.email() != null && !senderSummary.email().isBlank()) {
+                    userEmail = senderSummary.email().trim();
+                }
+            } catch (Exception ex) {
+                log.warn("Could not resolve sender email from auth-service for customerId {}: {}", customerId, ex.getMessage());
+            }
+        }
+
+        // 5. Pre-flight verification: customer status check
         verifyCustomerActive(customerId);
 
-        // 3. Pre-flight verification: source & destination accounts
-        AccountServiceClient.AccountResponse sourceAcc = verifySourceAccount(request.sourceAccountId(), customerId, request.currency());
-        AccountServiceClient.AccountResponse destAcc = verifyDestinationAccount(request.destinationAccountId(), request.currency());
-
-        // 4. Determine and normalize types for database constraints
+        // 6. Determine and normalize types for database constraints
         String normalizedMode = "SCHEDULED".equalsIgnoreCase(request.transferMode()) ? "SCHEDULED" : "IMMEDIATE";
         String normalizedType = determineTransactionType(request.transferType(), sourceAcc, destAcc);
 
-        // 5. Idempotency management
+        // 7. Idempotency management
         String requestHash = idempotencyService.computeHash(
-                request.sourceAccountId() + ":" + request.destinationAccountId() + ":" +
+                sourceAcc.accountId() + ":" + destAcc.accountId() + ":" +
                 request.amount() + ":" + request.currency() + ":" + normalizedMode
         );
 
@@ -86,8 +157,8 @@ public class TransactionService {
             idempotencyService.createProcessingRecord(idempotencyKey, customerId, requestHash);
         }
 
-        // 6. Save initial Transaction record
-        Transaction transaction = initializeTransaction(request, customerId, initiatedBy, normalizedType);
+        // 8. Save initial Transaction record
+        Transaction transaction = initializeTransaction(request, sourceAcc.accountId(), destAcc.accountId(), customerId, initiatedBy, normalizedType);
         saveTransferDetails(transaction, normalizedType, normalizedMode, request.description(),
                 "SCHEDULED".equals(normalizedMode) ? request.scheduledAt() : null);
 
@@ -114,6 +185,19 @@ public class TransactionService {
         transaction = transactionRepository.save(transaction);
         recordStatus(transaction, "INITIATED", "PROCESSING", "Transfer processing started");
 
+        // Resolve sender email if missing
+        String senderEmail = userEmail;
+        if (senderEmail == null || senderEmail.isBlank()) {
+            try {
+                AuthServiceClient.UserSummaryResponse senderSummary = authServiceClient.getUserByCustomerId(transaction.getCustomerId());
+                if (senderSummary != null && senderSummary.email() != null && !senderSummary.email().isBlank()) {
+                    senderEmail = senderSummary.email().trim();
+                }
+            } catch (Exception ex) {
+                log.warn("Could not retrieve sender email from auth-service for customerId {}: {}", transaction.getCustomerId(), ex.getMessage());
+            }
+        }
+
         AccountServiceClient.BalanceOperationRequest operation =
                 new AccountServiceClient.BalanceOperationRequest(
                         transaction.getAmount(),
@@ -132,15 +216,15 @@ public class TransactionService {
                 debitSucceeded = true;
             } else {
                 String reason = debit != null ? debit.message() : "Debit operation rejected by account service";
-                fail(transaction, reason, userEmail, idempotencyKey);
+                fail(transaction, reason, senderEmail, idempotencyKey);
                 return toResponse(transaction);
             }
         } catch (FeignException ex) {
             String errorMsg = extractFeignErrorMessage(ex);
-            fail(transaction, "Debit failed: " + errorMsg, userEmail, idempotencyKey);
+            fail(transaction, "Debit failed: " + errorMsg, senderEmail, idempotencyKey);
             return toResponse(transaction);
         } catch (Exception ex) {
-            fail(transaction, "Debit failed: " + ex.getMessage(), userEmail, idempotencyKey);
+            fail(transaction, "Debit failed: " + ex.getMessage(), senderEmail, idempotencyKey);
             return toResponse(transaction);
         }
 
@@ -151,7 +235,7 @@ public class TransactionService {
 
             if (credit == null || !credit.successful()) {
                 String reason = credit != null ? credit.message() : "Credit operation rejected";
-                compensateAndFail(transaction, reason, userEmail, idempotencyKey);
+                compensateAndFail(transaction, reason, senderEmail, idempotencyKey);
                 return toResponse(transaction);
             }
 
@@ -162,15 +246,39 @@ public class TransactionService {
             transaction = transactionRepository.save(transaction);
             recordStatus(transaction, "PROCESSING", "SUCCESS", "Transfer completed successfully");
 
-            eventProducer.publishTransactionEvent(transaction, userEmail);
+            // Dispatch Debit alert to sender
+            eventProducer.publishTransactionEvent(transaction, senderEmail);
 
-            // Notify Receiver as well (Req 13)
+            // Notify Receiver with original registered email
             try {
                 if (transaction.getDestinationAccountId() != null) {
                     AccountServiceClient.AccountResponse destAcc = accountServiceClient.getAccount(transaction.getDestinationAccountId());
                     if (destAcc != null && destAcc.customerId() != null) {
-                        String receiverEmail = destAcc.customerId() + "@netbank.com";
-                        eventProducer.publishReceiverTransactionEvent(transaction, destAcc.customerId(), receiverEmail);
+                        String receiverEmail = null;
+
+                        // Case 1: Self-transfer (receiver is same customer as sender)
+                        if (destAcc.customerId().equalsIgnoreCase(transaction.getCustomerId()) && senderEmail != null && !senderEmail.isBlank()) {
+                            receiverEmail = senderEmail;
+                        } else {
+                            // Case 2: Transfer to another customer - look up registered email from auth-service
+                            try {
+                                AuthServiceClient.UserSummaryResponse userSummary = authServiceClient.getUserByCustomerId(destAcc.customerId());
+                                if (userSummary != null && userSummary.email() != null && !userSummary.email().isBlank()) {
+                                    receiverEmail = userSummary.email().trim();
+                                }
+                            } catch (Exception authEx) {
+                                log.warn("Could not retrieve original email from auth-service for receiver customerId {}: {}",
+                                        destAcc.customerId(), authEx.getMessage());
+                            }
+                        }
+
+                        if (receiverEmail != null && !receiverEmail.isBlank()) {
+                            log.info("Dispatching credit alert email to receiver [{}] (customerId: {}) for txn {}",
+                                    receiverEmail, destAcc.customerId(), transaction.getTransactionReference());
+                            eventProducer.publishReceiverTransactionEvent(transaction, destAcc.customerId(), receiverEmail);
+                        } else {
+                            log.warn("Receiver email could not be resolved for customerId {}. Skipping credit notification.", destAcc.customerId());
+                        }
                     }
                 }
             } catch (Exception rcvEx) {
@@ -182,7 +290,7 @@ public class TransactionService {
 
         } catch (Exception ex) {
             String reason = ex instanceof FeignException feignEx ? extractFeignErrorMessage(feignEx) : ex.getMessage();
-            compensateAndFail(transaction, reason, userEmail, idempotencyKey);
+            compensateAndFail(transaction, reason, senderEmail, idempotencyKey);
             return toResponse(transaction);
         }
     }
@@ -321,13 +429,13 @@ public class TransactionService {
         return "FUND_TRANSFER";
     }
 
-    private Transaction initializeTransaction(TransferRequest request, String customerId, String initiatedBy, String txnType) {
+    private Transaction initializeTransaction(TransferRequest request, Long sourceAccountId, Long destinationAccountId, String customerId, String initiatedBy, String txnType) {
         Transaction transaction = new Transaction();
         transaction.setTransactionReference("TXN-" + UUID.randomUUID());
         transaction.setTransactionType(txnType);
         transaction.setTransactionStatus("INITIATED");
-        transaction.setSourceAccountId(request.sourceAccountId());
-        transaction.setDestinationAccountId(request.destinationAccountId());
+        transaction.setSourceAccountId(sourceAccountId != null ? sourceAccountId : request.sourceAccountId());
+        transaction.setDestinationAccountId(destinationAccountId != null ? destinationAccountId : request.destinationAccountId());
         transaction.setCustomerId(customerId);
         transaction.setInitiatedBy(initiatedBy);
         transaction.setAmount(request.amount());

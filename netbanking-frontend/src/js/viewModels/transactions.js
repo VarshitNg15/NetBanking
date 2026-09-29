@@ -80,6 +80,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         }
 
         const myAccountIds = new Set((self.accounts() || []).map(a => String(a.id)));
+        const accMap = {};
+        (self.accounts() || []).forEach(a => { if (a && a.id) accMap[String(a.id)] = a.accountNumber; });
+        (self.allKnownAccounts || []).forEach(a => { if (a && a.id) accMap[String(a.id)] = a.accountNumber; });
+
         return list.map(t => {
           let isCredit = false;
           if (filterAcc !== 'ALL') {
@@ -87,7 +91,13 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           } else {
             isCredit = myAccountIds.has(String(t.destinationAccountId)) && !myAccountIds.has(String(t.sourceAccountId));
           }
-          return Object.assign({}, t, { isCredit: isCredit });
+          const srcAccNum = accMap[String(t.sourceAccountId)] || (t.sourceAccountId ? ('Acc #' + t.sourceAccountId) : '-');
+          const destAccNum = accMap[String(t.destinationAccountId)] || (t.destinationAccountId ? ('Acc #' + t.destinationAccountId) : '-');
+          return Object.assign({}, t, {
+            isCredit: isCredit,
+            sourceAccountDisplay: srcAccNum,
+            destinationAccountDisplay: destAccNum
+          });
         });
       });
 
@@ -112,6 +122,13 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
             validAccounts = Array.isArray(accs) ? accs : [];
           } catch (err) {
             console.warn('Could not load accounts for transaction filters:', err);
+          }
+
+          try {
+            const allAccs = await apiService.getAllAccounts();
+            self.allKnownAccounts = Array.isArray(allAccs) ? allAccs : [];
+          } catch (err) {
+            self.allKnownAccounts = [];
           }
 
           self.accounts(validAccounts);
@@ -206,7 +223,15 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         if (!user || !user.customerId) return;
         try {
           const stmts = await apiService.getCustomerStatements(user.customerId);
-          self.customerStatements(Array.isArray(stmts) ? stmts : []);
+          const accMap = {};
+          (self.accounts() || []).forEach(a => { if (a && a.id) accMap[String(a.id)] = a.accountNumber; });
+          (self.allKnownAccounts || []).forEach(a => { if (a && a.id) accMap[String(a.id)] = a.accountNumber; });
+          const mapped = (Array.isArray(stmts) ? stmts : []).map(s => {
+            return Object.assign({}, s, {
+              accountDisplay: accMap[String(s.accountId)] || (s.accountId ? ('Account #' + s.accountId) : '-')
+            });
+          });
+          self.customerStatements(mapped);
         } catch (e) {
           console.warn('Could not load customer statements:', e);
         }
@@ -355,6 +380,25 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.closePreviewDialog = () => {
         const dialog = document.getElementById('statementPreviewDialog');
         if (dialog) dialog.close();
+      };
+
+      this.downloadPreviewedStatement = () => {
+        const reqId = self.previewRequestId();
+        const format = self.previewStatementFormat() || 'TXT';
+        const content = self.previewStatementContent();
+        if (!content) return;
+        const ext = format === 'CSV' ? '.csv' : '.txt';
+        const mime = format === 'CSV' ? 'text/csv;charset=utf-8;' : 'text/plain;charset=utf-8;';
+        const filename = `NetBanking-Statement-Req${reqId || 'download'}${ext}`;
+
+        const blob = new Blob([content], { type: mime });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
       };
 
       this.connected = () => {

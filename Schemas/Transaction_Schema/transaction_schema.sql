@@ -297,7 +297,8 @@ CREATE TABLE STATEMENT_REQUESTS (
     CONSTRAINT CHK_STATEMENT_TYPE
         CHECK (REQUEST_TYPE IN (
             'PDF',
-            'CSV'
+            'CSV',
+            'TXT'
         )),
 
     CONSTRAINT CHK_STATEMENT_STATUS

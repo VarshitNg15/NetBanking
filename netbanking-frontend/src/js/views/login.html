@@ -46,9 +46,20 @@
     <div class="nb-form-group">
       <label class="nb-form-label" for="loginPassword">Password</label>
       <div style="position: relative;">
-        <input id="loginPassword" :type="[[showPassword() ? 'text' : 'password']]" class="nb-input" style="padding-right: 2.75rem;" placeholder="Enter password" data-bind="textInput: password" required />
-        <button type="button" data-bind="click: toggleShowPassword" style="position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--nb-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Show or hide password">
-          <span :class="[[showPassword() ? 'oj-ux-ico-eye-off' : 'oj-ux-ico-eye']]" style="font-size: 1.15rem;"></span>
+        <input id="loginPassword" class="nb-input" style="padding-right: 2.75rem;" placeholder="Enter password" data-bind="attr: { type: showPassword() ? 'text' : 'password' }, textInput: password" required />
+        <button type="button" data-bind="click: toggleShowPassword" style="position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--nb-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Show or hide password" aria-label="Show or hide password">
+          <!-- ko ifnot: showPassword -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <!-- /ko -->
+          <!-- ko if: showPassword -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </svg>
+          <!-- /ko -->
         </button>
       </div>
     </div>
@@ -91,7 +102,23 @@
 
     <div class="nb-form-group">
       <label class="nb-form-label" for="regPassword">Create Secure Password</label>
-      <input id="regPassword" type="password" class="nb-input" placeholder="Min 8 chars, 1 upper, 1 lower, 1 digit, 1 special" data-bind="textInput: regPassword" required />
+      <div style="position: relative;">
+        <input id="regPassword" class="nb-input" style="padding-right: 2.75rem;" placeholder="Min 8 chars, 1 upper, 1 lower, 1 digit, 1 special" data-bind="attr: { type: showRegPassword() ? 'text' : 'password' }, textInput: regPassword" required />
+        <button type="button" data-bind="click: toggleShowRegPassword" style="position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--nb-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Show or hide password" aria-label="Show or hide password">
+          <!-- ko ifnot: showRegPassword -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <!-- /ko -->
+          <!-- ko if: showRegPassword -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </svg>
+          <!-- /ko -->
+        </button>
+      </div>
       <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Must be 8-32 chars with letters, numbers, and special characters.</span>
     </div>
 
@@ -166,12 +193,30 @@
 
       <div class="nb-form-group">
         <label class="nb-form-label" for="newPassword">New Password</label>
-        <input id="newPassword" type="password" class="nb-input" placeholder="Enter new password (min 8 chars)" data-bind="textInput: newPassword" required />
+        <div style="position: relative;">
+          <input id="newPassword" class="nb-input" style="padding-right: 2.75rem;" placeholder="Enter new password (min 8 chars)" data-bind="attr: { type: showResetPassword() ? 'text' : 'password' }, textInput: newPassword" required />
+          <button type="button" data-bind="click: toggleShowResetPassword" style="position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--nb-text-muted); padding: 0.25rem; display: flex; align-items: center; justify-content: center;" title="Show or hide password" aria-label="Show or hide password">
+            <!-- ko ifnot: showResetPassword -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <!-- /ko -->
+            <!-- ko if: showResetPassword -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <!-- /ko -->
+          </button>
+        </div>
       </div>
 
       <div class="nb-form-group">
         <label class="nb-form-label" for="confirmNewPassword">Confirm New Password</label>
-        <input id="confirmNewPassword" type="password" class="nb-input" placeholder="Confirm your new password" data-bind="textInput: confirmNewPassword" required />
+        <div style="position: relative;">
+          <input id="confirmNewPassword" class="nb-input" style="padding-right: 2.75rem;" placeholder="Confirm your new password" data-bind="attr: { type: showResetPassword() ? 'text' : 'password' }, textInput: confirmNewPassword" required />
+        </div>
       </div>
 
       <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">

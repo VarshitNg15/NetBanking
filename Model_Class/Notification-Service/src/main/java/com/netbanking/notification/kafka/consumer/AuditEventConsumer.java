@@ -21,6 +21,9 @@ public class AuditEventConsumer {
     @KafkaListener(topics = "${notification.kafka.audit-topic:audit-events}", groupId = "${notification.kafka.audit-group-id:notification-service-audit-group}")
     public void consume(String payload) {
         try {
+            if (payload != null && payload.startsWith("\uFEFF")) {
+                payload = payload.substring(1);
+            }
             AuditEvent event = objectMapper.readValue(payload, AuditEvent.class);
             auditService.record(AuditLog.builder()
                     .eventId(event.eventId())

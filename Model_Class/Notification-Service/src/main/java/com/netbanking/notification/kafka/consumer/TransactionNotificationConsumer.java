@@ -22,9 +22,12 @@ public class TransactionNotificationConsumer {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
-    @KafkaListener(topics = "${notification.kafka.transaction-topic:transaction-events}", groupId = "${notification.kafka.group-id:notification-service-group}")
+    @KafkaListener(topics = "${notification.kafka.transaction-topic:transaction-events}", groupId = "${notification.kafka.transaction-group-id:notification-service-transaction-group}")
     public void consume(String payload) {
         try {
+            if (payload != null && payload.startsWith("\uFEFF")) {
+                payload = payload.substring(1);
+            }
             JsonNode root = objectMapper.readTree(payload);
             String ref = root.path("transactionReference").asText();
             String status = root.path("transactionStatus").asText();

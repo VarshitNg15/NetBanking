@@ -285,6 +285,10 @@ define([], function() {
       return this.request(`/api/v1/accounts/${accountId}`);
     }
 
+    async getAccountByNumber(accountNumber) {
+      return this.request(`/api/v1/accounts/number/${encodeURIComponent(accountNumber)}`);
+    }
+
     async getBalance(accountId) {
       return this.request(`/api/v1/accounts/${accountId}/balance`);
     }
@@ -336,29 +340,40 @@ define([], function() {
     // -------------------------------------------------------------
     // Transfers & Transactions Endpoints
     // -------------------------------------------------------------
-    async transfer(fromAccountId, toAccountId, amount, description = 'Fund Transfer', pin = null) {
+    async transfer(fromAccountId, beneficiaryAccountNumber, amount, description = 'Fund Transfer', pin = null) {
       const user = this.getUser() || {};
       const customerId = user.customerId || '';
       const email = user.email || '';
 
-      // 1. Resolve destination account ID if an account number (e.g. "NB...") was provided
-      let resolvedToId = toAccountId;
-      const cleanTo = String(toAccountId).trim();
-      if (cleanTo.startsWith('NB') || isNaN(Number(cleanTo))) {
+      // 1. Strictly enforce Account Number transfer (must start with NB) - DB IDs not permitted
+      const cleanAcc = String(beneficiaryAccountNumber || '').trim().toUpperCase();
+      if (!cleanAcc.startsWith('NB')) {
+        throw new Error('Customer transfers must be made using a valid NetBanking Account Number starting with "NB" (e.g. NB221992311862871354). Transfers with Database IDs are not permitted.');
+      }
+
+      // 2. Validate beneficiary account existence
+      let destAccount = null;
+      try {
+        destAccount = await this.getAccountByNumber(cleanAcc);
+      } catch (lookupErr) {
         try {
           const allAccs = await this.getAllAccounts();
-          const match = (allAccs || []).find(a => a.accountNumber === cleanTo || String(a.id) === cleanTo);
-          if (match && match.id) {
-            resolvedToId = match.id;
-          } else {
-            throw new Error(`Beneficiary account "${cleanTo}" not found in system.`);
-          }
+          destAccount = (allAccs || []).find(a => a.accountNumber && a.accountNumber.toUpperCase() === cleanAcc);
         } catch (e) {
-          if (e.message && e.message.includes('not found')) throw e;
+          // ignore
         }
       }
 
-      // 2. Pre-verify security PIN if provided
+      if (!destAccount || (!destAccount.id && !destAccount.accountId && !destAccount.accountNumber)) {
+        throw new Error(`Beneficiary account "${cleanAcc}" not found in NetBanking records.`);
+      }
+
+      const status = destAccount.status || destAccount.accountStatus;
+      if (status && status !== 'ACTIVE') {
+        throw new Error(`Beneficiary account "${cleanAcc}" is not ACTIVE (Status: ${status}).`);
+      }
+
+      // 3. Pre-verify security PIN if provided
       if (pin) {
         try {
           const pinRes = await this.verifyPin(fromAccountId, pin);
@@ -376,7 +391,7 @@ define([], function() {
         }
       }
 
-      // 3. Post transfer to Transaction-Service
+      // 4. Post transfer to Transaction-Service sending ONLY destinationAccountNumber (DB ID omitted)
       const idempotencyKey = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9).toUpperCase();
       return this.request('/api/v1/transactions/transfers', {
         method: 'POST',
@@ -388,7 +403,7 @@ define([], function() {
         },
         body: JSON.stringify({
           sourceAccountId: Number(fromAccountId),
-          destinationAccountId: Number(resolvedToId),
+          destinationAccountNumber: cleanAcc,
           amount: parseFloat(amount),
           currency: 'INR',
           description: description || 'Fund Transfer',

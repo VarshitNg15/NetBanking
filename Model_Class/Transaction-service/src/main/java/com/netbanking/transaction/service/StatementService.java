@@ -163,7 +163,16 @@ public class StatementService {
             sb.append("========================================================================================================================\n");
             sb.append("                                            NETBANKING ACCOUNT LEDGER STATEMENT                                         \n");
             sb.append("========================================================================================================================\n");
-            sb.append("Account ID: ").append(statement.getAccountId()).append("\n");
+            String accDisplay = String.valueOf(statement.getAccountId());
+            try {
+                AccountServiceClient.AccountResponse accResp = accountServiceClient.getAccount(statement.getAccountId());
+                if (accResp != null && accResp.accountNumber() != null && !accResp.accountNumber().isBlank()) {
+                    accDisplay = accResp.accountNumber();
+                }
+            } catch (Exception ex) {
+                log.debug("Could not resolve account number for statement {}: {}", statement.getAccountId(), ex.getMessage());
+            }
+            sb.append("Account Number: ").append(accDisplay).append("\n");
             sb.append("Customer ID: ").append(statement.getCustomerId()).append("\n");
             sb.append("Period: ").append(from != null ? from.format(dtf) : "Beginning")
               .append(" to ").append(to != null ? to.format(dtf) : "Present").append("\n");

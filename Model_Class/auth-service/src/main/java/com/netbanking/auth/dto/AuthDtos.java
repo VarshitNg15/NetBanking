@@ -58,4 +58,10 @@ public final class AuthDtos {
     ) {}
 
     public record MessageResponse(String message) {}
+
+    public record UserSummaryResponse(
+            String customerId,
+            String email,
+            String status
+    ) {}
 }

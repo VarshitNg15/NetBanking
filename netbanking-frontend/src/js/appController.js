@@ -205,8 +205,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       this.footerLinks = [
         { name: 'API Gateway (8080)', linkId: 'gateway', linkTarget: 'http://localhost:8080/actuator/health' },
         { name: 'Swagger Docs', linkId: 'swagger', linkTarget: 'http://localhost:8081/swagger-ui/index.html' },
-        { name: 'Eureka Dashboard', linkId: 'eureka', linkTarget: 'http://localhost:8761' },
-        { name: 'Security Notice', linkId: 'security', linkTarget: '#' }
+        { name: 'Eureka Dashboard', linkId: 'eureka', linkTarget: 'http://localhost:8761' }
       ];
     }
 

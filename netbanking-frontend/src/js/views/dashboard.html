@@ -277,6 +277,13 @@
         Manage your registered identity, contact information, and residential address.
       </p>
 
+      <!-- ko if: errorMessage -->
+      <div class="nb-alert nb-alert-error" style="margin-bottom: 1rem;">
+        <span class="oj-ux-ico-error-s"></span>
+        <span data-bind="text: errorMessage"></span>
+      </div>
+      <!-- /ko -->
+
       <form data-bind="submit: saveProfile">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           <div class="nb-form-group">
@@ -296,15 +303,15 @@
             <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Provide your 10-digit mobile number.</span>
           </div>
           <div class="nb-form-group">
-            <label class="nb-form-label" for="profDob">Date of Birth</label>
-            <input id="profDob" type="date" class="nb-input" data-bind="textInput: profileDateOfBirth, attr: { max: maxDobDate }" />
-            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Must be on or before today.</span>
+            <label class="nb-form-label" for="profDob">Date of Birth *</label>
+            <input id="profDob" type="date" class="nb-input" data-bind="textInput: profileDateOfBirth, attr: { min: minDobDate, max: maxDobDate }" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted);">Must be from 01-01-1925 and at least 18 years old.</span>
           </div>
         </div>
 
         <div class="nb-form-group">
-          <label class="nb-form-label" for="profAddr1">Address Line 1</label>
-          <input id="profAddr1" type="text" class="nb-input" placeholder="House / Flat No., Street Name" data-bind="textInput: profileAddressLine1" />
+          <label class="nb-form-label" for="profAddr1">Address Line 1 *</label>
+          <input id="profAddr1" type="text" class="nb-input" placeholder="House / Flat No., Street Name" data-bind="textInput: profileAddressLine1" required />
         </div>
 
         <div class="nb-form-group">
@@ -314,22 +321,22 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
           <div class="nb-form-group">
-            <label class="nb-form-label" for="profCity">City</label>
-            <input id="profCity" type="text" class="nb-input" placeholder="City" data-bind="textInput: profileCity" />
+            <label class="nb-form-label" for="profCity">City *</label>
+            <input id="profCity" type="text" class="nb-input" placeholder="City" data-bind="textInput: profileCity" required />
           </div>
           <div class="nb-form-group">
-            <label class="nb-form-label" for="profState">State</label>
-            <input id="profState" type="text" class="nb-input" placeholder="State" data-bind="textInput: profileState" />
+            <label class="nb-form-label" for="profState">State *</label>
+            <input id="profState" type="text" class="nb-input" placeholder="State" data-bind="textInput: profileState" required />
           </div>
           <div class="nb-form-group">
-            <label class="nb-form-label" for="profZip">PIN Code</label>
-            <input id="profZip" type="text" class="nb-input" placeholder="PIN" data-bind="textInput: profilePostalCode" />
+            <label class="nb-form-label" for="profZip">PIN Code *</label>
+            <input id="profZip" type="text" class="nb-input" placeholder="PIN" data-bind="textInput: profilePostalCode" required />
           </div>
         </div>
 
         <div class="nb-form-group">
-          <label class="nb-form-label" for="profCountry">Country</label>
-          <input id="profCountry" type="text" class="nb-input" placeholder="India" data-bind="textInput: profileCountry" />
+          <label class="nb-form-label" for="profCountry">Country *</label>
+          <input id="profCountry" type="text" class="nb-input" placeholder="India" data-bind="textInput: profileCountry" required />
         </div>
       </form>
     </div>

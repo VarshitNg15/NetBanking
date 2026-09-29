@@ -48,11 +48,19 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       // Registration Form
       this.regEmail = ko.observable('');
       this.regPassword = ko.observable('');
+      this.showRegPassword = ko.observable(false);
+      this.toggleShowRegPassword = () => {
+        self.showRegPassword(!self.showRegPassword());
+      };
 
       // Forgot / Reset Password Form
       this.forgotEmail = ko.observable('');
       this.resetToken = ko.observable('');
       this.newPassword = ko.observable('');
+      this.showResetPassword = ko.observable(false);
+      this.toggleShowResetPassword = () => {
+        self.showResetPassword(!self.showResetPassword());
+      };
       this.resetStep = ko.observable(1); // 1: request token, 2: set new password
 
       this.clearMessages = () => {

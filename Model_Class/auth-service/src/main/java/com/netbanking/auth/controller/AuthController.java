@@ -96,4 +96,10 @@ public class AuthController {
                 : (authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null);
         return ResponseEntity.ok(authService.resetPassword(new ResetPasswordRequest(token, request.newPassword())));
     }
+
+    @Operation(summary = "Get user identity details by customer ID", description = "Retrieves user identity details including original registered email by customer ID.")
+    @GetMapping({"/users/{customerId}", "/users/{customerId}/email"})
+    public ResponseEntity<UserSummaryResponse> getUserByCustomerId(@PathVariable String customerId) {
+        return ResponseEntity.ok(authService.getUserByCustomerId(customerId));
+    }
 }
