@@ -98,6 +98,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           self.errorMessage('Please enter a valid positive transfer amount.');
           return;
         }
+        if (amt > 10000000) {
+          self.errorMessage('Transfer amount exceeds maximum allowed limit of ₹1,00,00,000.00 (1 Crore INR).');
+          return;
+        }
 
         const targetAcc = (self.targetAccountNumber() || '').trim().toUpperCase();
         if (!targetAcc) {

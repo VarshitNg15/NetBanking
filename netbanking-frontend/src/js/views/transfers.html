@@ -105,7 +105,8 @@
           <!-- 3. Amount -->
           <div class="nb-form-group">
             <label class="nb-form-label" for="amt">Transfer Amount (₹ INR)</label>
-            <input id="amt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 2500.00" data-bind="textInput: transferAmount" required />
+            <input id="amt" type="number" min="1" max="10000000" step="0.01" class="nb-input" placeholder="e.g. 2500.00 (Max ₹1,00,00,000)" data-bind="textInput: transferAmount" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Per-transaction limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
             <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('500'); }">+₹500</button>
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('1000'); }">+₹1,000</button>

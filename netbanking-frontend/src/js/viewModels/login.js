@@ -25,9 +25,47 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.otp = ko.observable('');
       this.mfaRequired = ko.observable(false);
       this.isResendingOtp = ko.observable(false);
+      this.resendCountdown = ko.observable(0);
+      this.resetOtpCountdown = ko.observable(0);
+      let loginOtpTimer = null;
+      let resetOtpTimer = null;
+
+      this.startLoginOtpCooldown = (seconds = 30) => {
+        if (loginOtpTimer) clearInterval(loginOtpTimer);
+        self.resendCountdown(seconds);
+        loginOtpTimer = setInterval(() => {
+          const current = self.resendCountdown();
+          if (current <= 1) {
+            clearInterval(loginOtpTimer);
+            loginOtpTimer = null;
+            self.resendCountdown(0);
+          } else {
+            self.resendCountdown(current - 1);
+          }
+        }, 1000);
+      };
+
+      this.startResetOtpCooldown = (seconds = 30) => {
+        if (resetOtpTimer) clearInterval(resetOtpTimer);
+        self.resetOtpCountdown(seconds);
+        resetOtpTimer = setInterval(() => {
+          const current = self.resetOtpCountdown();
+          if (current <= 1) {
+            clearInterval(resetOtpTimer);
+            resetOtpTimer = null;
+            self.resetOtpCountdown(0);
+          } else {
+            self.resetOtpCountdown(current - 1);
+          }
+        }, 1000);
+      };
 
       this.handleResendLoginOtp = async () => {
         self.clearMessages();
+        if (self.resendCountdown() > 0) {
+          self.errorMessage(`Rate limit active: Please wait ${self.resendCountdown()}s before requesting a new OTP.`);
+          return;
+        }
         if (!self.email() || !self.password()) {
           self.errorMessage('Please ensure email and password are provided.');
           return;
@@ -37,6 +75,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           const res = await apiService.login(self.email().trim(), self.password(), null);
           if (res.mfaRequired) {
             self.successMessage('A fresh 6-digit OTP code has been dispatched to your email.');
+            self.startLoginOtpCooldown(30);
           }
         } catch (err) {
           self.errorMessage(err.message || 'Failed to resend OTP.');
@@ -89,6 +128,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           if (res.mfaRequired) {
             self.mfaRequired(true);
             self.successMessage('MFA Required: Enter the OTP dispatched to your registered email.');
+            self.startLoginOtpCooldown(30);
           } else {
             self.successMessage('Authentication successful! Loading your portal...');
             if (apiService.isAdmin()) {
@@ -139,6 +179,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       // Step 1: Send OTP to Email
       this.handleSendResetOtp = async () => {
         self.clearMessages();
+        if (self.resetOtpCountdown() > 0) {
+          self.errorMessage(`Rate limit active: Please wait ${self.resetOtpCountdown()}s before requesting a new OTP.`);
+          return;
+        }
         if (!self.forgotEmail()) {
           self.errorMessage('Please enter your registered email address.');
           return;
@@ -152,6 +196,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           }
           self.resetStep(2);
           self.successMessage('A 6-digit verification OTP has been sent to ' + self.forgotEmail().trim() + '. Please validate your OTP below.');
+          self.startResetOtpCooldown(30);
         } catch (err) {
           self.errorMessage(err.message || 'Failed to request password reset OTP.');
         } finally {
@@ -219,6 +264,17 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       // Lifecycle hooks
       this.connected = () => {
         document.title = 'Sign In - NetBanking Portal';
+      };
+
+      this.disconnected = () => {
+        if (loginOtpTimer) {
+          clearInterval(loginOtpTimer);
+          loginOtpTimer = null;
+        }
+        if (resetOtpTimer) {
+          clearInterval(resetOtpTimer);
+          resetOtpTimer = null;
+        }
       };
     }
 

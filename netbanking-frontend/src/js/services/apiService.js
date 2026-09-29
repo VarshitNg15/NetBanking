@@ -301,17 +301,76 @@ define([], function() {
     }
 
     async creditAccount(accountId, amount, description = 'Direct Deposit') {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Please enter a valid deposit amount greater than ₹0.00.');
+      }
+      if (parsedAmount > 10000000) {
+        throw new Error('Deposit amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR).');
+      }
+
       const ref = 'DEP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-      return this.request(`/api/v1/accounts/${accountId}/credits`, {
+      const res = await this.request(`/api/v1/accounts/${accountId}/credits`, {
         method: 'POST',
         body: JSON.stringify({
           transactionReference: ref,
           entryReference: ref + '-CREDIT',
-          amount: parseFloat(amount),
-          description: description,
+          amount: parsedAmount,
+          description: description || 'Admin Direct Deposit',
           createdBy: this.getUser() ? (this.getUser().customerId || this.getUser().email) : 'ADMIN'
         })
       });
+
+      // Dispatch real-time credit alert email to customer
+      try {
+        let acc = null;
+        try {
+          acc = await this.getAccount(accountId);
+        } catch (e) {
+          console.warn('Could not fetch account details for deposit email:', e);
+        }
+
+        const customerId = acc ? acc.customerId : null;
+        let recipientEmail = null;
+
+        if (customerId) {
+          try {
+            const userSummary = await this.request(`/api/v1/auth/users/${encodeURIComponent(customerId)}`);
+            if (userSummary && userSummary.email) {
+              recipientEmail = userSummary.email.trim();
+            }
+          } catch (e) {
+            console.warn('Could not fetch customer email from auth-service:', e);
+          }
+        }
+
+        if (recipientEmail) {
+          const accNumber = (acc && acc.accountNumber) ? acc.accountNumber : ('#' + accountId);
+          const curr = (acc && acc.currencyCode) ? acc.currencyCode : 'INR';
+          const formattedAmt = parsedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const subject = `NetBanking Alert: Account Credited (${curr} ${formattedAmt})`;
+          const body = `Dear Customer,\n\nYour NetBanking Account ${accNumber} has been credited with ${curr} ${formattedAmt} via Admin Direct Deposit (Ref: ${ref}).\n\nTransaction Summary:\n• Reference: ${ref}\n• Credited Amount: ${curr} ${formattedAmt}\n• Account Number: ${accNumber}\n• Description / Memo: ${description || 'Admin Cash Deposit'}\n• Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nWarm regards,\nNetBanking Alerts`;
+
+          await this.request('/api/v1/notifications', {
+            method: 'POST',
+            body: JSON.stringify({
+              eventId: ref,
+              eventType: 'TRANSFER_CREDIT',
+              customerId: customerId || 'CUSTOMER',
+              recipientEmail: recipientEmail,
+              subject: subject,
+              messageBody: body
+            })
+          });
+          console.info(`Credit email notification successfully dispatched to ${recipientEmail} for deposit ${ref}`);
+        } else {
+          console.warn(`Could not resolve registered email for customer ${customerId}. Credit email skipped.`);
+        }
+      } catch (notifErr) {
+        console.error('Failed to dispatch deposit credit email:', notifErr);
+      }
+
+      return res;
     }
 
     async setPin(accountId, pin) {
@@ -344,6 +403,14 @@ define([], function() {
       const user = this.getUser() || {};
       const customerId = user.customerId || '';
       const email = user.email || '';
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Please enter a valid positive transfer amount.');
+      }
+      if (parsedAmount > 10000000) {
+        throw new Error('Transfer amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR).');
+      }
 
       // 1. Strictly enforce Account Number transfer (must start with NB) - DB IDs not permitted
       const cleanAcc = String(beneficiaryAccountNumber || '').trim().toUpperCase();
