@@ -40,6 +40,19 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         return self.isAdmin() ? 'ADMIN' : 'CUSTOMER';
       });
 
+      // Theme preference is applied globally and remembered between visits.
+      const storedTheme = localStorage.getItem('nb_theme');
+      this.isDarkMode = ko.observable(storedTheme === 'dark');
+      this.applyTheme = (isDark) => {
+        document.body.classList.toggle('nb-dark-theme', isDark);
+        localStorage.setItem('nb_theme', isDark ? 'dark' : 'light');
+      };
+      this.applyTheme(this.isDarkMode());
+      this.toggleTheme = () => {
+        self.isDarkMode(!self.isDarkMode());
+        self.applyTheme(self.isDarkMode());
+      };
+
       // Navigation Routes Definition
       this.getAllNavData = () => {
         return [
