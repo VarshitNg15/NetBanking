@@ -25,6 +25,26 @@
   </div>
   <!-- /ko -->
 
+  <!-- KYC Requirement Warning Banner -->
+  <!-- ko if: !isKycVerified() && !isLoadingKyc() -->
+  <div class="nb-card" style="border-left: 4px solid #d97706; background: #fffbeb; margin-bottom: 1.5rem; padding: 1.25rem;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span class="oj-ux-ico-warning" style="font-size: 2rem; color: #d97706; flex-shrink: 0;"></span>
+        <div>
+          <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #92400e;">Customer Profile Setup (KYC) Compulsory</h4>
+          <p style="margin: 0.25rem 0 0 0; font-size: 0.88rem; color: #b45309;">
+            In compliance with NetBanking governance, you must complete your Customer Profile setup (KYC) before sending or scheduling fund transfers.
+          </p>
+        </div>
+      </div>
+      <a href="?ojr=dashboard" class="nb-btn nb-btn-sm nb-btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+        <span class="oj-ux-ico-contact-card" style="margin-right: 4px;"></span> Complete Profile (KYC) Now
+      </a>
+    </div>
+  </div>
+  <!-- /ko -->
+
   <!-- Transfer Result Receipt -->
   <!-- ko if: lastReceipt -->
   <div class="nb-card" style="border-left: 4px solid var(--nb-success); background: #fbfdfb; margin-bottom: 1.5rem;">
@@ -105,7 +125,8 @@
           <!-- 3. Amount -->
           <div class="nb-form-group">
             <label class="nb-form-label" for="amt">Transfer Amount (₹ INR)</label>
-            <input id="amt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 2500.00" data-bind="textInput: transferAmount" required />
+            <input id="amt" type="number" min="1" max="10000000" step="0.01" class="nb-input" placeholder="e.g. 2500.00 (Max ₹1,00,00,000)" data-bind="textInput: transferAmount" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Per-transaction limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
             <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('500'); }">+₹500</button>
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('1000'); }">+₹1,000</button>
@@ -131,11 +152,18 @@
             </span>
           </div>
 
-          <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1rem;" data-bind="disable: isSubmitting">
-            <!-- ko if: isSubmitting -->Authorizing & Sending...<!-- /ko -->
+          <button type="submit" class="nb-btn nb-btn-block" style="margin-top: 1rem;"
+            data-bind="disable: isSubmitting() || !isKycVerified(), css: { 'nb-btn-primary': isKycVerified(), 'nb-btn-outline': !isKycVerified() }">
+            <!-- ko if: isSubmitting -->Authorizing &amp; Sending...<!-- /ko -->
             <!-- ko ifnot: isSubmitting -->
-            <span class="oj-ux-ico-exchange" style="margin-right: 4px;"></span>
-            Transfer Funds
+              <!-- ko if: !isKycVerified() -->
+              <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+              Transfers Locked (KYC Setup Required)
+              <!-- /ko -->
+              <!-- ko if: isKycVerified() -->
+              <span class="oj-ux-ico-exchange" style="margin-right: 4px;"></span>
+              Transfer Funds
+              <!-- /ko -->
             <!-- /ko -->
           </button>
         </form>
@@ -150,6 +178,7 @@
           <h3 class="nb-card-title">Transfer Guidelines</h3>
         </div>
         <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--nb-text-muted); line-height: 1.6; margin: 0;">
+          <li><strong>Compulsory KYC:</strong> Complete Customer Profile setup (KYC) is required by banking regulations before any account can send or receive fund transfers.</li>
           <li><strong>Instant Settlement:</strong> Transfers between NetBanking accounts settle immediately via the core Transaction Service.</li>
           <li><strong>PIN Protection:</strong> Never share your 4-digit security PIN. You can change your PIN at any time under the <em>Accounts</em> tab.</li>
           <li><strong>Available Balance:</strong> Transferred amounts are immediately debited from your available balance.</li>

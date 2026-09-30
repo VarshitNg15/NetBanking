@@ -282,6 +282,17 @@ public class AuthService {
 
     @Transactional
     public void issueOtp(AuthUser user, OtpPurpose purpose) {
+        // Enforce 30-second rate limiting cooldown per user and purpose
+        java.util.Optional<EmailOtp> latestOtp = otpRepository
+                .findTopByUserUserIdAndOtpPurposeAndVerifiedAtIsNullOrderByCreatedAtDesc(user.getUserId(), purpose);
+        if (latestOtp.isPresent() && latestOtp.get().getCreatedAt() != null) {
+            long secondsSinceLast = java.time.Duration.between(latestOtp.get().getCreatedAt(), LocalDateTime.now()).getSeconds();
+            if (secondsSinceLast >= 0 && secondsSinceLast < 30) {
+                long waitTime = 30 - secondsSinceLast;
+                throw new IllegalArgumentException("Please wait " + waitTime + " seconds before requesting a new OTP.");
+            }
+        }
+
         int code = 100000 + secureRandom.nextInt(900000);
         EmailOtp otp = EmailOtp.builder()
                 .user(user)
@@ -289,6 +300,7 @@ public class AuthService {
                 .otpPurpose(purpose)
                 .expiresAt(LocalDateTime.now().plusMinutes(5))
                 .attemptCount(0)
+                .createdAt(LocalDateTime.now())
                 .build();
         otpRepository.save(otp);
         eventPublisher.publish("OTP_ISSUED", user.getCustomerId(), user.getCustomerId(),
@@ -352,5 +364,13 @@ public class AuthService {
         AuthUser user = userRepository.findByCustomerId(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found for customerId: " + customerId));
         return new UserSummaryResponse(user.getCustomerId(), user.getEmail(), user.getAccountStatus().name());
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<UserSummaryResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getCustomerId() != null)
+                .map(u -> new UserSummaryResponse(u.getCustomerId(), u.getEmail(), u.getAccountStatus().name()))
+                .toList();
     }
 }

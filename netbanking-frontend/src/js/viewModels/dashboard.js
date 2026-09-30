@@ -269,7 +269,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           const res = await apiService.saveCustomerProfile(self.customerId(), payload);
           self.customerProfile(res);
           self.hasProfile(true);
-          self.successMessage('Customer Profile details saved successfully!');
+          self.successMessage('Customer Profile & KYC setup saved successfully! Account deposits and fund transfer privileges are now active.');
           self.closeProfileDialog();
         } catch (err) {
           self.errorMessage(err.message || 'Failed to save customer profile.');

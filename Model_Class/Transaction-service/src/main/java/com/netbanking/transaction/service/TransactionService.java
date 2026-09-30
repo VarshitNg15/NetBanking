@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +30,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class TransactionService {
+
+    private static final BigDecimal MAX_TRANSFER_LIMIT = new BigDecimal("10000000.00");
 
     private final TransactionRepository transactionRepository;
     private final TransferDetailsRepository transferDetailsRepository;
@@ -50,6 +53,12 @@ public class TransactionService {
         }
         if (initiatedBy == null || initiatedBy.isBlank()) {
             initiatedBy = "CUSTOMER";
+        }
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be greater than zero");
+        }
+        if (request.amount().compareTo(MAX_TRANSFER_LIMIT) > 0) {
+            throw new IllegalArgumentException("Transfer amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR)");
         }
 
         // 2. Enforce Account Number transfers for customers - reject Database ID transfers
@@ -128,8 +137,12 @@ public class TransactionService {
             }
         }
 
-        // 5. Pre-flight verification: customer status check
+        // 5. Pre-flight verification: customer status check and KYC compliance
         verifyCustomerActive(customerId);
+        verifyCustomerKyc(customerId, "Sender");
+        if (destAcc != null && destAcc.customerId() != null && !destAcc.customerId().isBlank()) {
+            verifyCustomerKyc(destAcc.customerId(), "Beneficiary");
+        }
 
         // 6. Determine and normalize types for database constraints
         String normalizedMode = "SCHEDULED".equalsIgnoreCase(request.transferMode()) ? "SCHEDULED" : "IMMEDIATE";
@@ -180,6 +193,8 @@ public class TransactionService {
     }
 
     public TransactionResponse executeImmediateTransfer(Transaction transaction, String userEmail, String idempotencyKey) {
+        verifyCustomerKyc(transaction.getCustomerId(), "Sender");
+
         transaction.setTransactionStatus("PROCESSING");
         transaction.setUpdatedAt(LocalDateTime.now());
         transaction = transactionRepository.save(transaction);
@@ -370,6 +385,54 @@ public class TransactionService {
             throw ex;
         } catch (Exception ex) {
             log.warn("Unable to contact User-Service for customer check: {}", ex.getMessage());
+        }
+    }
+
+    private void verifyCustomerKyc(String customerId, String roleDescription) {
+        if (customerId == null || customerId.isBlank()) {
+            return;
+        }
+        try {
+            // 1. Check via dedicated KYC status endpoint
+            UserServiceClient.CustomerKycResponse kyc = null;
+            try {
+                kyc = userServiceClient.getKycStatus(customerId.trim());
+            } catch (Exception ex) {
+                log.debug("Direct KYC endpoint check error for {}: {}, fallback to getCustomer", customerId, ex.getMessage());
+            }
+
+            if (kyc != null) {
+                if (!kyc.kycCompleted()) {
+                    throw new IllegalStateException(
+                            "KYC Verification Required: " + roleDescription + " (" + customerId +
+                            ") has not completed customer profile setup. Transfers are prohibited until KYC is completed."
+                    );
+                }
+                return;
+            }
+
+            // 2. Fallback to customer entity
+            UserServiceClient.CustomerResponse customer = userServiceClient.getCustomer(customerId.trim());
+            if (customer != null) {
+                boolean isDone = Boolean.TRUE.equals(customer.kycCompleted()) ||
+                        "COMPLETED".equalsIgnoreCase(customer.kycStatus()) ||
+                        "VERIFIED".equalsIgnoreCase(customer.kycStatus());
+                if (!isDone) {
+                    throw new IllegalStateException(
+                            "KYC Verification Required: " + roleDescription + " (" + customerId +
+                            ") has not completed customer profile setup. Transfers are prohibited until KYC is completed."
+                    );
+                }
+            } else {
+                throw new IllegalStateException("Customer profile not found for " + roleDescription + " (" + customerId + "). KYC profile setup is compulsory for transfers.");
+            }
+        } catch (IllegalStateException ex) {
+            throw ex;
+        } catch (feign.FeignException.NotFound ex) {
+            throw new IllegalStateException("Customer profile not found for " + roleDescription + " (" + customerId + "). KYC profile setup is compulsory for transfers.");
+        } catch (Exception ex) {
+            log.error("Unable to verify KYC compliance for {} ({}): {}", roleDescription, customerId, ex.getMessage());
+            throw new IllegalStateException("Unable to verify KYC compliance for " + roleDescription + " (" + customerId + "). Transfer blocked for security.");
         }
     }
 

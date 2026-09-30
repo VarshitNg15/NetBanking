@@ -17,6 +17,10 @@ public class CustomerResponse {
 
     private String customerStatus;
 
+    private Boolean kycCompleted;
+
+    private String kycStatus;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

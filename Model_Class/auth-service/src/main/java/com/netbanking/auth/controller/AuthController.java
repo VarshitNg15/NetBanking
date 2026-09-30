@@ -102,4 +102,10 @@ public class AuthController {
     public ResponseEntity<UserSummaryResponse> getUserByCustomerId(@PathVariable String customerId) {
         return ResponseEntity.ok(authService.getUserByCustomerId(customerId));
     }
+
+    @Operation(summary = "Get all users identity summary", description = "Retrieves identity details for all registered users including email and customer ID.")
+    @GetMapping("/users")
+    public ResponseEntity<java.util.List<UserSummaryResponse>> getAllUsers() {
+        return ResponseEntity.ok(authService.getAllUsers());
+    }
 }

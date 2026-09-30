@@ -12,9 +12,22 @@ public interface UserServiceClient {
     @GetMapping("/api/customers/{customerId}")
     CustomerResponse getCustomer(@PathVariable("customerId") String customerId);
 
+    @GetMapping("/api/customers/{customerId}/kyc")
+    CustomerKycResponse getKycStatus(@PathVariable("customerId") String customerId);
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     record CustomerResponse(
             String customerId,
-            @JsonAlias({"customerStatus", "status"}) String customerStatus
+            @JsonAlias({"customerStatus", "status"}) String customerStatus,
+            Boolean kycCompleted,
+            String kycStatus
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record CustomerKycResponse(
+            String customerId,
+            boolean kycCompleted,
+            String kycStatus,
+            String message
     ) {}
 }

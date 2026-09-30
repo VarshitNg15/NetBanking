@@ -206,6 +206,7 @@
                 <th>Account User Name</th>
                 <th>Type</th>
                 <th>Status</th>
+                <th>KYC Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -224,7 +225,7 @@
                 </td>
                 <td>
                   <strong style="color: var(--nb-text-dark);"
-                    data-bind="text: $data.customerName || $data.customerId"></strong>
+                    data-bind="text: $data.accountUserName || $data.customerName || $data.customerId"></strong>
                 </td>
                 <td>
                   <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;"
@@ -238,15 +239,26 @@
                     'nb-status-closed': $data.status === 'CLOSED'
                   }"></span>
                 </td>
+                <td>
+                  <!-- ko ifnot: $data.kycCompleted -->
+                  <span class="nb-status nb-status-pending" style="font-size: 0.72rem; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-weight: 600;" title="Customer profile info setup pending - Deposits blocked">
+                    <span class="oj-ux-ico-warning" style="font-size: 0.7rem;"></span> KYC PENDING
+                  </span>
+                  <!-- /ko -->
+                  <!-- ko if: $data.kycCompleted -->
+                  <span style="color: var(--nb-text-muted); font-size: 0.85rem; padding-left: 0.5rem;">—</span>
+                  <!-- /ko -->
+                </td>
                 <td style="white-space: nowrap;">
                   <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
                     style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;"
                     data-bind="click: function() { $parent.selectAccountForInspect($data); }">
                     <span class="oj-ux-ico-search"></span> Inspect
                   </button>
-                  <button type="button" class="nb-btn nb-btn-sm nb-btn-success"
+                  <button type="button" class="nb-btn nb-btn-sm"
                     style="padding: 2px 8px; font-size: 0.75rem; margin-right: 4px;"
-                    data-bind="click: function() { $parent.selectAccountForDeposit($data); }">
+                    data-bind="click: function() { $parent.selectAccountForDeposit($data); }, css: { 'nb-btn-success': $data.kycCompleted, 'nb-btn-outline': !$data.kycCompleted }"
+                    attr: { title: $data.kycCompleted ? 'Direct Deposit Funds' : 'KYC Pending - Profile Setup Required' }>
                     <span class="oj-ux-ico-plus-circle"></span> Deposit
                   </button>
                   <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
@@ -328,7 +340,7 @@
                 <div>
                   <span style="color: var(--nb-text-muted);">Account User Name:</span>
                   <strong style="color: var(--nb-secondary);"
-                    data-bind="text: inspectedAccount().customerName || inspectedAccount().customerId"></strong>
+                    data-bind="text: inspectedAccount().accountUserName || inspectedAccount().customerName || inspectedAccount().customerId"></strong>
                 </div>
                 <div>
                   <span style="color: var(--nb-text-muted);">Account Type:</span>
@@ -337,6 +349,15 @@
                 <div>
                   <span style="color: var(--nb-text-muted);">Currency:</span>
                   <strong data-bind="text: inspectedAccount().currencyCode || 'INR'"></strong>
+                </div>
+                <div>
+                  <span style="color: var(--nb-text-muted);">KYC Profile:</span>
+                  <!-- ko if: inspectedAccount().kycCompleted -->
+                  <span class="nb-status nb-status-active" style="font-size: 0.72rem;">Verified</span>
+                  <!-- /ko -->
+                  <!-- ko ifnot: inspectedAccount().kycCompleted -->
+                  <span class="nb-status nb-status-frozen" style="font-size: 0.72rem; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">Incomplete / Pending</span>
+                  <!-- /ko -->
                 </div>
               </div>
 
@@ -377,6 +398,15 @@
               Credit funds directly into any customer's account (Cash / Vault Deposit).
             </p>
 
+            <!-- ko if: !depositTargetKyc() && depositAccountId() -->
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span class="oj-ux-ico-warning" style="color: #d97706; font-size: 1.2rem; flex-shrink: 0; margin-top: 2px;"></span>
+              <div style="font-size: 0.82rem; color: #92400e;">
+                <strong>KYC Setup Compulsory:</strong> Customer (<span data-bind="text: depositTargetCustomerId"></span>) has not completed their Customer Profile setup. Direct deposits are prohibited until KYC profile setup is completed.
+              </div>
+            </div>
+            <!-- /ko -->
+
             <form data-bind="submit: submitAdminDeposit">
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAccId">Target Account DB ID</label>
@@ -386,8 +416,9 @@
 
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAmount">Deposit Amount (₹)</label>
-                <input id="adminDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 5000.00"
+                <input id="adminDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 5000.00 (Max ₹1,00,00,000)"
                   data-bind="textInput: depositAmount" required />
+                <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
               </div>
 
               <div class="nb-form-group">
@@ -396,12 +427,18 @@
                   data-bind="textInput: depositDescription" />
               </div>
 
-              <button type="submit" class="nb-btn nb-btn-success nb-btn-block" style="margin-top: 1.25rem;"
-                data-bind="disable: isSubmittingDeposit">
+              <button type="submit" class="nb-btn nb-btn-block" style="margin-top: 1.25rem;"
+                data-bind="disable: isSubmittingDeposit() || (!depositTargetKyc() && !!depositAccountId()), css: { 'nb-btn-success': depositTargetKyc() || !depositAccountId(), 'nb-btn-outline': !depositTargetKyc() && !!depositAccountId() }">
                 <!-- ko if: isSubmittingDeposit -->Processing Deposit...<!-- /ko -->
                 <!-- ko ifnot: isSubmittingDeposit -->
+                <!-- ko if: !depositTargetKyc() && depositAccountId() -->
+                <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+                Deposit Restricted (KYC Incomplete)
+                <!-- /ko -->
+                <!-- ko if: depositTargetKyc() || !depositAccountId() -->
                 <span class="oj-ux-ico-plus-circle" style="margin-right: 4px;"></span>
                 Execute Direct Deposit
+                <!-- /ko -->
                 <!-- /ko -->
               </button>
             </form>
@@ -438,6 +475,19 @@
               </select>
             </div>
 
+            <!-- ko if: targetStatus() === 'ACTIVE' && targetAccountId() -->
+            <!-- ko with: allAccounts().find(a => String(a.id) === String(targetAccountId())) -->
+            <!-- ko ifnot: $data.kycCompleted -->
+            <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 0.65rem 0.85rem; margin-top: 0.75rem; color: #856404; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span class="oj-ux-ico-warning" style="font-size: 1.1rem; flex-shrink: 0; color: #d97706; margin-top: 2px;"></span>
+              <div>
+                <strong>KYC Setup Incomplete:</strong> Customer (<span data-bind="text: $data.accountUserName || $data.customerId"></span>) has not completed mandatory KYC profile setup. Account cannot be made ACTIVE until KYC is completed.
+              </div>
+            </div>
+            <!-- /ko -->
+            <!-- /ko -->
+            <!-- /ko -->
+
             <!-- ko if: targetStatus() === 'CLOSED' -->
             <div class="nb-form-group">
               <label class="nb-form-label" for="closureReasonInput">Closure Justification</label>
@@ -447,12 +497,18 @@
             </div>
             <!-- /ko -->
 
-            <button type="submit" class="nb-btn nb-btn-primary nb-btn-block" style="margin-top: 1.5rem;"
-              data-bind="disable: isSubmittingStatusChange">
+            <button type="submit" class="nb-btn nb-btn-block" style="margin-top: 1.5rem;"
+              data-bind="disable: isSubmittingStatusChange() || (targetStatus() === 'ACTIVE' && targetAccountId() && allAccounts().some(a => String(a.id) === String(targetAccountId()) && a.kycCompleted === false)), css: { 'nb-btn-primary': !(targetStatus() === 'ACTIVE' && targetAccountId() && allAccounts().some(a => String(a.id) === String(targetAccountId()) && a.kycCompleted === false)), 'nb-btn-outline': (targetStatus() === 'ACTIVE' && targetAccountId() && allAccounts().some(a => String(a.id) === String(targetAccountId()) && a.kycCompleted === false)) }">
               <!-- ko if: isSubmittingStatusChange -->Transitioning Status...<!-- /ko -->
               <!-- ko ifnot: isSubmittingStatusChange -->
+              <!-- ko if: targetStatus() === 'ACTIVE' && targetAccountId() && allAccounts().some(a => String(a.id) === String(targetAccountId()) && a.kycCompleted === false) -->
+              <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+              Activation Blocked (KYC Incomplete)
+              <!-- /ko -->
+              <!-- ko ifnot: targetStatus() === 'ACTIVE' && targetAccountId() && allAccounts().some(a => String(a.id) === String(targetAccountId()) && a.kycCompleted === false) -->
               <span class="oj-ux-ico-check" style="margin-right: 4px;"></span>
               Execute Status Transition
+              <!-- /ko -->
               <!-- /ko -->
             </button>
           </form>
@@ -655,6 +711,15 @@
           data-bind="text: depositAccountNumber() ? ('#' + depositAccountId() + ' (' + depositAccountNumber() + ')') : ('#' + depositAccountId())"></strong>
       </p>
 
+      <!-- ko if: !depositTargetKyc() && depositAccountId() -->
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.5rem;">
+        <span class="oj-ux-ico-warning" style="color: #d97706; font-size: 1.2rem; flex-shrink: 0; margin-top: 2px;"></span>
+        <div style="font-size: 0.82rem; color: #92400e;">
+          <strong>KYC Setup Compulsory:</strong> Customer (<span data-bind="text: depositTargetCustomerId"></span>) has not completed their Customer Profile setup. Direct deposits are prohibited until KYC profile is completed.
+        </div>
+      </div>
+      <!-- /ko -->
+
       <form data-bind="submit: submitAdminDeposit">
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepAccId">Account Database ID</label>
@@ -663,8 +728,9 @@
 
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepAmount">Deposit Amount (₹)</label>
-          <input id="dlgDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 10000.00"
+          <input id="dlgDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 10000.00 (Max ₹1,00,00,000)"
             data-bind="textInput: depositAmount" required />
+          <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
         </div>
 
         <div class="nb-form-group">
@@ -677,11 +743,17 @@
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closeDepositDialog">Cancel</button>
       <button type="button" class="nb-btn nb-btn-success"
-        data-bind="click: submitAdminDeposit, disable: isSubmittingDeposit">
+        data-bind="click: submitAdminDeposit, disable: isSubmittingDeposit() || (!depositTargetKyc() && !!depositAccountId()), css: { 'nb-btn-success': depositTargetKyc() || !depositAccountId(), 'nb-btn-outline': !depositTargetKyc() && !!depositAccountId() }">
         <!-- ko if: isSubmittingDeposit -->Processing...<!-- /ko -->
         <!-- ko ifnot: isSubmittingDeposit -->
+        <!-- ko if: !depositTargetKyc() && depositAccountId() -->
+        <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
+        Blocked (KYC Incomplete)
+        <!-- /ko -->
+        <!-- ko if: depositTargetKyc() || !depositAccountId() -->
         <span class="oj-ux-ico-plus-circle" style="margin-right: 4px;"></span>
         Confirm Deposit
+        <!-- /ko -->
         <!-- /ko -->
       </button>
     </div>

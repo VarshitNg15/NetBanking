@@ -1,5 +1,6 @@
 package com.netbanking.account.service;
 
+import com.netbanking.account.client.UserServiceClient;
 import com.netbanking.account.dto.request.*;
 import com.netbanking.account.dto.response.AccountResponse;
 import com.netbanking.account.entity.*;
@@ -17,12 +18,14 @@ public class AccountService {
     private final AccountBalanceRepository balances; 
     private final AccountTypeHistoryRepository history;
     private final AccountPinRepository pins;
+    private final UserServiceClient userServiceClient;
 
-    public AccountService(AccountRepository a, AccountBalanceRepository b, AccountTypeHistoryRepository h, AccountPinRepository p) {
+    public AccountService(AccountRepository a, AccountBalanceRepository b, AccountTypeHistoryRepository h, AccountPinRepository p, UserServiceClient u) {
         accounts = a;
         balances = b;
         history = h;
         pins = p;
+        userServiceClient = u;
     }
 
     private AccountResponse toResponse(Account a) {
@@ -81,6 +84,14 @@ public class AccountService {
         Account a = account(id);
         if (a.getAccountStatus() == AccountStatus.CLOSED) throw new ConflictException("A closed account cannot change status");
         if (r.status() == AccountStatus.CLOSED && (r.closureReason() == null || r.closureReason().isBlank())) throw new IllegalArgumentException("closureReason is required to close an account");
+
+        // Enforce mandatory KYC completion before activating account
+        if (r.status() == AccountStatus.ACTIVE && a.getAccountStatus() != AccountStatus.ACTIVE) {
+            if (userServiceClient != null && !userServiceClient.isKycCompleted(a.getCustomerId())) {
+                throw new ConflictException("Cannot activate Account #" + id + ": Customer (" + a.getCustomerId() + ") has not completed mandatory KYC profile setup. Customer profile setup is compulsory before account can be set to ACTIVE.");
+            }
+        }
+
         a.setAccountStatus(r.status()); 
         if (r.status() == AccountStatus.ACTIVE && a.getApprovedAt() == null) a.setApprovedAt(LocalDateTime.now());
         if (r.status() == AccountStatus.CLOSED) {

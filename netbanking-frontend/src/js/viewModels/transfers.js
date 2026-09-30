@@ -14,6 +14,11 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       this.errorMessage = ko.observable('');
       this.successMessage = ko.observable('');
 
+      // Customer KYC / Profile verification state
+      this.isKycVerified = ko.observable(true);
+      this.isLoadingKyc = ko.observable(true);
+      this.kycStatusMessage = ko.observable('');
+
       // Form Observables
       this.activeAccounts = ko.observableArray([]);
       this.sourceAccountId = ko.observable('');
@@ -52,6 +57,20 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           return;
         }
 
+        self.isLoadingKyc(true);
+        try {
+          const kyc = await apiService.getCustomerKyc(user.customerId);
+          const verified = kyc && (kyc.kycCompleted === true || kyc.kycStatus === 'COMPLETED' || kyc.kycStatus === 'VERIFIED');
+          self.isKycVerified(!!verified);
+          if (!verified) {
+            self.kycStatusMessage('Customer profile info setup (KYC) is compulsory to transfer funds. Please complete your profile details to unlock transfer capabilities.');
+          }
+        } catch (e) {
+          console.warn('KYC check error:', e);
+        } finally {
+          self.isLoadingKyc(false);
+        }
+
         try {
           const list = await apiService.getAccountsByCustomer(user.customerId);
           const activeOnly = (list || []).filter(a => a.status === 'ACTIVE');
@@ -88,6 +107,12 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         self.successMessage('');
         self.lastReceipt(null);
 
+        // Compulsory KYC profile setup check
+        if (!self.isKycVerified()) {
+          self.errorMessage('Transfer Blocked: Customer Profile Setup (KYC) is compulsory before initiating fund transfers. Please complete your profile on the Dashboard.');
+          return;
+        }
+
         if (!self.sourceAccountId()) {
           self.errorMessage('Please select a source account.');
           return;
@@ -96,6 +121,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
         const amt = parseFloat(self.transferAmount());
         if (isNaN(amt) || amt <= 0) {
           self.errorMessage('Please enter a valid positive transfer amount.');
+          return;
+        }
+        if (amt > 10000000) {
+          self.errorMessage('Transfer amount exceeds maximum allowed limit of ₹1,00,00,000.00 (1 Crore INR).');
           return;
         }
 
