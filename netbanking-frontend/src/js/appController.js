@@ -120,7 +120,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
             }
           }
           change.accept(Promise.reject('Already authenticated'));
-          setTimeout(() => { self.router.go({ path: target }); }, 0);
+          setTimeout(() => { apiService.navigate(target); }, 0);
           return;
         }
 
@@ -128,21 +128,21 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
 
         if (!apiService.isAuthenticated()) {
           change.accept(Promise.reject('Authentication required'));
-          setTimeout(() => { self.router.go({ path: 'login' }); }, 0);
+          setTimeout(() => { apiService.navigate('login'); }, 0);
           return;
         }
 
         // Protect Admin view from non-admin customers
         if (targetPath === 'admin' && !apiService.isAdmin()) {
           change.accept(Promise.reject('Admin privilege required'));
-          setTimeout(() => { self.router.go({ path: 'dashboard' }); }, 0);
+          setTimeout(() => { apiService.navigate('dashboard'); }, 0);
           return;
         }
 
         // Protect Admin from being diverted into customer retail views
         if ((targetPath === 'dashboard' || targetPath === 'accounts' || targetPath === 'transfers' || targetPath === 'transactions') && apiService.isAdmin()) {
           change.accept(Promise.reject('Redirecting admin to Admin Command Center'));
-          setTimeout(() => { self.router.go({ path: 'admin' }); }, 0);
+          setTimeout(() => { apiService.navigate('admin'); }, 0);
           return;
         }
       });
@@ -150,7 +150,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       this.router.sync().then(() => {
         // Handle page reload/refresh persistence (Req 5):
         if (apiService.isAuthenticated()) {
-          const currentPath = self.router.currentState ? self.router.currentState.value.path : '';
+          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
           const savedPath = localStorage.getItem('nb_last_path');
 
           if (!currentPath || currentPath === 'login' || currentPath === '') {
@@ -162,19 +162,22 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
                 target = savedPath;
               }
             }
-            self.router.go({ path: target });
+            apiService.navigate(target);
           }
         } else {
-          const currentPath = self.router.currentState ? self.router.currentState.value.path : '';
+          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
           if (currentPath !== 'login') {
-            self.router.go({ path: 'login' });
+            apiService.navigate('login');
           }
         }
+      }).catch((error) => {
+        // Route guards intentionally reject invalid transitions.
+        if (error) console.debug('Initial navigation transition:', error);
       });
 
       // Direct navigation helper
       this.goTo = (path) => {
-        self.router.go({ path: path });
+        return apiService.navigate(path);
       };
 
       // Side Drawer
@@ -195,23 +198,17 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         self.userLogin(user ? (user.email || user.customerId) : 'Guest');
         self.navDataProvider(new ArrayDataProvider(self.getDisplayNavData(), { keyAttributes: 'path' }));
 
-        if (!user) {
-          self.router.go({ path: 'login' });
-        } else if (self.isAdmin()) {
-          self.router.go({ path: 'admin' });
-        } else {
-          self.router.go({ path: 'dashboard' });
-        }
+        // The service or calling view performs the single, guarded navigation.
+        // Keeping this listener state-only avoids duplicate router transitions.
       });
 
       // Actions
       this.logout = async () => {
         await apiService.logout();
-        self.router.go({ path: 'login' });
       };
 
       this.goToNotifications = () => {
-        self.router.go({ path: 'notifications' });
+        return apiService.navigate('notifications');
       };
 
       // Footer Links

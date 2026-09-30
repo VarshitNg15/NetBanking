@@ -887,13 +887,10 @@ body.nb-dark-theme .nb-nav-bar-container {
 
 body.nb-dark-theme .nb-header { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.24); }
 body.nb-dark-theme .nb-nav-bar-container a,
-body.nb-dark-theme .nb-nav-bar-container .oj-tabbar-item-label,
-body.nb-dark-theme .nb-nav-bar-container .oj-navigationlist-item-content,
-body.nb-dark-theme .nb-nav-bar-container .oj-navigationlist-item-icon {
+body.nb-dark-theme .nb-nav-bar-container [role="tab"] {
   color: #c7d9dd !important;
 }
-body.nb-dark-theme .nb-nav-bar-container .oj-selected a,
-body.nb-dark-theme .nb-nav-bar-container .oj-selected .oj-tabbar-item-label,
+body.nb-dark-theme .nb-nav-bar-container [aria-selected="true"],
 body.nb-dark-theme .nb-nav-bar-container a:hover { color: #7ed5e9 !important; }
 body.nb-dark-theme .nb-user-chip { background: #1d2d34; border-color: #38505a; }
 body.nb-dark-theme .nb-user-name,
@@ -974,35 +971,15 @@ body.nb-dark-theme .nb-statement-panel {
   background: linear-gradient(135deg, #1b2d34 0%, #15242b 100%);
 }
 
-/* Oracle JET moves dialogs into its popup layer. Theme both the component and
-   the rendered dialog regions so modal content never falls back to white. */
-body.nb-dark-theme oj-dialog,
-body.nb-dark-theme .oj-dialog,
-body.nb-dark-theme .oj-dialog-header,
-body.nb-dark-theme .oj-dialog-body,
-body.nb-dark-theme .oj-dialog-footer,
-body.nb-dark-theme .oj-popup-content {
-  background: #17252c !important;
-  color: var(--nb-text-dark) !important;
-  border-color: #38505a !important;
-}
-
-body.nb-dark-theme .oj-dialog-header,
-body.nb-dark-theme .oj-dialog-footer {
-  background: #1d3038 !important;
-}
-
-body.nb-dark-theme .oj-dialog-title,
-body.nb-dark-theme .oj-dialog h1,
-body.nb-dark-theme .oj-dialog h2,
-body.nb-dark-theme .oj-dialog h3,
-body.nb-dark-theme .oj-dialog h4 {
-  color: var(--nb-text-dark) !important;
-}
-
-body.nb-dark-theme .oj-dialog .oj-button-button,
-body.nb-dark-theme .oj-dialog button:not(.nb-btn) {
-  color: var(--nb-text-dark);
+/* Use Oracle JET's supported variables on an application class. */
+body.nb-dark-theme .nb-theme-dialog {
+  --oj-dialog-bg-color: #17252c;
+  --oj-dialog-border-color: #38505a;
+  --oj-dialog-header-bg-color: #1d3038;
+  --oj-dialog-header-border-color: #38505a;
+  --oj-dialog-box-shadow: 0 18px 50px rgba(0, 0, 0, 0.48);
+  --oj-core-text-color-primary: #edf5f6;
+  --oj-core-text-color-secondary: #a7bbc1;
 }
 
 body.nb-dark-theme .nb-alert-info { background: #163540; border-color: #285868; color: #a8e4f2; }
