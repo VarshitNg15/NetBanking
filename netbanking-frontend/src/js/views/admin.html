@@ -386,8 +386,9 @@
 
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAmount">Deposit Amount (₹)</label>
-                <input id="adminDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 5000.00"
+                <input id="adminDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 5000.00 (Max ₹1,00,00,000)"
                   data-bind="textInput: depositAmount" required />
+                <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
               </div>
 
               <div class="nb-form-group">
@@ -663,8 +664,9 @@
 
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepAmount">Deposit Amount (₹)</label>
-          <input id="dlgDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 10000.00"
+          <input id="dlgDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 10000.00 (Max ₹1,00,00,000)"
             data-bind="textInput: depositAmount" required />
+          <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
         </div>
 
         <div class="nb-form-group">

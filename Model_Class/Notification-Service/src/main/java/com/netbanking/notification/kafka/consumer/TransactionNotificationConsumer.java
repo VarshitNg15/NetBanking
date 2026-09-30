@@ -38,7 +38,10 @@ public class TransactionNotificationConsumer {
 
             if (recipientEmail != null && !recipientEmail.isBlank() && !recipientEmail.equalsIgnoreCase("null")) {
                 String txnType = root.path("transactionType").asText("");
-                boolean isCredit = "TRANSFER_CREDIT".equalsIgnoreCase(txnType);
+                boolean isCredit = "TRANSFER_CREDIT".equalsIgnoreCase(txnType)
+                        || "DEPOSIT".equalsIgnoreCase(txnType)
+                        || "ADMIN_DEPOSIT".equalsIgnoreCase(txnType)
+                        || "CREDIT".equalsIgnoreCase(txnType);
 
                 String subject = isCredit
                         ? "NetBanking Alert: Account Credited (" + currency + " " + amount + ")"

@@ -177,6 +177,10 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
           self.errorMessage('Please enter a valid deposit amount greater than ₹0.00.');
           return;
         }
+        if (amount > 10000000) {
+          self.errorMessage('Deposit amount exceeds maximum allowed limit of ₹1,00,00,000.00 (1 Crore INR).');
+          return;
+        }
 
         self.isSubmittingDeposit(true);
         try {
@@ -185,7 +189,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
             amount,
             self.depositDescription() || 'Admin Direct Deposit'
           );
-          self.successMessage(`Successfully deposited ₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} into Account #${accId}!`);
+          self.successMessage(`Successfully deposited ₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} into Account #${accId}! Confirmation credit email dispatched to customer.`);
           self.depositAmount('');
           self.closeDepositDialog();
           await self.loadAllAccounts();

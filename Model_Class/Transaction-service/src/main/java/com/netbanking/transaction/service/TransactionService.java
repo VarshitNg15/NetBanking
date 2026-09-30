@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +30,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class TransactionService {
+
+    private static final BigDecimal MAX_TRANSFER_LIMIT = new BigDecimal("10000000.00");
 
     private final TransactionRepository transactionRepository;
     private final TransferDetailsRepository transferDetailsRepository;
@@ -50,6 +53,12 @@ public class TransactionService {
         }
         if (initiatedBy == null || initiatedBy.isBlank()) {
             initiatedBy = "CUSTOMER";
+        }
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Transfer amount must be greater than zero");
+        }
+        if (request.amount().compareTo(MAX_TRANSFER_LIMIT) > 0) {
+            throw new IllegalArgumentException("Transfer amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR)");
         }
 
         // 2. Enforce Account Number transfers for customers - reject Database ID transfers

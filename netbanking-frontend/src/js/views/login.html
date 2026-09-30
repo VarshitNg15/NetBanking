@@ -69,10 +69,20 @@
       <label class="nb-form-label" for="loginOtp" style="color: var(--nb-primary); font-weight: 700;">6-Digit Email OTP</label>
       <input id="loginOtp" type="text" maxlength="6" class="nb-input" placeholder="123456" data-bind="textInput: otp" />
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-        <span style="font-size: 0.75rem; color: var(--nb-text-muted);">A verification code was dispatched via Google SMTP to your email.</span>
-        <button type="button" class="nb-link-btn" data-bind="click: handleResendLoginOtp, disable: isResendingOtp" style="font-size: 0.78rem; font-weight: 700; color: var(--nb-primary); background: none; border: none; cursor: pointer; text-decoration: underline; white-space: nowrap;">
+        <span style="font-size: 0.75rem; color: var(--nb-text-muted);">
+          <!-- ko if: resendCountdown() > 0 -->
+          Rate limited: Resend in <strong style="color: var(--nb-primary);" data-bind="text: resendCountdown"></strong>s
+          <!-- /ko -->
+          <!-- ko if: resendCountdown() === 0 -->
+          A verification code was dispatched via Google SMTP to your email.
+          <!-- /ko -->
+        </span>
+        <button type="button" class="nb-link-btn" data-bind="click: handleResendLoginOtp, disable: isResendingOtp() || resendCountdown() > 0" style="font-size: 0.78rem; font-weight: 700; color: var(--nb-primary); background: none; border: none; cursor: pointer; text-decoration: underline; white-space: nowrap;">
           <!-- ko if: isResendingOtp -->Sending...<!-- /ko -->
-          <!-- ko ifnot: isResendingOtp -->Resend OTP<!-- /ko -->
+          <!-- ko ifnot: isResendingOtp -->
+            <!-- ko if: resendCountdown() > 0 -->Resend OTP (<span data-bind="text: resendCountdown"></span>s)<!-- /ko -->
+            <!-- ko if: resendCountdown() === 0 -->Resend OTP<!-- /ko -->
+          <!-- /ko -->
         </button>
       </div>
     </div>
@@ -177,8 +187,13 @@
       </div>
 
       <div style="text-align: center; margin-top: 1rem;">
-        <button type="button" class="nb-link-btn" data-bind="click: handleSendResetOtp" style="font-size: 0.78rem;">
+        <button type="button" class="nb-link-btn" data-bind="click: handleSendResetOtp, disable: isLoading() || resetOtpCountdown() > 0" style="font-size: 0.78rem;">
+          <!-- ko if: resetOtpCountdown() > 0 -->
+          Didn't receive the OTP? Resend in <strong data-bind="text: resetOtpCountdown"></strong>s
+          <!-- /ko -->
+          <!-- ko if: resetOtpCountdown() === 0 -->
           Didn't receive the OTP? Resend Code
+          <!-- /ko -->
         </button>
       </div>
     </form>
