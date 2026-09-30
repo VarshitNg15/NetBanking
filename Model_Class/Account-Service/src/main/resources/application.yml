@@ -15,6 +15,10 @@ spring:
     hibernate:
       ddl-auto: validate
 
+clients:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8082}
+
 eureka:
   client:
     service-url:

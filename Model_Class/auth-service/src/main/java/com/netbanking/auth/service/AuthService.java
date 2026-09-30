@@ -365,4 +365,12 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found for customerId: " + customerId));
         return new UserSummaryResponse(user.getCustomerId(), user.getEmail(), user.getAccountStatus().name());
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<UserSummaryResponse> getAllUsers() {
+        return userRepository.findAll().stream()
+                .filter(u -> u.getCustomerId() != null)
+                .map(u -> new UserSummaryResponse(u.getCustomerId(), u.getEmail(), u.getAccountStatus().name()))
+                .toList();
+    }
 }

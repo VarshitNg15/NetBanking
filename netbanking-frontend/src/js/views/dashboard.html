@@ -14,7 +14,13 @@
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: openProfileDialog">
         <span class="oj-ux-ico-user"></span>
-        My Profile
+        My Profile (KYC)
+        <!-- ko if: hasProfile -->
+        <span class="nb-status nb-status-active" style="font-size: 0.68rem; padding: 1px 6px; margin-left: 4px;">KYC Done</span>
+        <!-- /ko -->
+        <!-- ko ifnot: hasProfile -->
+        <span class="nb-status nb-status-frozen" style="font-size: 0.68rem; padding: 1px 6px; margin-left: 4px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">KYC Pending</span>
+        <!-- /ko -->
       </button>
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: loadDashboardData">
         <span class="oj-ux-ico-refresh"></span>
@@ -51,7 +57,7 @@
   <div class="nb-alert nb-alert-info" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <span class="oj-ux-ico-information-s" style="font-size: 1.25rem;"></span>
-      <span><strong>Customer Profile Pending:</strong> Complete your personal and address details to personalize your account.</span>
+      <span><strong>Customer Profile Pending (Compulsory KYC):</strong> Complete your personal and address details to fulfill compulsory KYC requirements and enable deposits and transfers.</span>
     </div>
     <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: openProfileDialog">
       Complete Profile Now
@@ -271,10 +277,10 @@
   </oj-dialog>
 
   <!-- Dialog: Customer Profile Management (Req 6) -->
-  <oj-dialog class="nb-theme-dialog" id="customerProfileDialog" dialog-title="Customer Profile Details" aria-describedby="descProfile" style="width: 520px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="customerProfileDialog" dialog-title="Customer Profile &amp; KYC Setup" aria-describedby="descProfile" style="width: 520px; max-width: 95%;">
     <div slot="body">
       <p id="descProfile" style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1.25rem;">
-        Manage your registered identity, contact information, and residential address.
+        Complete and verify your registered identity, contact information, and address to fulfill mandatory KYC requirements for account deposits and fund transfers.
       </p>
 
       <!-- ko if: errorMessage -->

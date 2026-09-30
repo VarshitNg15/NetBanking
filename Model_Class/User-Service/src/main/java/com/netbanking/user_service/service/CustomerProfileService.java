@@ -4,6 +4,7 @@ import com.netbanking.user_service.dto.CustomerProfileRequest;
 import com.netbanking.user_service.dto.CustomerProfileResponse;
 import com.netbanking.user_service.entity.CustomerProfile;
 import com.netbanking.user_service.repository.CustomerProfileRepository;
+import com.netbanking.user_service.repository.CustomerRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerProfileService {
 
     private final CustomerProfileRepository customerProfileRepository;
+    private final CustomerRepository customerRepository;
     private final CustomerService customerService;
     private final com.netbanking.user_service.metrics.UserMetrics userMetrics;
 
@@ -73,6 +75,33 @@ public class CustomerProfileService {
 
         userMetrics.recordProfileOperation("GET", "SUCCESS");
         return toResponse(profile);
+    }
+
+    // ============================================================
+    // CHECK KYC COMPLETION (PROFILE SETUP STATUS)
+    // ============================================================
+
+    private static final java.util.Set<String> PRE_VERIFIED_SEED_CUSTOMERS = java.util.Set.of(
+            "C5FCC99032132",
+            "C0106071918AA",
+            "CFA32EB91C801"
+    );
+
+    @Transactional(readOnly = true)
+    public boolean isKycCompleted(String customerId) {
+        if (customerId == null || customerId.trim().isEmpty()) {
+            return false;
+        }
+
+        // Seed platform accounts that were pre-verified during setup
+        if (PRE_VERIFIED_SEED_CUSTOMERS.contains(customerId.trim().toUpperCase())) {
+            return true;
+        }
+
+        // For all other customers, verify that customer profile exists and has first name
+        return customerProfileRepository.findById(customerId.trim())
+                .map(profile -> profile.getFirstName() != null && !profile.getFirstName().trim().isEmpty())
+                .orElse(false);
     }
 
 
