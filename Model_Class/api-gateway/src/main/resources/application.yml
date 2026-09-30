@@ -24,7 +24,7 @@ spring:
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/v1/auth/**, /api/auth/**
+            - Path=/api/v1/auth, /api/v1/auth/**, /api/auth, /api/auth/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -36,7 +36,7 @@ spring:
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/api/v1/customers/**, /api/v1/users/**, /api/users/**, /api/customers/**
+            - Path=/api/v1/customers, /api/v1/customers/**, /api/v1/users, /api/v1/users/**, /api/users, /api/users/**, /api/customers, /api/customers/**
           filters:
             - name: RequestRateLimiter
               args:
@@ -48,7 +48,7 @@ spring:
         - id: account-service
           uri: lb://account-service
           predicates:
-            - Path=/api/v1/accounts/**, /api/accounts/**
+            - Path=/api/v1/accounts, /api/v1/accounts/**, /api/accounts, /api/accounts/**
           filters:
             - name: RequestRateLimiter
               args:
