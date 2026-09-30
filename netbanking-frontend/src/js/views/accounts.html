@@ -138,7 +138,7 @@
   <!-- /ko -->
 
   <!-- Dialog: Set / Update 4-Digit PIN (Req 4) -->
-  <oj-dialog id="setPinDialog" :dialog-title="[[isUpdatingPin() ? 'Update Security PIN' : 'Configure Security PIN']]" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="setPinDialog" :dialog-title="[[isUpdatingPin() ? 'Update Security PIN' : 'Configure Security PIN']]" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
     <div slot="body">
       <p id="descPin" style="font-size: 0.88rem; color: var(--nb-text-muted);">
         Account: <strong class="nb-account-number" data-bind="text: selectedAccountNumber"></strong>
@@ -168,7 +168,7 @@
   </oj-dialog>
 
   <!-- Dialog: Open New Account (Enforces 1 Savings & 1 Current max) -->
-  <oj-dialog id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 440px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 440px; max-width: 95%;">
     <div slot="body">
       <!-- ko if: !canOpenAccount() -->
       <div class="nb-alert nb-alert-info" style="margin-bottom: 1rem;">
