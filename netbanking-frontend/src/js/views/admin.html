@@ -117,11 +117,11 @@
           <span class="nb-metric-title">Compliance Audit Stream</span>
           <span class="oj-ux-ico-clipboard-check nb-metric-icon"></span>
         </div>
-        <div class="nb-metric-value" style="font-size: 1.6rem;" data-bind="text: auditLogs().length">
+        <div class="nb-metric-value" style="font-size: 1.6rem;" data-bind="text: filteredAuditLogs().length">
           0
         </div>
         <div class="nb-metric-caption">
-          Immutable System Events
+          Transaction Audit Events
         </div>
       </div>
     </div>
@@ -386,8 +386,9 @@
 
               <div class="nb-form-group">
                 <label class="nb-form-label" for="adminDepAmount">Deposit Amount (₹)</label>
-                <input id="adminDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 5000.00"
+                <input id="adminDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 5000.00 (Max ₹1,00,00,000)"
                   data-bind="textInput: depositAmount" required />
+                <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
               </div>
 
               <div class="nb-form-group">
@@ -488,42 +489,18 @@
         </div>
       </div>
 
-      <!-- Filter Option Controls (Transactions, OTP, Security, All) -->
+      <!-- Filter Option Controls (Transactions Only - Req 7) -->
       <div style="background: #fbfbf9; border: 1px solid var(--nb-border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
         <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
           <!-- Category Segmented Filters -->
           <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-            <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">Filter:</span>
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--nb-text-muted); margin-right: 2px;">View:</span>
 
-            <button type="button" class="nb-btn nb-btn-sm"
-              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'ALL', 'nb-btn-outline': auditCategoryFilter() !== 'ALL' }, click: function() { auditCategoryFilter('ALL'); }">
-              All Records
-              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-                data-bind="text: auditCounts().all, css: { 'nb-badge-customer': auditCategoryFilter() !== 'ALL' }"></span>
-            </button>
-
-            <button type="button" class="nb-btn nb-btn-sm"
-              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'TRANSACTIONS', 'nb-btn-outline': auditCategoryFilter() !== 'TRANSACTIONS' }, click: function() { auditCategoryFilter('TRANSACTIONS'); }">
+            <button type="button" class="nb-btn nb-btn-sm nb-btn-primary">
               <span class="oj-ux-ico-swap" style="margin-right: 4px;"></span>
               Transactions
               <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-                data-bind="text: auditCounts().transactions, css: { 'nb-badge-customer': auditCategoryFilter() !== 'TRANSACTIONS' }"></span>
-            </button>
-
-            <button type="button" class="nb-btn nb-btn-sm"
-              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'OTP', 'nb-btn-outline': auditCategoryFilter() !== 'OTP' }, click: function() { auditCategoryFilter('OTP'); }">
-              <span class="oj-ux-ico-lock" style="margin-right: 4px;"></span>
-              OTP &amp; Auth
-              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-                data-bind="text: auditCounts().otp, css: { 'nb-badge-customer': auditCategoryFilter() !== 'OTP' }"></span>
-            </button>
-
-            <button type="button" class="nb-btn nb-btn-sm"
-              data-bind="css: { 'nb-btn-primary': auditCategoryFilter() === 'SECURITY', 'nb-btn-outline': auditCategoryFilter() !== 'SECURITY' }, click: function() { auditCategoryFilter('SECURITY'); }">
-              <span class="oj-ux-ico-shield" style="margin-right: 4px;"></span>
-              PIN &amp; Security
-              <span class="nb-badge" style="margin-left: 4px; font-size: 0.7rem; padding: 1px 5px;"
-                data-bind="text: auditCounts().security, css: { 'nb-badge-customer': auditCategoryFilter() !== 'SECURITY' }"></span>
+                data-bind="text: auditCounts().transactions"></span>
             </button>
           </div>
 
@@ -532,14 +509,14 @@
             <input type="text" class="nb-input"
               placeholder="Search by ID, Customer ID, Email, Subject..."
               data-bind="textInput: auditSearchFilter" style="font-size: 0.85rem;" />
-            <!-- ko if: auditSearchFilter() || auditCategoryFilter() !== 'ALL' -->
+            <!-- ko if: auditSearchFilter() -->
             <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
-              data-bind="click: function() { auditSearchFilter(''); auditCategoryFilter('ALL'); }" title="Clear filters">
+              data-bind="click: function() { auditSearchFilter(''); }" title="Clear search">
               Reset
             </button>
             <!-- /ko -->
             <span class="nb-badge nb-badge-customer" style="font-size: 0.75rem; white-space: nowrap;"
-              data-bind="text: filteredAuditLogs().length + ' Events'"></span>
+              data-bind="text: filteredAuditLogs().length + ' Transaction Events'"></span>
           </div>
         </div>
       </div>
@@ -671,7 +648,7 @@
 
 
   <!-- Modal Dialog 3: Admin Direct Deposit -->
-  <oj-dialog id="adminDepositDialog" dialog-title="Admin Direct Deposit" aria-describedby="descAdminDep"
+  <oj-dialog class="nb-theme-dialog" id="adminDepositDialog" dialog-title="Admin Direct Deposit" aria-describedby="descAdminDep"
     style="width: 460px; max-width: 95%;">
     <div slot="body">
       <p id="descAdminDep" style="font-size: 0.88rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
@@ -687,8 +664,9 @@
 
         <div class="nb-form-group">
           <label class="nb-form-label" for="dlgDepAmount">Deposit Amount (₹)</label>
-          <input id="dlgDepAmount" type="number" step="0.01" min="1" class="nb-input" placeholder="e.g. 10000.00"
+          <input id="dlgDepAmount" type="number" step="0.01" min="1" max="10000000" class="nb-input" placeholder="e.g. 10000.00 (Max ₹1,00,00,000)"
             data-bind="textInput: depositAmount" required />
+          <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Single deposit limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
         </div>
 
         <div class="nb-form-group">
@@ -712,7 +690,7 @@
   </oj-dialog>
 
   <!-- Modal Dialog 4: Audit Log & Ledger Inspector -->
-  <oj-dialog id="logLedgerDialog" dialog-title="System Audit Log &amp; Double-Entry Ledger Inspector"
+  <oj-dialog class="nb-theme-dialog" id="logLedgerDialog" dialog-title="System Audit Log &amp; Double-Entry Ledger Inspector"
     aria-describedby="descLogLedger" style="width: 1100px; max-width: 96%;">
     <div slot="body" style="padding: 0.5rem 0;">
       <!-- Audit Log Summary Card -->

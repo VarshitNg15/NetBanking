@@ -34,7 +34,7 @@
   <!-- /ko -->
 
   <!-- Statement Generation Card -->
-  <div class="nb-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #ffffff 0%, #fbfbf9 100%);">
+  <div class="nb-card nb-statement-panel" style="margin-bottom: 1.5rem;">
     <div class="nb-card-header" style="flex-wrap: wrap; gap: 0.75rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span class="oj-ux-ico-file-text" style="font-size: 1.35rem; color: var(--nb-secondary);"></span>
@@ -167,23 +167,23 @@
           <tbody data-bind="foreach: filteredTransactions">
             <tr>
               <td>
-                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference"></span>
+                <span style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: transactionReference || ('TXN-' + (transactionId || id || ''))"></span>
               </td>
-              <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (createdAt || '').substring(0, 19).replace('T', ' ')"></td>
+              <td style="font-size: 0.8rem; color: var(--nb-text-muted); white-space: nowrap;" data-bind="text: (initiatedAt || completedAt || createdAt || '').substring(0, 19).replace('T', ' ')"></td>
               <td>
-                <span style="font-family: monospace;" data-bind="text: sourceAccountId || '-'"></span>
+                <span style="font-family: monospace;" data-bind="text: sourceAccountDisplay || sourceAccountId || '-'"></span>
               </td>
               <td>
-                <span style="font-family: monospace;" data-bind="text: destinationAccountId || '-'"></span>
+                <span style="font-family: monospace;" data-bind="text: destinationAccountDisplay || destinationAccountId || '-'"></span>
               </td>
               <td>
                 <span class="nb-badge nb-badge-customer" style="font-size: 0.72rem;" data-bind="text: transactionType || 'INTERNAL'"></span>
-                <!-- ko if: transferMode -->
-                <span style="font-size: 0.72rem; color: var(--nb-text-muted); margin-left: 2px;" data-bind="text: '(' + transferMode + ')'"></span>
+                <!-- ko if: $data.transferMode -->
+                <span style="font-size: 0.72rem; color: var(--nb-text-muted); margin-left: 2px;" data-bind="text: '(' + $data.transferMode + ')'"></span>
                 <!-- /ko -->
               </td>
               <td style="font-weight: 700; white-space: nowrap;">
-                <span data-bind="text: '₹ ' + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), css: { 'nb-metric-positive': isCredit, 'nb-metric-negative': !isCredit }"></span>
+                <span data-bind="text: (isCredit ? '+ ₹ ' : '- ₹ ') + parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), css: { 'nb-metric-positive': isCredit, 'nb-metric-negative': !isCredit }"></span>
               </td>
               <td>
                 <span class="nb-status" data-bind="text: transactionStatus, css: {
@@ -269,10 +269,10 @@
                 <span style="font-family: monospace; font-size: 0.76rem;" data-bind="text: entryReference || '-'"></span>
               </td>
               <td>
-                <!-- ko if: entryType === 'CREDIT' -->
+                <!-- ko if: String(entryType || '').toUpperCase() === 'CREDIT' -->
                 <span class="nb-status nb-status-active" style="font-size: 0.72rem;">CREDIT</span>
                 <!-- /ko -->
-                <!-- ko if: entryType === 'DEBIT' -->
+                <!-- ko if: String(entryType || '').toUpperCase() === 'DEBIT' -->
                 <span class="nb-status nb-status-closed" style="font-size: 0.72rem;">DEBIT</span>
                 <!-- /ko -->
               </td>
@@ -333,7 +333,7 @@
         <thead>
           <tr>
             <th>Request ID</th>
-            <th>Account ID</th>
+            <th>Account Number</th>
             <th>Format</th>
             <th>Status</th>
             <th>Requested Date</th>
@@ -344,7 +344,7 @@
           <tr>
             <td style="font-family: monospace; font-weight: 700; color: var(--nb-secondary);" data-bind="text: requestId || id"></td>
             <td>
-              <span style="font-family: monospace; font-weight: 600;" data-bind="text: accountId"></span>
+              <span style="font-family: monospace; font-weight: 600;" data-bind="text: accountDisplay || accountId"></span>
             </td>
             <td>
               <span class="nb-badge nb-badge-customer" data-bind="text: requestType || 'CSV'"></span>
@@ -372,7 +372,7 @@
   <!-- /ko -->
 
   <!-- Dialog: Statement Preview Modal -->
-  <oj-dialog id="statementPreviewDialog" :dialog-title="[[previewStatementTitle]]" aria-describedby="descStmtPrev" style="width: 820px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="statementPreviewDialog" :dialog-title="[[previewStatementTitle]]" aria-describedby="descStmtPrev" style="width: 820px; max-width: 95%;">
     <div slot="body">
       <p id="descStmtPrev" style="font-size: 0.85rem; color: var(--nb-text-muted); margin-bottom: 0.75rem;">
         Official compliance ledger content generated by <strong>Transaction-Service</strong>.
@@ -383,7 +383,7 @@
     </div>
     <div slot="footer">
       <button type="button" class="nb-btn nb-btn-outline" data-bind="click: closePreviewDialog">Close</button>
-      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: handleGenerateStatement">
+      <button type="button" class="nb-btn nb-btn-primary" data-bind="click: downloadPreviewedStatement">
         <span class="oj-ux-ico-download"></span>
         Download File
       </button>

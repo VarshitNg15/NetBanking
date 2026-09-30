@@ -22,9 +22,12 @@ public class TransactionNotificationConsumer {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
-    @KafkaListener(topics = "${notification.kafka.transaction-topic:transaction-events}", groupId = "${notification.kafka.group-id:notification-service-group}")
+    @KafkaListener(topics = "${notification.kafka.transaction-topic:transaction-events}", groupId = "${notification.kafka.transaction-group-id:notification-service-transaction-group}")
     public void consume(String payload) {
         try {
+            if (payload != null && payload.startsWith("\uFEFF")) {
+                payload = payload.substring(1);
+            }
             JsonNode root = objectMapper.readTree(payload);
             String ref = root.path("transactionReference").asText();
             String status = root.path("transactionStatus").asText();
@@ -35,7 +38,10 @@ public class TransactionNotificationConsumer {
 
             if (recipientEmail != null && !recipientEmail.isBlank() && !recipientEmail.equalsIgnoreCase("null")) {
                 String txnType = root.path("transactionType").asText("");
-                boolean isCredit = "TRANSFER_CREDIT".equalsIgnoreCase(txnType);
+                boolean isCredit = "TRANSFER_CREDIT".equalsIgnoreCase(txnType)
+                        || "DEPOSIT".equalsIgnoreCase(txnType)
+                        || "ADMIN_DEPOSIT".equalsIgnoreCase(txnType)
+                        || "CREDIT".equalsIgnoreCase(txnType);
 
                 String subject = isCredit
                         ? "NetBanking Alert: Account Credited (" + currency + " " + amount + ")"

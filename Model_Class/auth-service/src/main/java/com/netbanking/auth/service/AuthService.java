@@ -32,6 +32,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final TokenHashService tokenHashService;
     private final AuthEventPublisher eventPublisher;
+    private final com.netbanking.auth.metrics.AuthMetrics authMetrics;
     @Autowired(required = false)
     private CustomerServiceClient customerServiceClient;
 
@@ -40,6 +41,7 @@ public class AuthService {
     @Transactional
     public MessageResponse register(RegisterRequest request) {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
+            authMetrics.recordRegistration("FAILURE_EMAIL_EXISTS");
             throw new IllegalArgumentException("Email is already registered");
         }
 
@@ -62,7 +64,7 @@ public class AuthService {
         try {
             if (customerServiceClient != null) {
                 customerServiceClient.createCustomer(new CustomerServiceClient.CustomerCreateRequest(
-                        user.getCustomerId(), user.getEmail(), "PENDING_APPROVAL"));
+                        user.getCustomerId(), user.getEmail(), "ACTIVE"));
             }
         } catch (Exception ex) {
             log.warn("Customer sync with user-service via OpenFeign was skipped or failed ({}), falling back to Kafka event: {}",
@@ -72,78 +74,104 @@ public class AuthService {
         eventPublisher.publish("USER_REGISTERED", user.getCustomerId(), user.getCustomerId(),
                 Map.of("email", user.getEmail()));
 
+        authMetrics.recordRegistration("SUCCESS");
         return new MessageResponse("Registration successful. An email verification OTP has been issued.");
     }
 
     @Transactional
     public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
-        AuthUser user = userRepository.findByEmailIgnoreCase(request.email())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        long start = System.nanoTime();
+        try {
+            AuthUser user = userRepository.findByEmailIgnoreCase(request.email())
+                    .orElseThrow(() -> {
+                        authMetrics.recordLogin("UNKNOWN", "FAILURE", "USER_NOT_FOUND");
+                        return new BadCredentialsException("Invalid email or password");
+                    });
 
-        if (isLocked(user)) {
-            recordLogin(user, LoginStatus.LOCKED, ipAddress, userAgent);
-            throw new IllegalStateException("Account is temporarily locked");
-        }
-        if (user.getAccountStatus() != AccountStatus.ACTIVE) {
-            throw new IllegalStateException("Account is not active");
-        }
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            handleFailedLogin(user, ipAddress, userAgent);
-            throw new BadCredentialsException("Invalid email or password");
-        }
+            String role = user.getRoles().stream()
+                    .map(UserRole::getRoleName)
+                    .map(Enum::name)
+                    .findFirst()
+                    .orElse("CUSTOMER");
 
-        if ("Y".equals(user.getMfaEnabled())) {
-            if (request.otp() == null || request.otp().isBlank()) {
-                issueOtp(user, OtpPurpose.LOGIN);
-                return new TokenResponse(null, null, "Bearer", 0, user.getCustomerId(),
-                        user.getRoles().stream().map(UserRole::getRoleName).map(Enum::name).toList(), true);
+            if (isLocked(user)) {
+                recordLogin(user, LoginStatus.LOCKED, ipAddress, userAgent);
+                authMetrics.recordLogin(role, "LOCKED", "ACCOUNT_TEMPORARILY_LOCKED");
+                throw new IllegalStateException("Account is temporarily locked");
             }
-            verifyOtpForUser(user, request.otp(), OtpPurpose.LOGIN);
+            if (user.getAccountStatus() != AccountStatus.ACTIVE) {
+                authMetrics.recordLogin(role, "FAILURE", "ACCOUNT_NOT_ACTIVE");
+                throw new IllegalStateException("Account is not active");
+            }
+            if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+                handleFailedLogin(user, ipAddress, userAgent);
+                authMetrics.recordLogin(role, "FAILURE", "BAD_CREDENTIALS");
+                throw new BadCredentialsException("Invalid email or password");
+            }
+
+            if ("Y".equals(user.getMfaEnabled())) {
+                if (request.otp() == null || request.otp().isBlank()) {
+                    issueOtp(user, OtpPurpose.LOGIN);
+                    authMetrics.recordLogin(role, "MFA_REQUIRED", "OTP_CHALLENGE_ISSUED");
+                    return new TokenResponse(null, null, "Bearer", 0, user.getCustomerId(),
+                            user.getRoles().stream().map(UserRole::getRoleName).map(Enum::name).toList(), true);
+                }
+                verifyOtpForUser(user, request.otp(), OtpPurpose.LOGIN);
+            }
+
+            user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+            recordLogin(user, LoginStatus.SUCCESS, ipAddress, userAgent);
+
+            var access = jwtService.generateAccessToken(user);
+            String rawRefresh = UUID.randomUUID().toString() + UUID.randomUUID();
+            RefreshToken refresh = RefreshToken.builder()
+                    .user(user)
+                    .tokenHash(tokenHashService.sha256(rawRefresh))
+                    .expiresAt(LocalDateTime.now().plusDays(7))
+                    .build();
+            refreshTokenRepository.save(refresh);
+
+            eventPublisher.publish("LOGIN_SUCCESS", user.getCustomerId(), user.getCustomerId(),
+                    Map.of("email", user.getEmail()));
+            authMetrics.recordLogin(role, "SUCCESS", "AUTHENTICATED");
+            return new TokenResponse(access.token(), rawRefresh, "Bearer", access.expiresIn(),
+                    user.getCustomerId(), access.roles(), false);
+        } finally {
+            authMetrics.recordLoginDuration(System.nanoTime() - start);
         }
-
-        user.setFailedLoginAttempts(0);
-        user.setLockedUntil(null);
-        user.setLastLoginAt(LocalDateTime.now());
-        userRepository.save(user);
-        recordLogin(user, LoginStatus.SUCCESS, ipAddress, userAgent);
-
-        var access = jwtService.generateAccessToken(user);
-        String rawRefresh = UUID.randomUUID().toString() + UUID.randomUUID();
-        RefreshToken refresh = RefreshToken.builder()
-                .user(user)
-                .tokenHash(tokenHashService.sha256(rawRefresh))
-                .expiresAt(LocalDateTime.now().plusDays(7))
-                .build();
-        refreshTokenRepository.save(refresh);
-
-        eventPublisher.publish("LOGIN_SUCCESS", user.getCustomerId(), user.getCustomerId(),
-                Map.of("email", user.getEmail()));
-        return new TokenResponse(access.token(), rawRefresh, "Bearer", access.expiresIn(),
-                user.getCustomerId(), access.roles(), false);
     }
 
     @Transactional
     public TokenResponse refresh(RefreshRequest request) {
-        RefreshToken stored = refreshTokenRepository.findByTokenHash(tokenHashService.sha256(request.refreshToken()))
-                .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
-        if (stored.getRevokedAt() != null || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BadCredentialsException("Refresh token is expired or revoked");
+        try {
+            RefreshToken stored = refreshTokenRepository.findByTokenHash(tokenHashService.sha256(request.refreshToken()))
+                    .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+            if (stored.getRevokedAt() != null || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
+                throw new BadCredentialsException("Refresh token is expired or revoked");
+            }
+
+            stored.setRevokedAt(LocalDateTime.now());
+            refreshTokenRepository.save(stored);
+
+            AuthUser user = stored.getUser();
+            var access = jwtService.generateAccessToken(user);
+            String rawRefresh = UUID.randomUUID().toString() + UUID.randomUUID();
+            refreshTokenRepository.save(RefreshToken.builder()
+                    .user(user)
+                    .tokenHash(tokenHashService.sha256(rawRefresh))
+                    .expiresAt(LocalDateTime.now().plusDays(7))
+                    .build());
+
+            authMetrics.recordTokenRefresh("SUCCESS");
+            return new TokenResponse(access.token(), rawRefresh, "Bearer", access.expiresIn(),
+                    user.getCustomerId(), access.roles(), false);
+        } catch (Exception e) {
+            authMetrics.recordTokenRefresh("FAILURE");
+            throw e;
         }
-
-        stored.setRevokedAt(LocalDateTime.now());
-        refreshTokenRepository.save(stored);
-
-        AuthUser user = stored.getUser();
-        var access = jwtService.generateAccessToken(user);
-        String rawRefresh = UUID.randomUUID().toString() + UUID.randomUUID();
-        refreshTokenRepository.save(RefreshToken.builder()
-                .user(user)
-                .tokenHash(tokenHashService.sha256(rawRefresh))
-                .expiresAt(LocalDateTime.now().plusDays(7))
-                .build());
-
-        return new TokenResponse(access.token(), rawRefresh, "Bearer", access.expiresIn(),
-                user.getCustomerId(), access.roles(), false);
     }
 
     @Transactional
@@ -154,6 +182,7 @@ public class AuthService {
                     refreshTokenRepository.save(token);
                     recordLogin(token.getUser(), LoginStatus.LOGOUT, null, null);
                 });
+        authMetrics.recordLogout();
         return new MessageResponse("Logout successful");
     }
 
@@ -176,6 +205,7 @@ public class AuthService {
                 .expiresAt(LocalDateTime.now().plusMinutes(15))
                 .build());
 
+        authMetrics.recordPasswordReset("REQUEST", "SUCCESS");
         return new ForgotPasswordResponse(
                 "A 6-digit verification OTP has been dispatched to your registered email address.",
                 resetToken,
@@ -188,6 +218,7 @@ public class AuthService {
     public MessageResponse resetPassword(ResetPasswordRequest request) {
         String rawToken = request.token();
         if (rawToken == null || rawToken.isBlank()) {
+            authMetrics.recordPasswordReset("RESET", "FAILURE_NO_TOKEN");
             throw new IllegalArgumentException("Password reset token must be provided");
         }
         rawToken = rawToken.trim();
@@ -197,17 +228,23 @@ public class AuthService {
 
         // 1. Verify token is a valid JWT with purpose PASSWORD_RESET
         if (!jwtService.validateToken(rawToken)) {
+            authMetrics.recordPasswordReset("RESET", "FAILURE_INVALID_TOKEN");
             throw new IllegalArgumentException("Invalid or expired password reset token");
         }
         String purpose = jwtService.extractPurpose(rawToken);
         if (!"PASSWORD_RESET".equalsIgnoreCase(purpose)) {
+            authMetrics.recordPasswordReset("RESET", "FAILURE_UNAUTHORIZED_PURPOSE");
             throw new IllegalArgumentException("Token is not authorized for password reset");
         }
 
         // 2. Verify token hash exists in database and has not been used or expired
         PasswordResetToken stored = passwordResetTokenRepository.findByTokenHash(tokenHashService.sha256(rawToken))
-                .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
+                .orElseThrow(() -> {
+                    authMetrics.recordPasswordReset("RESET", "FAILURE_TOKEN_NOT_FOUND");
+                    return new IllegalArgumentException("Invalid password reset token");
+                });
         if (stored.getUsedAt() != null || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
+            authMetrics.recordPasswordReset("RESET", "FAILURE_TOKEN_EXPIRED");
             throw new IllegalArgumentException("Password reset token is expired or already used");
         }
 
@@ -224,13 +261,17 @@ public class AuthService {
 
         // Publish audit event for password reset completion (no secret token involved)
         eventPublisher.publish("PASSWORD_RESET_COMPLETED", user.getCustomerId(), user.getCustomerId(), Map.of());
+        authMetrics.recordPasswordReset("RESET", "SUCCESS");
         return new MessageResponse("Password reset successful");
     }
 
     @Transactional
     public MessageResponse verifyOtp(VerifyOtpRequest request) {
         AuthUser user = userRepository.findByEmailIgnoreCase(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid OTP request"));
+                .orElseThrow(() -> {
+                    authMetrics.recordOtpVerified(request.purpose() != null ? request.purpose().name() : "UNKNOWN", "USER_NOT_FOUND");
+                    return new IllegalArgumentException("Invalid OTP request");
+                });
         verifyOtpForUser(user, request.otp(), OtpPurpose.valueOf(request.purpose().name()));
         if (request.purpose() == OtpPurposeDto.EMAIL_VERIFICATION) {
             user.setEmailVerified("Y");
@@ -241,6 +282,17 @@ public class AuthService {
 
     @Transactional
     public void issueOtp(AuthUser user, OtpPurpose purpose) {
+        // Enforce 30-second rate limiting cooldown per user and purpose
+        java.util.Optional<EmailOtp> latestOtp = otpRepository
+                .findTopByUserUserIdAndOtpPurposeAndVerifiedAtIsNullOrderByCreatedAtDesc(user.getUserId(), purpose);
+        if (latestOtp.isPresent() && latestOtp.get().getCreatedAt() != null) {
+            long secondsSinceLast = java.time.Duration.between(latestOtp.get().getCreatedAt(), LocalDateTime.now()).getSeconds();
+            if (secondsSinceLast >= 0 && secondsSinceLast < 30) {
+                long waitTime = 30 - secondsSinceLast;
+                throw new IllegalArgumentException("Please wait " + waitTime + " seconds before requesting a new OTP.");
+            }
+        }
+
         int code = 100000 + secureRandom.nextInt(900000);
         EmailOtp otp = EmailOtp.builder()
                 .user(user)
@@ -248,28 +300,37 @@ public class AuthService {
                 .otpPurpose(purpose)
                 .expiresAt(LocalDateTime.now().plusMinutes(5))
                 .attemptCount(0)
+                .createdAt(LocalDateTime.now())
                 .build();
         otpRepository.save(otp);
         eventPublisher.publish("OTP_ISSUED", user.getCustomerId(), user.getCustomerId(),
                 Map.of("email", user.getEmail(), "purpose", purpose.name(), "otp", String.format("%06d", code)));
+        authMetrics.recordOtpIssued(purpose.name());
     }
 
     private void verifyOtpForUser(AuthUser user, String rawOtp, OtpPurpose purpose) {
         EmailOtp otp = otpRepository.findTopByUserUserIdAndOtpPurposeAndVerifiedAtIsNullOrderByCreatedAtDesc(user.getUserId(), purpose)
-                .orElseThrow(() -> new IllegalArgumentException("OTP not found"));
+                .orElseThrow(() -> {
+                    authMetrics.recordOtpVerified(purpose.name(), "OTP_NOT_FOUND");
+                    return new IllegalArgumentException("OTP not found");
+                });
         if (otp.getExpiresAt().isBefore(LocalDateTime.now())) {
+            authMetrics.recordOtpVerified(purpose.name(), "EXPIRED");
             throw new IllegalArgumentException("OTP expired");
         }
         if (otp.getAttemptCount() >= 5) {
+            authMetrics.recordOtpVerified(purpose.name(), "LIMIT_EXCEEDED");
             throw new IllegalArgumentException("OTP attempt limit exceeded");
         }
         otp.setAttemptCount(otp.getAttemptCount() + 1);
         if (!passwordEncoder.matches(rawOtp, otp.getOtpHash())) {
             otpRepository.save(otp);
+            authMetrics.recordOtpVerified(purpose.name(), "INVALID");
             throw new BadCredentialsException("Invalid OTP");
         }
         otp.setVerifiedAt(LocalDateTime.now());
         otpRepository.save(otp);
+        authMetrics.recordOtpVerified(purpose.name(), "SUCCESS");
     }
 
     private boolean isLocked(AuthUser user) {
@@ -296,5 +357,12 @@ public class AuthService {
                 .ipAddress(ipAddress)
                 .userAgent(userAgent)
                 .build());
+    }
+
+    @Transactional(readOnly = true)
+    public UserSummaryResponse getUserByCustomerId(String customerId) {
+        AuthUser user = userRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found for customerId: " + customerId));
+        return new UserSummaryResponse(user.getCustomerId(), user.getEmail(), user.getAccountStatus().name());
     }
 }

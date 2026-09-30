@@ -16,6 +16,9 @@ public interface AccountServiceClient {
     @GetMapping("/api/accounts/{accountId}")
     AccountResponse getAccount(@PathVariable("accountId") Long accountId);
 
+    @GetMapping("/api/accounts/number/{accountNumber}")
+    AccountResponse getByAccountNumber(@PathVariable("accountNumber") String accountNumber);
+
     @PostMapping("/api/accounts/{accountId}/debit")
     BalanceOperationResponse debit(@PathVariable("accountId") Long accountId, @RequestBody BalanceOperationRequest request);
 
@@ -28,6 +31,7 @@ public interface AccountServiceClient {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AccountResponse(
             @JsonAlias({"id", "accountId"}) Long accountId,
+            String accountNumber,
             String customerId,
             @JsonAlias({"status", "accountStatus"}) String accountStatus,
             String currencyCode

@@ -106,7 +106,6 @@
 
         <!-- Account Metadata -->
         <div style="font-size: 0.75rem; color: var(--nb-text-muted); margin-bottom: 1rem;">
-          <span>Account ID: <strong data-bind="text: id"></strong></span> &bull;
           <span>Currency: <strong data-bind="text: currencyCode"></strong></span>
           <!-- ko if: approvedAt -->
           &bull; <span>Approved: <span data-bind="text: approvedAt.substring(0, 10)"></span></span>
@@ -121,7 +120,7 @@
             <!-- ko if: pinSet -->Update 4-Digit PIN<!-- /ko -->
             <!-- ko ifnot: pinSet -->Set 4-Digit PIN<!-- /ko -->
           </button>
-          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { window.location.hash = '#transfers'; }">
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: $parent.goToTransfers">
             <span class="oj-ux-ico-exchange"></span>
             Transfer
           </button>
@@ -139,7 +138,7 @@
   <!-- /ko -->
 
   <!-- Dialog: Set / Update 4-Digit PIN (Req 4) -->
-  <oj-dialog id="setPinDialog" :dialog-title="[[isUpdatingPin() ? 'Update Security PIN' : 'Configure Security PIN']]" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="setPinDialog" :dialog-title="[[isUpdatingPin() ? 'Update Security PIN' : 'Configure Security PIN']]" aria-describedby="descPin" style="width: 420px; max-width: 95%;">
     <div slot="body">
       <p id="descPin" style="font-size: 0.88rem; color: var(--nb-text-muted);">
         Account: <strong class="nb-account-number" data-bind="text: selectedAccountNumber"></strong>
@@ -169,7 +168,7 @@
   </oj-dialog>
 
   <!-- Dialog: Open New Account (Enforces 1 Savings & 1 Current max) -->
-  <oj-dialog id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 440px; max-width: 95%;">
+  <oj-dialog class="nb-theme-dialog" id="accCreateDialog" dialog-title="Apply for New Bank Account" aria-describedby="descAccCreate" style="width: 440px; max-width: 95%;">
     <div slot="body">
       <!-- ko if: !canOpenAccount() -->
       <div class="nb-alert nb-alert-info" style="margin-bottom: 1rem;">

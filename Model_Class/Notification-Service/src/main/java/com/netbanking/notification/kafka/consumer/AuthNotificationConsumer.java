@@ -22,9 +22,12 @@ public class AuthNotificationConsumer {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
-    @KafkaListener(topics = "${notification.kafka.auth-topic:auth-events}", groupId = "${notification.kafka.group-id:notification-service-group}")
+    @KafkaListener(topics = "${notification.kafka.auth-topic:auth-events}", groupId = "${notification.kafka.auth-group-id:notification-service-auth-group}")
     public void consume(String payload) {
         try {
+            if (payload != null && payload.startsWith("\uFEFF")) {
+                payload = payload.substring(1);
+            }
             JsonNode root = objectMapper.readTree(payload);
             String eventType = root.path("eventType").asText();
             if ("OTP_ISSUED".equalsIgnoreCase(eventType)) {

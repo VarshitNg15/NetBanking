@@ -50,12 +50,10 @@ public class PinService {
         Account a = accounts.account(id);
         boolean isUpdate = pins.existsById(id);
 
-        pins.save(pins.findById(id).map(p -> {
-            if (!encoder.matches(rawPin, p.getPinHash())) {
-                return new AccountPin(a, encoder.encode(rawPin));
-            }
-            return p;
-        }).orElseGet(() -> new AccountPin(a, encoder.encode(rawPin))));
+        AccountPin pinEntity = pins.findById(id).orElseGet(() -> new AccountPin(a, encoder.encode(rawPin)));
+        pinEntity.setPinHash(encoder.encode(rawPin));
+        pinEntity.reset();
+        pins.save(pinEntity);
 
         sendPinNotification(a, isUpdate, customerEmail);
     }

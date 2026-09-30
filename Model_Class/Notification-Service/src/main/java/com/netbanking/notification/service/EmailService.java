@@ -21,6 +21,7 @@ public class EmailService {
     private final EmailSender emailSender;
     private final NotificationRepository notificationRepository;
     private final NotificationDeliveryRepository deliveryRepository;
+    private final com.netbanking.notification.metrics.NotificationMetrics metrics;
 
     @Transactional
     public void send(Notification notification) {
@@ -35,6 +36,8 @@ public class EmailService {
                 .attemptedAt(LocalDateTime.now())
                 .build();
 
+        long start = System.nanoTime();
+        String type = notification.getEventType() != null ? notification.getEventType() : "GENERAL";
         try {
             emailSender.send(
                     notification.getRecipientEmail(),
@@ -47,11 +50,15 @@ public class EmailService {
             notification.setStatus(NotificationStatus.SENT);
             notification.setSentAt(LocalDateTime.now());
             notification.setFailureReason(null);
+            metrics.recordEmailDispatched(type, "SUCCESS");
         } catch (Exception ex) {
             delivery.setDeliveryStatus(DeliveryStatus.FAILED);
             delivery.setErrorMessage(ex.getMessage());
             notification.setStatus(NotificationStatus.FAILED);
             notification.setFailureReason(ex.getMessage());
+            metrics.recordEmailDispatched(type, "FAILURE");
+        } finally {
+            metrics.recordEmailDuration(System.nanoTime() - start);
         }
 
         deliveryRepository.save(delivery);

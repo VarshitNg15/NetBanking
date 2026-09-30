@@ -29,18 +29,18 @@ define([], function() {
     }
 
     // -------------------------------------------------------------
-    // Session & Auth State Management
+    // Session & Auth State Management (Persists on Refresh - Req 5)
     // -------------------------------------------------------------
     getToken() {
-      return sessionStorage.getItem('nb_access_token');
+      return localStorage.getItem('nb_access_token') || sessionStorage.getItem('nb_access_token');
     }
 
     getRefreshToken() {
-      return sessionStorage.getItem('nb_refresh_token');
+      return localStorage.getItem('nb_refresh_token') || sessionStorage.getItem('nb_refresh_token');
     }
 
     getUser() {
-      const raw = sessionStorage.getItem('nb_user');
+      const raw = localStorage.getItem('nb_user') || sessionStorage.getItem('nb_user');
       try {
         return raw ? JSON.parse(raw) : null;
       } catch (e) {
@@ -59,9 +59,11 @@ define([], function() {
 
     setSession(tokenResponse) {
       if (tokenResponse.accessToken) {
+        localStorage.setItem('nb_access_token', tokenResponse.accessToken);
         sessionStorage.setItem('nb_access_token', tokenResponse.accessToken);
       }
       if (tokenResponse.refreshToken) {
+        localStorage.setItem('nb_refresh_token', tokenResponse.refreshToken);
         sessionStorage.setItem('nb_refresh_token', tokenResponse.refreshToken);
       }
       const user = {
@@ -70,14 +72,20 @@ define([], function() {
         isAdmin: (tokenResponse.roles || []).includes('ADMIN'),
         email: tokenResponse.email || (this.getUser() ? this.getUser().email : '')
       };
+      localStorage.setItem('nb_user', JSON.stringify(user));
       sessionStorage.setItem('nb_user', JSON.stringify(user));
       this.notifyAuthChange(user);
     }
 
     clearSession() {
+      localStorage.removeItem('nb_access_token');
+      localStorage.removeItem('nb_refresh_token');
+      localStorage.removeItem('nb_user');
+      localStorage.removeItem('nb_last_path');
       sessionStorage.removeItem('nb_access_token');
       sessionStorage.removeItem('nb_refresh_token');
       sessionStorage.removeItem('nb_user');
+      sessionStorage.removeItem('nb_last_path');
       this.notifyAuthChange(null);
       this.navigate('login');
     }
@@ -112,8 +120,9 @@ define([], function() {
         if (user.customerId && !headers['X-Customer-Id']) {
           headers['X-Customer-Id'] = user.customerId;
         }
-        if (user.email && !headers['X-Customer-Email']) {
-          headers['X-Customer-Email'] = user.email;
+        if (user.email) {
+          if (!headers['X-Customer-Email']) headers['X-Customer-Email'] = user.email;
+          if (!headers['X-User-Email']) headers['X-User-Email'] = user.email;
         }
       }
 
@@ -276,6 +285,10 @@ define([], function() {
       return this.request(`/api/v1/accounts/${accountId}`);
     }
 
+    async getAccountByNumber(accountNumber) {
+      return this.request(`/api/v1/accounts/number/${encodeURIComponent(accountNumber)}`);
+    }
+
     async getBalance(accountId) {
       return this.request(`/api/v1/accounts/${accountId}/balance`);
     }
@@ -288,17 +301,76 @@ define([], function() {
     }
 
     async creditAccount(accountId, amount, description = 'Direct Deposit') {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Please enter a valid deposit amount greater than ₹0.00.');
+      }
+      if (parsedAmount > 10000000) {
+        throw new Error('Deposit amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR).');
+      }
+
       const ref = 'DEP-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-      return this.request(`/api/v1/accounts/${accountId}/credits`, {
+      const res = await this.request(`/api/v1/accounts/${accountId}/credits`, {
         method: 'POST',
         body: JSON.stringify({
           transactionReference: ref,
           entryReference: ref + '-CREDIT',
-          amount: parseFloat(amount),
-          description: description,
+          amount: parsedAmount,
+          description: description || 'Admin Direct Deposit',
           createdBy: this.getUser() ? (this.getUser().customerId || this.getUser().email) : 'ADMIN'
         })
       });
+
+      // Dispatch real-time credit alert email to customer
+      try {
+        let acc = null;
+        try {
+          acc = await this.getAccount(accountId);
+        } catch (e) {
+          console.warn('Could not fetch account details for deposit email:', e);
+        }
+
+        const customerId = acc ? acc.customerId : null;
+        let recipientEmail = null;
+
+        if (customerId) {
+          try {
+            const userSummary = await this.request(`/api/v1/auth/users/${encodeURIComponent(customerId)}`);
+            if (userSummary && userSummary.email) {
+              recipientEmail = userSummary.email.trim();
+            }
+          } catch (e) {
+            console.warn('Could not fetch customer email from auth-service:', e);
+          }
+        }
+
+        if (recipientEmail) {
+          const accNumber = (acc && acc.accountNumber) ? acc.accountNumber : ('#' + accountId);
+          const curr = (acc && acc.currencyCode) ? acc.currencyCode : 'INR';
+          const formattedAmt = parsedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const subject = `NetBanking Alert: Account Credited (${curr} ${formattedAmt})`;
+          const body = `Dear Customer,\n\nYour NetBanking Account ${accNumber} has been credited with ${curr} ${formattedAmt} via Admin Direct Deposit (Ref: ${ref}).\n\nTransaction Summary:\n• Reference: ${ref}\n• Credited Amount: ${curr} ${formattedAmt}\n• Account Number: ${accNumber}\n• Description / Memo: ${description || 'Admin Cash Deposit'}\n• Timestamp: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n\nWarm regards,\nNetBanking Alerts`;
+
+          await this.request('/api/v1/notifications', {
+            method: 'POST',
+            body: JSON.stringify({
+              eventId: ref,
+              eventType: 'TRANSFER_CREDIT',
+              customerId: customerId || 'CUSTOMER',
+              recipientEmail: recipientEmail,
+              subject: subject,
+              messageBody: body
+            })
+          });
+          console.info(`Credit email notification successfully dispatched to ${recipientEmail} for deposit ${ref}`);
+        } else {
+          console.warn(`Could not resolve registered email for customer ${customerId}. Credit email skipped.`);
+        }
+      } catch (notifErr) {
+        console.error('Failed to dispatch deposit credit email:', notifErr);
+      }
+
+      return res;
     }
 
     async setPin(accountId, pin) {
@@ -327,29 +399,48 @@ define([], function() {
     // -------------------------------------------------------------
     // Transfers & Transactions Endpoints
     // -------------------------------------------------------------
-    async transfer(fromAccountId, toAccountId, amount, description = 'Fund Transfer', pin = null) {
+    async transfer(fromAccountId, beneficiaryAccountNumber, amount, description = 'Fund Transfer', pin = null) {
       const user = this.getUser() || {};
       const customerId = user.customerId || '';
       const email = user.email || '';
 
-      // 1. Resolve destination account ID if an account number (e.g. "NB...") was provided
-      let resolvedToId = toAccountId;
-      const cleanTo = String(toAccountId).trim();
-      if (cleanTo.startsWith('NB') || isNaN(Number(cleanTo))) {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Please enter a valid positive transfer amount.');
+      }
+      if (parsedAmount > 10000000) {
+        throw new Error('Transfer amount exceeds maximum allowed limit of ₹1,00,00,000 (1 Crore INR).');
+      }
+
+      // 1. Strictly enforce Account Number transfer (must start with NB) - DB IDs not permitted
+      const cleanAcc = String(beneficiaryAccountNumber || '').trim().toUpperCase();
+      if (!cleanAcc.startsWith('NB')) {
+        throw new Error('Customer transfers must be made using a valid NetBanking Account Number starting with "NB" (e.g. NB221992311862871354). Transfers with Database IDs are not permitted.');
+      }
+
+      // 2. Validate beneficiary account existence
+      let destAccount = null;
+      try {
+        destAccount = await this.getAccountByNumber(cleanAcc);
+      } catch (lookupErr) {
         try {
           const allAccs = await this.getAllAccounts();
-          const match = (allAccs || []).find(a => a.accountNumber === cleanTo || String(a.id) === cleanTo);
-          if (match && match.id) {
-            resolvedToId = match.id;
-          } else {
-            throw new Error(`Beneficiary account "${cleanTo}" not found in system.`);
-          }
+          destAccount = (allAccs || []).find(a => a.accountNumber && a.accountNumber.toUpperCase() === cleanAcc);
         } catch (e) {
-          if (e.message && e.message.includes('not found')) throw e;
+          // ignore
         }
       }
 
-      // 2. Pre-verify security PIN if provided
+      if (!destAccount || (!destAccount.id && !destAccount.accountId && !destAccount.accountNumber)) {
+        throw new Error(`Beneficiary account "${cleanAcc}" not found in NetBanking records.`);
+      }
+
+      const status = destAccount.status || destAccount.accountStatus;
+      if (status && status !== 'ACTIVE') {
+        throw new Error(`Beneficiary account "${cleanAcc}" is not ACTIVE (Status: ${status}).`);
+      }
+
+      // 3. Pre-verify security PIN if provided
       if (pin) {
         try {
           const pinRes = await this.verifyPin(fromAccountId, pin);
@@ -367,7 +458,7 @@ define([], function() {
         }
       }
 
-      // 3. Post transfer to Transaction-Service
+      // 4. Post transfer to Transaction-Service sending ONLY destinationAccountNumber (DB ID omitted)
       const idempotencyKey = 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9).toUpperCase();
       return this.request('/api/v1/transactions/transfers', {
         method: 'POST',
@@ -379,7 +470,7 @@ define([], function() {
         },
         body: JSON.stringify({
           sourceAccountId: Number(fromAccountId),
-          destinationAccountId: Number(resolvedToId),
+          destinationAccountNumber: cleanAcc,
           amount: parseFloat(amount),
           currency: 'INR',
           description: description || 'Fund Transfer',
@@ -449,22 +540,12 @@ define([], function() {
     // -------------------------------------------------------------
     async getCustomerTransactions(customerId) {
       if (!customerId) return [];
-      try {
-        return await this.request(`/api/v1/transactions/customer/${encodeURIComponent(customerId)}`);
-      } catch (e) {
-        console.warn('Customer transactions fetch warning:', e.message);
-        return [];
-      }
+      return this.request(`/api/v1/transactions/customer/${encodeURIComponent(customerId)}`);
     }
 
     async getAccountTransactions(accountId) {
       if (!accountId) return [];
-      try {
-        return await this.request(`/api/v1/transactions/account/${encodeURIComponent(accountId)}`);
-      } catch (e) {
-        console.warn('Account transactions fetch warning:', e.message);
-        return [];
-      }
+      return this.request(`/api/v1/transactions/account/${encodeURIComponent(accountId)}`);
     }
 
     async requestStatement(accountId, fromDate = null, toDate = null, requestType = 'CSV') {
@@ -504,13 +585,24 @@ define([], function() {
       const token = this.getToken();
       const user = this.getUser();
       const custId = user ? user.customerId : '';
-      const headers = {};
+      const headers = { 'Accept': 'text/plain, text/csv, */*' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       if (custId) headers['X-Customer-Id'] = custId;
 
-      const res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
+      let res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
         headers: headers
       });
+
+      if (res.status === 401 && this.getRefreshToken()) {
+        const refreshed = await this.refresh();
+        if (refreshed) {
+          headers['Authorization'] = `Bearer ${this.getToken()}`;
+          res = await fetch(`${this.baseUrl}/api/v1/statements/${requestId}/download`, {
+            headers: headers
+          });
+        }
+      }
+
       if (!res.ok) {
         throw new Error(`Failed to download statement (${res.status} ${res.statusText})`);
       }
@@ -528,6 +620,12 @@ define([], function() {
         console.warn('Customers fetch warning:', e.message);
         return [];
       }
+    }
+
+    async updateCustomerStatus(customerId, status) {
+      return this.request(`/api/v1/customers/${encodeURIComponent(customerId)}/status?status=${encodeURIComponent(status)}`, {
+        method: 'PATCH'
+      });
     }
 
     async getAllNotifications() {

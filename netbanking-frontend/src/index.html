@@ -86,6 +86,14 @@
           <div class="oj-flex-bar-end oj-sm-align-items-center nb-header-right">
             <!-- When Logged In -->
             <div class="nb-user-chip" data-bind="visible: isLoggedIn">
+              <button type="button" class="nb-theme-toggle" data-bind="click: toggleTheme, attr: { 'aria-label': isDarkMode() ? 'Switch to light theme' : 'Switch to dark theme', title: isDarkMode() ? 'Switch to light theme' : 'Switch to dark theme' }">
+                <!-- ko if: isDarkMode -->
+                <span aria-hidden="true">☀</span>
+                <!-- /ko -->
+                <!-- ko ifnot: isDarkMode -->
+                <span aria-hidden="true">☾</span>
+                <!-- /ko -->
+              </button>
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline"
                 style="border: none; padding: 4px 8px; font-size: 1.1rem; color: var(--nb-primary); cursor: pointer;"
                 data-bind="click: goToNotifications" title="Notification Center">

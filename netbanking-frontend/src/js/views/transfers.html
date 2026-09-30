@@ -76,7 +76,7 @@
         <form data-bind="submit: handleTransfer">
           <!-- 1. Source Account -->
           <div class="nb-form-group">
-            <label class="nb-form-label" for="fromAccount">Select From Account</label>
+            <label class="nb-form-label" for="fromAccount">From Account</label>
             <select id="fromAccount" class="nb-input" data-bind="value: sourceAccountId">
               <!-- ko foreach: activeAccounts -->
               <option data-bind="value: id, text: accountNumber + ' (' + accountType + ') - ' + formattedAvailableBalance"></option>
@@ -89,15 +89,24 @@
 
           <!-- 2. Destination Account -->
           <div class="nb-form-group">
-            <label class="nb-form-label" for="toAccount">Destination Account ID or Number</label>
-            <input id="toAccount" type="text" class="nb-input" placeholder="e.g. 1 or NB221992311862871354" data-bind="textInput: targetAccountId" required />
-            <span style="font-size: 0.75rem; color: var(--nb-text-muted);">Enter the beneficiary's account number or internal Account ID.</span>
+            <label class="nb-form-label" for="toAccount">Beneficiary Account Number</label>
+            <input id="toAccount" type="text" class="nb-input" placeholder="e.g. NB221992311862871354" data-bind="textInput: targetAccountNumber" required />
+            <span style="font-size: 0.75rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Enter the beneficiary's NetBanking Account Number (starting with NB).</span>
+            <!-- ko if: otherAccounts().length > 0 -->
+            <div style="margin-top: 0.45rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span style="font-size: 0.72rem; color: var(--nb-text-muted); font-weight: 600;">My Other Account:</span>
+              <!-- ko foreach: otherAccounts -->
+              <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px;" data-bind="click: function() { $parent.selectBeneficiaryAccount(accountNumber); }, text: accountType + ' (' + accountNumber + ')'" title="Click to fill beneficiary account number"></button>
+              <!-- /ko -->
+            </div>
+            <!-- /ko -->
           </div>
 
           <!-- 3. Amount -->
           <div class="nb-form-group">
             <label class="nb-form-label" for="amt">Transfer Amount (₹ INR)</label>
-            <input id="amt" type="number" min="1" step="0.01" class="nb-input" placeholder="e.g. 2500.00" data-bind="textInput: transferAmount" required />
+            <input id="amt" type="number" min="1" max="10000000" step="0.01" class="nb-input" placeholder="e.g. 2500.00 (Max ₹1,00,00,000)" data-bind="textInput: transferAmount" required />
+            <span style="font-size: 0.72rem; color: var(--nb-text-muted); display: block; margin-top: 4px;">Per-transaction limit: Up to ₹1,00,00,000.00 (1 Crore INR).</span>
             <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('500'); }">+₹500</button>
               <button type="button" class="nb-btn nb-btn-sm nb-btn-outline" data-bind="click: function() { transferAmount('1000'); }">+₹1,000</button>

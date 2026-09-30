@@ -40,6 +40,19 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         return self.isAdmin() ? 'ADMIN' : 'CUSTOMER';
       });
 
+      // Theme preference is applied globally and remembered between visits.
+      const storedTheme = localStorage.getItem('nb_theme');
+      this.isDarkMode = ko.observable(storedTheme === 'dark');
+      this.applyTheme = (isDark) => {
+        document.body.classList.toggle('nb-dark-theme', isDark);
+        localStorage.setItem('nb_theme', isDark ? 'dark' : 'light');
+      };
+      this.applyTheme(this.isDarkMode());
+      this.toggleTheme = () => {
+        self.isDarkMode(!self.isDarkMode());
+        self.applyTheme(self.isDarkMode());
+      };
+
       // Navigation Routes Definition
       this.getAllNavData = () => {
         return [
@@ -91,34 +104,80 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       // Listen for router transitions to protect authenticated and role-based routes
       this.router.beforeStateChange.subscribe((change) => {
         const targetPath = change.state ? change.state.path : '';
+        if (targetPath && targetPath !== 'login') {
+          try { localStorage.setItem('nb_last_path', targetPath); } catch (e) {}
+        }
+
+        // If authenticated user attempts to load or refresh into login, redirect to active portal (Req 5)
+        if (targetPath === 'login' && apiService.isAuthenticated()) {
+          const savedPath = localStorage.getItem('nb_last_path');
+          let target = self.isAdmin() ? 'admin' : 'dashboard';
+          if (savedPath && savedPath !== 'login') {
+            if (self.isAdmin() && (savedPath === 'admin' || savedPath === 'notifications')) {
+              target = savedPath;
+            } else if (!self.isAdmin() && savedPath !== 'admin') {
+              target = savedPath;
+            }
+          }
+          change.accept(Promise.reject('Already authenticated'));
+          setTimeout(() => { apiService.navigate(target); }, 0);
+          return;
+        }
+
         if (!targetPath || targetPath === 'login') return;
 
         if (!apiService.isAuthenticated()) {
           change.accept(Promise.reject('Authentication required'));
-          setTimeout(() => { self.router.go({ path: 'login' }); }, 0);
+          setTimeout(() => { apiService.navigate('login'); }, 0);
           return;
         }
 
         // Protect Admin view from non-admin customers
         if (targetPath === 'admin' && !apiService.isAdmin()) {
           change.accept(Promise.reject('Admin privilege required'));
-          setTimeout(() => { self.router.go({ path: 'dashboard' }); }, 0);
+          setTimeout(() => { apiService.navigate('dashboard'); }, 0);
           return;
         }
 
         // Protect Admin from being diverted into customer retail views
         if ((targetPath === 'dashboard' || targetPath === 'accounts' || targetPath === 'transfers' || targetPath === 'transactions') && apiService.isAdmin()) {
           change.accept(Promise.reject('Redirecting admin to Admin Command Center'));
-          setTimeout(() => { self.router.go({ path: 'admin' }); }, 0);
+          setTimeout(() => { apiService.navigate('admin'); }, 0);
           return;
         }
       });
 
-      this.router.sync();
+      this.router.sync().then(() => {
+        // Handle page reload/refresh persistence (Req 5):
+        if (apiService.isAuthenticated()) {
+          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
+          const savedPath = localStorage.getItem('nb_last_path');
+
+          if (!currentPath || currentPath === 'login' || currentPath === '') {
+            let target = self.isAdmin() ? 'admin' : 'dashboard';
+            if (savedPath && savedPath !== 'login') {
+              if (self.isAdmin() && (savedPath === 'admin' || savedPath === 'notifications')) {
+                target = savedPath;
+              } else if (!self.isAdmin() && savedPath !== 'admin') {
+                target = savedPath;
+              }
+            }
+            apiService.navigate(target);
+          }
+        } else {
+          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
+          if (currentPath !== 'login') {
+            apiService.navigate('login');
+          }
+        }
+      }).catch((error) => {
+        // Route guards intentionally reject invalid transitions.
+        if (error) console.debug('Initial navigation transition:', error);
+      });
 
       // Direct navigation helper
       this.goTo = (path) => {
-        self.router.go({ path: path });
+        return apiService.navigate(path);
       };
 
       // Side Drawer
@@ -139,31 +198,24 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
         self.userLogin(user ? (user.email || user.customerId) : 'Guest');
         self.navDataProvider(new ArrayDataProvider(self.getDisplayNavData(), { keyAttributes: 'path' }));
 
-        if (!user) {
-          self.router.go({ path: 'login' });
-        } else if (self.isAdmin()) {
-          self.router.go({ path: 'admin' });
-        } else {
-          self.router.go({ path: 'dashboard' });
-        }
+        // The service or calling view performs the single, guarded navigation.
+        // Keeping this listener state-only avoids duplicate router transitions.
       });
 
       // Actions
       this.logout = async () => {
         await apiService.logout();
-        self.router.go({ path: 'login' });
       };
 
       this.goToNotifications = () => {
-        self.router.go({ path: 'notifications' });
+        return apiService.navigate('notifications');
       };
 
       // Footer Links
       this.footerLinks = [
         { name: 'API Gateway (8080)', linkId: 'gateway', linkTarget: 'http://localhost:8080/actuator/health' },
         { name: 'Swagger Docs', linkId: 'swagger', linkTarget: 'http://localhost:8081/swagger-ui/index.html' },
-        { name: 'Eureka Dashboard', linkId: 'eureka', linkTarget: 'http://localhost:8761' },
-        { name: 'Security Notice', linkId: 'security', linkTarget: '#' }
+        { name: 'Eureka Dashboard', linkId: 'eureka', linkTarget: 'http://localhost:8761' }
       ];
     }
 

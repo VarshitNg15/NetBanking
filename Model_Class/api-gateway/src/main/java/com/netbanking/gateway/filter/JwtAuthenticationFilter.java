@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/reset-password",
             "/v3/api-docs",
             "/swagger-ui",
-            "/actuator/health"
+            "/actuator"
     );
 
     @Override

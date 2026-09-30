@@ -1,4 +1,5 @@
 server:
+  address: 0.0.0.0
   port: ${TRANSACTION_SERVER_PORT:${SERVER_PORT:8084}}
 
 spring:
@@ -28,6 +29,8 @@ clients:
     url: ${ACCOUNT_SERVICE_URL:http://localhost:8083}
   user-service:
     url: ${USER_SERVICE_URL:http://localhost:8082}
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
 
 kafka:
   topic:
@@ -47,10 +50,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
+      access: unrestricted
 
 logging:
   level:

@@ -24,10 +24,11 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+        max.block.ms: 3000
 
 server:
-   address: 0.0.0.0
-   port: ${AUTH_SERVER_PORT:${SERVER_PORT:8081}}
+  address: 0.0.0.0
+  port: ${AUTH_SERVER_PORT:${SERVER_PORT:8081}}
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:900000} # 15 minutes (ms)
@@ -66,7 +67,8 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
+      access: unrestricted

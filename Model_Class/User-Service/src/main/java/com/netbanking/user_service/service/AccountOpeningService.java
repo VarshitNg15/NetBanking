@@ -21,12 +21,10 @@ import java.util.List;
 public class AccountOpeningService {
 
     private final AccountOpeningRequestRepository requestRepository;
-
     private final AccountOpeningRequestTypeRepository requestTypeRepository;
-
     private final AccountServiceClient accountServiceClient;
-    
     private final CustomerService customerService;
+    private final com.netbanking.user_service.metrics.UserMetrics userMetrics;
 
     public AccountOpeningResponseDto createRequest(
             AccountOpeningRequestDto request
@@ -42,6 +40,17 @@ public class AccountOpeningService {
                     "Request already exists: "
                             + request.getRequestId()
             );
+        }
+
+        if (customer.getCustomerProfile() != null && customer.getCustomerProfile().getDateOfBirth() != null) {
+            java.time.LocalDate minDob = java.time.LocalDate.of(1925, 1, 1);
+            if (customer.getCustomerProfile().getDateOfBirth().isBefore(minDob)) {
+                throw new IllegalArgumentException("Date of birth should start from 01-01-1925, not before that");
+            }
+            java.time.LocalDate maxDob = java.time.LocalDate.now().minusYears(18);
+            if (customer.getCustomerProfile().getDateOfBirth().isAfter(maxDob)) {
+                throw new IllegalArgumentException("Minimum age to open account is 18 years from current date");
+            }
         }
 
         validateAccountTypes(request.getAccountTypes());
@@ -73,7 +82,10 @@ public class AccountOpeningService {
             requestTypeRepository.save(requestType);
         }
 
-        return toResponse(savedRequest);
+        AccountOpeningResponseDto response = toResponse(savedRequest);
+        String types = request.getAccountTypes() != null ? String.join(",", request.getAccountTypes()) : "UNKNOWN";
+        userMetrics.recordAccountOpening("SUBMIT", types, "SUCCESS");
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -107,7 +119,7 @@ public class AccountOpeningService {
 
     @Transactional(readOnly = true)
     public List<AccountOpeningResponseDto> getPendingRequests() {
-
+        userMetrics.recordGovernanceQuery("PENDING_ONBOARDING");
         return requestRepository
                 .findByRequestStatus("PENDING")
                 .stream()
@@ -130,6 +142,15 @@ public class AccountOpeningService {
         request.setReviewedAt(LocalDateTime.now());
         request.setUpdatedAt(LocalDateTime.now());
 
+        if (request.getCustomer() != null && request.getCustomer().getCustomerId() != null) {
+            try {
+                customerService.updateCustomerStatus(request.getCustomer().getCustomerId(), "ACTIVE");
+            } catch (Exception e) {
+                // If already active or error, do not fail approval
+            }
+        }
+
+        userMetrics.recordAccountOpening("APPROVE", "ALL", "SUCCESS");
         return toResponse(
                 requestRepository.save(request)
         );
@@ -158,6 +179,7 @@ public class AccountOpeningService {
         request.setRejectionReason(reason);
         request.setUpdatedAt(LocalDateTime.now());
 
+        userMetrics.recordAccountOpening("REJECT", "ALL", "SUCCESS");
         return toResponse(
                 requestRepository.save(request)
         );
