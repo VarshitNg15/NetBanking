@@ -26,8 +26,8 @@ spring:
         spring.json.add.type.headers: false
 
 server:
-  port: ${AUTH_SERVER_PORT:8081}
-
+   address: 0.0.0.0
+   port: ${AUTH_SERVER_PORT:${SERVER_PORT:8081}}
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:900000} # 15 minutes (ms)
