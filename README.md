@@ -1,110 +1,93 @@
+<div align="center">
+
 # NetBanking Microservices Platform
 
-<span align="center">
-  <strong>Java 17</strong> • <strong>Spring Boot 3.5</strong> • <strong>Oracle JET</strong> • <strong>Maven</strong> • <strong>Podman</strong> • <strong>Prometheus / Grafana</strong>
-</span>
+### A modern, event-driven digital banking demo
 
-A beginner-friendly banking demo built with Spring Boot microservices and an Oracle JET frontend. The application includes authentication, user management, account operations, transactions, and notifications.
+[![Java](https://img.shields.io/badge/Java-17-8B1E1E?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-1F6B4A?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Oracle JET](https://img.shields.io/badge/Oracle_JET-Frontend-C74634?style=for-the-badge&logo=oracle&logoColor=white)](https://www.oracle.com/webfolder/technetwork/jet/index.html)
+[![Maven](https://img.shields.io/badge/Maven-Build-5E2D79?style=for-the-badge&logo=apachemaven&logoColor=white)](https://maven.apache.org/)
 
-> This project simulates a digital banking platform with user registration, JWT-based authentication, account management, transaction processing, notifications, and service discovery.
+`Java 17` • `Spring Boot 3.5` • `Oracle JET` • `Kafka` • `Podman`
 
-## Overview
+</div>
 
-This project simulates a digital banking platform with:
+> [!NOTE]
+> A beginner-friendly banking platform built with Spring Boot microservices and an Oracle JET frontend. It demonstrates registration, JWT authentication, account operations, transactions, notifications, monitoring, and service discovery.
 
-- User registration and login
-- JWT-based authentication
-- API gateway routing and rate limiting
-- Customer and account management
-- Transaction processing and ledger flows
-- Notification and audit events
-- Service discovery with Eureka
-- Oracle JET frontend UI
+## ✦ Overview
 
-The backend is split into separate services so each business area can be developed and run independently.
+The application is split by business domain, so each service can be developed and run independently while the API gateway offers one entry point for clients.
 
-## Key features
+| Capability | Included |
+| --- | --- |
+| **Identity** | User registration, login, JWT, and OTP flows |
+| **Core banking** | Customer profiles, accounts, balances, transfers, and statements |
+| **Platform** | Eureka discovery, gateway routing, Redis rate limiting, Kafka events |
+| **Observability** | Actuator, Prometheus, and Grafana dashboards |
+| **Experience** | Oracle JET banking portal |
 
-- Secure JWT-based auth and gateway validation
-- Microservice separation for auth, user, account, transaction, and notification domains
-- Oracle database-backed persistence and schema separation
-- Kafka event-driven communication for notifications and domain events
-- Redis-backed rate limiting in the gateway
-- Eureka service discovery
-- Oracle JET frontend for the banking portal
-- Spring Boot Actuator metrics with Prometheus and Grafana dashboards
+## ✦ Architecture at a glance
 
-## Architecture at a glance
-
-| Component | Port | Purpose |
+| Component | Port | Responsibility |
 | --- | ---: | --- |
-| Frontend | 8000 | Oracle JET web app |
-| API Gateway | 8080 | Main entry point for client requests |
-| Eureka Server | 8761 | Service discovery dashboard |
-| Auth Service | 8081 | Register, login, JWT, OTP |
-| User Service | 8082 | Customer profile data |
-| Account Service | 8083 | Accounts and balances |
-| Transaction Service | 8084 | Transfers and statements |
-| Notification Service | 8085 | Email/notification flows |
-| Prometheus | 9090 | Scrapes Spring Boot metrics via /actuator/prometheus |
-| Grafana | 3000 | Visualizes metrics and dashboards |
+| **Frontend** | `8000` | Oracle JET web application |
+| **API Gateway** | `8080` | Client entry point, routing, and rate limiting |
+| **Eureka Server** | `8761` | Service discovery |
+| **Auth Service** | `8081` | Registration, login, JWT, and OTP |
+| **User Service** | `8082` | Customer profile data |
+| **Account Service** | `8083` | Accounts and balances |
+| **Transaction Service** | `8084` | Transfers and statements |
+| **Notification Service** | `8085` | Email and notification flows |
+| **Prometheus** | `9090` | Metrics collection |
+| **Grafana** | `3000` | Metrics dashboards |
 
-## Tech stack
+## ✦ Technology
 
 | Layer | Technology |
 | --- | --- |
 | Language | Java 17 |
-| Backend framework | Spring Boot 3.5 |
-| Service discovery | Eureka |
-| API gateway | Spring Cloud Gateway |
-| Security | Spring Security + JWT |
-| Persistence | Oracle JDBC / JPA |
-| Messaging | Kafka |
-| Caching / rate limiting | Redis |
+| Backend | Spring Boot 3.5, Spring Cloud Gateway, Spring Security |
+| Data | Oracle JDBC / JPA |
+| Events and cache | Kafka, Redis |
+| Discovery | Eureka |
 | Frontend | Oracle JET |
-| Build tool | Maven |
-| Container runtime | Podman |
-| Metrics / telemetry | Micrometer, Prometheus, Grafana |
-| API docs | SpringDoc OpenAPI / Swagger UI |
+| Tooling | Maven, Podman |
+| Observability | Micrometer, Prometheus, Grafana |
+| API documentation | SpringDoc OpenAPI / Swagger UI |
 
-## Prerequisites
-
-Before you start, make sure you have:
+## ✦ Prerequisites
 
 - Java 17+ and Maven 3.9+
 - Node.js 16+ and npm
-- Oracle database with a running FreePDB1 instance
-- Kafka broker on `localhost:9092`
-- Redis on `localhost:6379`
-- Podman (if you want to use the included container startup scripts)
+- Oracle Database with a running `FREEPDB1` instance
+- Kafka at `localhost:9092` and Redis at `localhost:6379`
+- Podman *(for the included container startup scripts)*
 - Git
 
-## Installation
+## ✦ Get started
 
-1. Clone the repository:
+### 1. Clone the repository
 
 ```bash
 git clone <your-repo-url>
 cd NetBanking
 ```
 
-2. Create your environment file from the template:
-
-On Linux/macOS:
+### 2. Configure your environment
 
 ```bash
+# Linux / macOS
 cp .env.example .env
 ```
 
-On Windows PowerShell:
-
 ```powershell
+# Windows PowerShell
 Copy-Item .env.example .env
 ```
 
-3. Edit `.env` and replace placeholders with your database, JWT, and service settings.
-
-Example values:
+Update `.env` with your local credentials and service configuration:
 
 ```env
 JWT_SECRET=your_base64_encoded_256_bit_secret_key_here
@@ -116,14 +99,15 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
-4. Install frontend dependencies:
+> [!IMPORTANT]
+> Never commit `.env` files or real secrets. Use a strong, shared `JWT_SECRET` in both the Auth Service and API Gateway.
+
+### 3. Install and build
 
 ```bash
 cd netbanking-frontend
 npm install
 ```
-
-5. Build Java services (optional but recommended):
 
 ```bash
 cd Model_Class/eureka-server && mvn clean install
@@ -135,97 +119,34 @@ cd ../Notification-Service && mvn clean install
 cd ../api-gateway && mvn clean install
 ```
 
-## Configuration and environment variables
+## ✦ Run the platform
 
-The project uses environment variables for runtime settings. The main templates are:
-
-- `.env.example` at the project root
-- `Model_Class/api-gateway/.env.example`
-- `Model_Class/auth-service/.env.example`
-
-Important settings include:
-
-- `JWT_SECRET` for auth and gateway validation
-- `AUTH_DB_URL`, `USER_DB_URL`, `ACCOUNT_DB_URL`, etc.
-- `KAFKA_BOOTSTRAP_SERVERS`
-- `REDIS_HOST` and `REDIS_PORT`
-- `EUREKA_URI`
-
-A common example is:
-
-```env
-JWT_SECRET=your_base64_encoded_256_bit_secret_key_here
-EUREKA_URI=http://localhost:8761/eureka/
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-For quick reference, the root `.env.example` defines the full set of service and infrastructure values for the app.
-
-## Run and build commands
-
-### One-click startup
-
-On Windows PowerShell:
+### One-click startup — Windows
 
 ```powershell
 ./start_netbanking.ps1
 ```
 
-Or double-click:
-
-```powershell
-start_netbanking.bat
-```
-
-This script starts:
-
-- Podman infrastructure containers
-- Eureka discovery server
-- Backend microservices
-- API gateway
-- Frontend app
+Or run `start_netbanking.bat`. This starts Podman infrastructure, Eureka, backend services, gateway, and frontend.
 
 ### Manual startup
 
-Start discovery first:
+Start Eureka first:
 
 ```bash
 cd Model_Class/eureka-server
 mvn spring-boot:run
 ```
 
-Then start each service in its own terminal:
+Then, in separate terminals, start each service:
 
 ```bash
-cd Model_Class/auth-service
-mvn spring-boot:run
-```
-
-```bash
-cd "Model_Class/User-Service"
-mvn spring-boot:run
-```
-
-```bash
-cd "Model_Class/Account-Service"
-mvn spring-boot:run
-```
-
-```bash
-cd "Model_Class/Transaction-service"
-mvn spring-boot:run
-```
-
-```bash
-cd "Model_Class/Notification-Service"
-mvn spring-boot:run
-```
-
-```bash
-cd "Model_Class/api-gateway"
-mvn spring-boot:run
+cd Model_Class/auth-service && mvn spring-boot:run
+cd Model_Class/User-Service && mvn spring-boot:run
+cd Model_Class/Account-Service && mvn spring-boot:run
+cd Model_Class/Transaction-service && mvn spring-boot:run
+cd Model_Class/Notification-Service && mvn spring-boot:run
+cd Model_Class/api-gateway && mvn spring-boot:run
 ```
 
 Finally, start the frontend:
@@ -235,87 +156,53 @@ cd netbanking-frontend
 node server.js
 ```
 
-### Test commands
-
-The Spring Boot services are set up with Maven and include `spring-boot-starter-test`, so the standard Maven test command applies for each service:
-
-```bash
-mvn test
-```
-
-Run this inside a service directory such as:
-
-```bash
-cd Model_Class/auth-service
-mvn test
-```
-
-### Stop the app
+### Stop the platform
 
 ```powershell
 ./stop_netbanking.ps1
-```
-
-Or:
-
-```powershell
-stop_netbanking.bat
-```
-
-To also stop the infrastructure containers:
-
-```powershell
+# Add -Containers to stop infrastructure too
 ./stop_netbanking.ps1 -Containers
 ```
 
-## Default URLs
+## ✦ Configuration
 
-After startup, the project is typically available at:
+Configuration templates:
 
-- Frontend: http://localhost:8000
-- API Gateway: http://localhost:8080
-- Eureka Dashboard: http://localhost:8761
-- Auth Swagger: http://localhost:8081/swagger-ui/index.html
-- User Swagger: http://localhost:8082/swagger-ui/index.html
-- Account Swagger: http://localhost:8083/swagger-ui/index.html
-- Transaction Swagger: http://localhost:8084/swagger-ui/index.html
-- Notification Swagger: http://localhost:8085/swagger-ui/index.html
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
+- `.env.example`
+- `Model_Class/api-gateway/.env.example`
+- `Model_Class/auth-service/.env.example`
 
-## Monitoring and observability
+| Variable | Purpose |
+| --- | --- |
+| `JWT_SECRET` | Signs and validates authentication tokens |
+| `AUTH_DB_URL`, `USER_DB_URL`, `ACCOUNT_DB_URL` | Service database connections |
+| `EUREKA_URI` | Eureka server address |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address |
+| `REDIS_HOST`, `REDIS_PORT` | Redis connection for gateway rate limiting |
 
-The backend services expose Micrometer metrics through Spring Boot Actuator on `/actuator/prometheus`, and the repository includes a Prometheus scrape configuration at `Monitoring/prometheus.yml` plus a prebuilt Grafana dashboard at `Monitoring/netbanking-frontend-operations-dashboard.json`.
-
-### Start Prometheus
-
-```bash
-cd Monitoring
-prometheus --config.file=prometheus.yml
+```env
+EUREKA_URI=http://localhost:8761/eureka/
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
-Or run it with Podman if you prefer:
+## ✦ Local endpoints
 
-```bash
-podman run -d --name prometheus -p 9090:9090 \
-  -v "${PWD}/Monitoring/prometheus.yml:/etc/prometheus/prometheus.yml" \
-  quay.io/prometheus/prometheus
-```
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:8000 |
+| API Gateway | http://localhost:8080 |
+| Eureka Dashboard | http://localhost:8761 |
+| Auth Swagger | http://localhost:8081/swagger-ui/index.html |
+| User Swagger | http://localhost:8082/swagger-ui/index.html |
+| Account Swagger | http://localhost:8083/swagger-ui/index.html |
+| Transaction Swagger | http://localhost:8084/swagger-ui/index.html |
+| Notification Swagger | http://localhost:8085/swagger-ui/index.html |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
 
-### Start Grafana
-
-```bash
-podman run -d --name grafana -p 3000:3000 quay.io/containers/grafana
-```
-
-Then open:
-
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-
-In Grafana, add a Prometheus data source and import the dashboard file from `Monitoring/netbanking-frontend-operations-dashboard.json` to view transaction, login, account, and notification metrics.
-
-## Usage examples
+## ✦ API examples
 
 ### Register a user
 
@@ -325,7 +212,7 @@ curl -X POST "http://localhost:8080/api/v1/auth/register" \
   -d '{"email":"customer@example.com","password":"StrongPassword123!"}'
 ```
 
-### Login
+### Log in
 
 ```bash
 curl -X POST "http://localhost:8080/api/v1/auth/login" \
@@ -333,30 +220,49 @@ curl -X POST "http://localhost:8080/api/v1/auth/login" \
   -d '{"email":"customer@example.com","password":"StrongPassword123!"}'
 ```
 
-### Get service health
+### Check service health
 
 ```bash
 curl http://localhost:8080/actuator/health
 ```
 
-### Access the frontend
+## ✦ Monitoring
 
-Open in a browser:
+Every service exposes Micrometer metrics at `/actuator/prometheus`. The repository includes:
 
-```text
-http://localhost:8000
+- Prometheus configuration: `Monitoring/prometheus.yml`
+- Grafana dashboard: `Monitoring/netbanking-frontend-operations-dashboard.json`
+
+```bash
+cd Monitoring
+prometheus --config.file=prometheus.yml
 ```
 
-## Project structure
+```bash
+podman run -d --name prometheus -p 9090:9090 \
+  -v "${PWD}/Monitoring/prometheus.yml:/etc/prometheus/prometheus.yml" \
+  quay.io/prometheus/prometheus
+
+podman run -d --name grafana -p 3000:3000 quay.io/containers/grafana
+```
+
+Add Prometheus as a Grafana data source, then import the included dashboard to view login, account, transaction, and notification metrics.
+
+## ✦ Tests
+
+Run tests from any service directory:
+
+```bash
+cd Model_Class/auth-service
+mvn test
+```
+
+## ✦ Project structure
 
 ```text
 NetBanking/
 ├── .env.example
-├── Documentation/
-│   ├── ALL_PROJECT_APIS.md
-│   ├── FEIGN_AND_COMMUNICATION_GUIDE.md
-│   ├── openapi.yaml
-│   └── openapi.json
+├── Documentation/                 # API contracts and guides
 ├── Model_Class/
 │   ├── api-gateway/
 │   ├── auth-service/
@@ -365,108 +271,51 @@ NetBanking/
 │   ├── Account-Service/
 │   ├── Transaction-service/
 │   └── Notification-Service/
-├── netbanking-frontend/
-├── Monitoring/
-│   ├── prometheus.yml
-│   └── netbanking-frontend-operations-dashboard.json
+├── netbanking-frontend/           # Oracle JET application
+├── Monitoring/                    # Prometheus and Grafana assets
 ├── Schemas/
 ├── start_netbanking.ps1
-├── start_netbanking.bat
 ├── stop_netbanking.ps1
-├── stop_netbanking.bat
 └── ER_Diagram.md
 ```
 
-## Deployment
+## ✦ Troubleshooting
 
-This repository currently targets local development and demo deployment rather than a production cluster. The included startup scripts launch the infrastructure, services, and frontend in local developer terminals using Podman and Maven.
+| Symptom | Check |
+| --- | --- |
+| Services do not start | Java, Maven, Oracle DB, Kafka, Redis, and `.env` values |
+| Oracle connection error | Host, port, `FREEPDB1`, credentials, and Oracle listener |
+| Kafka connection refused | Kafka is running at `localhost:9092` |
+| Redis rate-limit error | Redis is running at `localhost:6379`; gateway settings are correct |
+| Frontend does not load | Run `npm install`, then `node server.js` inside `netbanking-frontend` |
+| Port is occupied | Check ports `8000`, `8080`–`8085`, and `8761` |
+| JWT validation fails | Use the exact same `JWT_SECRET` in Auth Service and API Gateway |
 
-- Local startup: `start_netbanking.ps1`
-- Local shutdown: `stop_netbanking.ps1`
-- Infrastructure: Podman-managed Oracle DB, Kafka, and Redis
-- Service discovery: Eureka on `http://localhost:8761`
-- API entry point: Gateway on `http://localhost:8080`
-
-> TODO: Add deployment manifests or CI/CD configuration if the project is to be deployed to a cloud or container orchestrator.
-
-## Common troubleshooting
-
-### 1. Services fail to start
-
-Check that:
-
-- Java and Maven are installed
-- the Oracle DB is running
-- Kafka and Redis are running
-- the `.env` file has valid values
-
-### 2. Database connection errors
-
-Typical causes:
-
-- wrong Oracle hostname or port
-- missing `FREEPDB1` service name
-- invalid username/password
-- Oracle listener not running
-
-Use a connection such as:
+Expected Oracle JDBC format:
 
 ```text
 jdbc:oracle:thin:@localhost:1521/FREEPDB1
 ```
 
-### 3. Kafka connection refused
+## ✦ Deployment
 
-Make sure Kafka is running on port `9092` and that the host matches your environment.
+This repository currently targets local development and demo environments. The included scripts run Podman-managed Oracle DB, Kafka, and Redis alongside the local services.
 
-### 4. Redis rate-limiter errors
+> [!TIP]
+> For production, add CI/CD configuration, container images, secret management, and deployment manifests for your chosen platform.
 
-Check Redis is available on `localhost:6379` and your gateway `.env` is set correctly.
+## ✦ Contributing
 
-### 5. Frontend does not load
+Contributions are welcome. Add a `CONTRIBUTING.md` document with coding standards, review expectations, and branch workflow before accepting external contributions.
 
-Verify that the frontend dependencies were installed:
+## ✦ License
 
-```bash
-cd netbanking-frontend
-npm install
-```
+No license file is currently included. Add a `LICENSE` file before public distribution or production use.
 
-Then start:
+---
 
-```bash
-node server.js
-```
+<div align="center">
 
-### 6. Port already in use
+Built as a learning and demo platform for exploring modern banking microservices.
 
-Common conflicts:
-
-- 8080 gateway
-- 8081-8085 service ports
-- 8761 Eureka
-- 8000 frontend
-
-Stop conflicting apps or change the port in the relevant environment variables.
-
-### 7. JWT errors
-
-Make sure the same `JWT_SECRET` is used in the gateway and auth service. If they differ, API validation fails.
-
-## Contributing
-
-Contributions are welcome. This repository currently does not include a `CONTRIBUTING.md` file.
-
-> TODO: Add contribution guidelines, code review expectations, and branch workflow documentation.
-
-## License
-
-No license file was found in the repository at the time of writing.
-
-> TODO: Add a LICENSE file before public distribution or production use.
-
-## Notes
-
-This project is intended as a learning and demo platform. It uses a microservice architecture with production-like concerns such as JWT validation, service registry, rate limiting, and event-driven communication.
-
-If you are new to the stack, start by running the scripts, then open the Swagger docs and the gateway endpoints to explore the API flow.
+</div>
