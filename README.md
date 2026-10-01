@@ -29,6 +29,8 @@ The backend is split into separate services so each business area can be develop
 | Account Service | 8083 | Accounts and balances |
 | Transaction Service | 8084 | Transfers and statements |
 | Notification Service | 8085 | Email/notification flows |
+| Prometheus | 9090 | Scrapes Spring Boot metrics via /actuator/prometheus |
+| Grafana | 3000 | Visualizes metrics and dashboards |
 
 ## Prerequisites
 
@@ -182,6 +184,40 @@ After startup, the project is typically available at:
 - Account Swagger: http://localhost:8083/swagger-ui/index.html
 - Transaction Swagger: http://localhost:8084/swagger-ui/index.html
 - Notification Swagger: http://localhost:8085/swagger-ui/index.html
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+## Monitoring and observability
+
+The backend services expose Micrometer metrics through Spring Boot Actuator on `/actuator/prometheus`, and the repository includes a Prometheus scrape configuration at `Monitoring/prometheus.yml` plus a prebuilt Grafana dashboard at `Monitoring/netbanking-frontend-operations-dashboard.json`.
+
+### Start Prometheus
+
+```bash
+cd Monitoring
+prometheus --config.file=prometheus.yml
+```
+
+Or run it with Docker if you prefer:
+
+```bash
+docker run -d --name prometheus -p 9090:9090 \
+  -v "${PWD}/Monitoring/prometheus.yml:/etc/prometheus/prometheus.yml" \
+  prom/prometheus
+```
+
+### Start Grafana
+
+```bash
+docker run -d --name grafana -p 3000:3000 grafana/grafana
+```
+
+Then open:
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+In Grafana, add a Prometheus data source and import the dashboard file from `Monitoring/netbanking-frontend-operations-dashboard.json` to view transaction, login, account, and notification metrics.
 
 ## Configuration
 
@@ -260,6 +296,9 @@ NetBanking/
 │   ├── Transaction-service/
 │   └── Notification-Service/
 ├── netbanking-frontend/
+├── Monitoring/
+│   ├── prometheus.yml
+│   └── netbanking-frontend-operations-dashboard.json
 ├── Schemas/
 ├── start_netbanking.ps1
 ├── start_netbanking.bat
