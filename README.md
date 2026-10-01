@@ -64,7 +64,7 @@ The backend is split into separate services so each business area can be develop
 | Frontend | Oracle JET |
 | Build tool | Maven |
 | Container runtime | Podman |
-| Metrics / telemetry | Micrometer, Prometheus, Grafana |
+| Metrics / telemetry | Prometheus, Grafana, Kafka UI |
 | API docs | SpringDoc OpenAPI / Swagger UI |
 
 ## Prerequisites
@@ -459,11 +459,6 @@ Contributions are welcome. This repository currently does not include a `CONTRIB
 
 > TODO: Add contribution guidelines, code review expectations, and branch workflow documentation.
 
-## License
-
-No license file was found in the repository at the time of writing.
-
-> TODO: Add a LICENSE file before public distribution or production use.
 
 ## Notes
 
