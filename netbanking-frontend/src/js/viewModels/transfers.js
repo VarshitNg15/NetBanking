@@ -154,6 +154,16 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
             self.securityPin()
           );
 
+          const transferStatus = receipt && String(receipt.transactionStatus || '').toUpperCase();
+          if (transferStatus !== 'SUCCESS') {
+            await self.loadUserAccounts();
+            self.errorMessage(
+              (receipt && receipt.failureReason) ||
+              `Transfer was not completed${transferStatus ? ` (status: ${transferStatus})` : ''}. Check transaction history before retrying.`
+            );
+            return;
+          }
+
           self.lastReceipt(receipt);
           self.successMessage(`Transfer of ₹ ${amt.toFixed(2)} completed successfully!`);
 
