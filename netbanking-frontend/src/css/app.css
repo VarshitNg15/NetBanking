@@ -883,15 +883,15 @@ body.nb-dark-theme .nb-footer,
 body.nb-dark-theme .nb-nav-bar-container {
   background: rgba(20, 34, 41, 0.94);
   border-color: var(--nb-border);
+  --oj-tab-bar-item-label-color: #c7d9dd;
+  --oj-tab-bar-item-label-color-hover: #7ed5e9;
+  --oj-tab-bar-item-label-color-selected: #7ed5e9;
+  --oj-tab-bar-item-border-color-selected: #f17b58;
+  --oj-tab-bar-item-bg-color-hover: #1d3038;
+  --oj-tab-bar-item-bg-color-selected: #1d3038;
 }
 
 body.nb-dark-theme .nb-header { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.24); }
-body.nb-dark-theme .nb-nav-bar-container a,
-body.nb-dark-theme .nb-nav-bar-container [role="tab"] {
-  color: #c7d9dd !important;
-}
-body.nb-dark-theme .nb-nav-bar-container [aria-selected="true"],
-body.nb-dark-theme .nb-nav-bar-container a:hover { color: #7ed5e9 !important; }
 body.nb-dark-theme .nb-user-chip { background: #1d2d34; border-color: #38505a; }
 body.nb-dark-theme .nb-user-name,
 body.nb-dark-theme .nb-card-title,
