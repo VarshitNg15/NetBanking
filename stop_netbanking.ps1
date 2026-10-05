@@ -33,7 +33,7 @@ Write-Host "`nAll NetBanking service ports (8000, 8080-8085, 8761) have been rel
 if ($Containers -or $All) {
     Write-Host "`nStopping Podman containers (Oracle DB, Kafka, Redis)..." -ForegroundColor Yellow
     try {
-        podman stop oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy 2>$null
+        podman stop oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy kafka-ui netbanking-kafka-ui-proxy 2>$null
         Write-Host "Podman containers stopped." -ForegroundColor Green
     } catch {
         Write-Host "Error stopping Podman containers." -ForegroundColor Red
@@ -41,6 +41,6 @@ if ($Containers -or $All) {
 } else {
     Write-Host "Note: Podman infrastructure containers are still running." -ForegroundColor Gray
     Write-Host "To also stop Podman containers, run: .\stop_netbanking.ps1 -Containers" -ForegroundColor DarkGray
-    Write-Host "Or manually run: podman stop oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy" -ForegroundColor DarkGray
+    Write-Host "Or manually run: podman stop oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy kafka-ui netbanking-kafka-ui-proxy" -ForegroundColor DarkGray
 }
 Write-Host "==================================================================" -ForegroundColor Yellow

@@ -72,7 +72,7 @@ spring:
         - id: notification-service
           uri: lb://notification-service
           predicates:
-            - Path=/api/v1/notifications/**, /api/notifications/**, /api/v1/audit/**, /api/audit/**
+            - Path=/api/v1/notifications, /api/v1/notifications/**, /api/notifications, /api/notifications/**, /api/v1/audit, /api/v1/audit/**, /api/audit, /api/audit/**
           filters:
             - name: RequestRateLimiter
               args:
