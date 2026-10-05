@@ -78,7 +78,7 @@ public class AuthService {
         return new MessageResponse("Registration successful. An email verification OTP has been issued.");
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public TokenResponse login(LoginRequest request, String ipAddress, String userAgent) {
         long start = System.nanoTime();
         try {
@@ -116,7 +116,13 @@ public class AuthService {
                     return new TokenResponse(null, null, "Bearer", 0, user.getCustomerId(),
                             user.getRoles().stream().map(UserRole::getRoleName).map(Enum::name).toList(), true);
                 }
-                verifyOtpForUser(user, request.otp(), OtpPurpose.LOGIN);
+                try {
+                    verifyOtpForUser(user, request.otp(), OtpPurpose.LOGIN);
+                } catch (BadCredentialsException ex) {
+                    handleFailedLogin(user, ipAddress, userAgent);
+                    authMetrics.recordLogin(role, "FAILURE", "BAD_OTP");
+                    throw ex;
+                }
             }
 
             user.setFailedLoginAttempts(0);
@@ -318,7 +324,8 @@ public class AuthService {
             authMetrics.recordOtpVerified(purpose.name(), "EXPIRED");
             throw new IllegalArgumentException("OTP expired");
         }
-        if (otp.getAttemptCount() >= 5) {
+        int attemptLimit = purpose == OtpPurpose.LOGIN ? 6 : 5;
+        if (otp.getAttemptCount() >= attemptLimit) {
             authMetrics.recordOtpVerified(purpose.name(), "LIMIT_EXCEEDED");
             throw new IllegalArgumentException("OTP attempt limit exceeded");
         }
@@ -334,20 +341,29 @@ public class AuthService {
     }
 
     private boolean isLocked(AuthUser user) {
-        return user.getAccountStatus() == AccountStatus.LOCKED
-                && user.getLockedUntil() != null
-                && user.getLockedUntil().isAfter(LocalDateTime.now());
+        if (user.getAccountStatus() != AccountStatus.LOCKED || user.getLockedUntil() == null) {
+            return false;
+        }
+        if (user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            return true;
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+        return false;
     }
 
     private void handleFailedLogin(AuthUser user, String ipAddress, String userAgent) {
         int attempts = user.getFailedLoginAttempts() + 1;
         user.setFailedLoginAttempts(attempts);
-        if (attempts >= 5) {
+        if (attempts >= 6) {
             user.setAccountStatus(AccountStatus.LOCKED);
-            user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+            user.setLockedUntil(LocalDateTime.now().plusMinutes(5));
         }
         userRepository.save(user);
-        recordLogin(user, attempts >= 5 ? LoginStatus.LOCKED : LoginStatus.FAILED, ipAddress, userAgent);
+        recordLogin(user, attempts >= 6 ? LoginStatus.LOCKED : LoginStatus.FAILED, ipAddress, userAgent);
     }
 
     private void recordLogin(AuthUser user, LoginStatus status, String ipAddress, String userAgent) {
