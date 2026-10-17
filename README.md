@@ -1,5 +1,9 @@
 # NetBanking Microservices Platform
 
+**New laptop? Start with [Local setup in your system](LOCAL_SETUP_IN_YOUR_SYSTEM_README.md).**
+It covers fresh Podman infrastructure, Oracle schemas, private configuration,
+startup/shutdown, and optional ngrok sharing without Docker.
+
 <span align="center">
   <strong>Java 17</strong> • <strong>Spring Boot 3.5</strong> • <strong>Oracle JET</strong> • <strong>Maven</strong> • <strong>Podman</strong> • <strong>Prometheus / Grafana</strong>
 </span>
@@ -379,7 +383,13 @@ NetBanking/
 
 ## Deployment
 
-This repository currently targets local development and demo deployment rather than a production cluster. The included startup scripts launch the infrastructure, services, and frontend in local developer terminals using Podman and Maven.
+For a free public demo using your existing local Podman setup, follow
+[the local tunnel guide](Documentation/LOCAL_TUNNEL.md). The frontend now proxies
+`/api/*` to the gateway, so one temporary HTTPS URL serves the whole application.
+Start the app, restart the frontend, then run `./start_tunnel.ps1` (native
+cloudflared) or `./start_tunnel.ps1 -UsePodman` from PowerShell.
+
+This repository targets local development and demo deployment. The setup scripts create Podman infrastructure and fresh Oracle schemas. The launcher builds missing Java JARs, starts services in the background, and records logs and process IDs under `logs/`. Use `-Build` after code changes. Public sharing is a separate, optional ngrok step.
 
 - Local startup: `start_netbanking.ps1`
 - Local shutdown: `stop_netbanking.ps1`
@@ -387,7 +397,7 @@ This repository currently targets local development and demo deployment rather t
 - Service discovery: Eureka on `http://localhost:8761`
 - API entry point: Gateway on `http://localhost:8080`
 
-> TODO: Add deployment manifests or CI/CD configuration if the project is to be deployed to a cloud or container orchestrator.
+See [Local setup in your system](LOCAL_SETUP_IN_YOUR_SYSTEM_README.md) for the complete fresh-laptop sequence. Cloud production deployment and CI/CD are outside this local setup.
 
 ## Common troubleshooting
 
