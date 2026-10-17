@@ -1,11 +1,11 @@
 /**
  * NetBanking API Client Service
- * Connects Oracle JET Frontend to the Spring Cloud API Gateway (http://localhost:8080)
+ * Calls the API through the frontend server's same-origin gateway proxy.
  */
 define([], function() {
   'use strict';
 
-  const GATEWAY_URL = 'http://localhost:8080';
+  const GATEWAY_URL = '';
 
   class ApiService {
     constructor() {
@@ -148,7 +148,7 @@ define([], function() {
         // Detect connection refused or backend offline
         if (err.name === 'TypeError' || (err.message && err.message.toLowerCase().includes('fetch'))) {
           const offlineErr = new Error(
-            'Cannot reach Backend API Gateway (http://localhost:8080). Please ensure your microservices and Podman containers are running.'
+            'Cannot reach the banking API. Please ensure the frontend server, gateway, and backend services are running.'
           );
           offlineErr.status = 0;
           console.error(`Backend Unreachable on [${options.method || 'GET'}] ${endpoint}:`, err);

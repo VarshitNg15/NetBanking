@@ -28,3 +28,11 @@ Account Service remains the source of truth for account balances and ledger oper
 
 ## Current implementation note
 The transfer flow contains the initial orchestration path, but production-grade compensation/reversal for a successful debit followed by a failed credit should be implemented as the next reliability milestone. Statement file generation is also scaffolded and should be completed against Account Service ledger APIs.
+
+
+## Local run
+
+Follow [Local setup in your system](../../LOCAL_SETUP_IN_YOUR_SYSTEM_README.md)
+for prerequisites, database initialization, and PowerShell policy guidance.
+From the repository root, run `./start_netbanking.ps1`; stop with
+`./stop_netbanking.ps1 -Containers`.

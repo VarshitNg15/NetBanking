@@ -1,78 +1,58 @@
-# ==============================================================================
-# NetBanking Platform Launcher - PowerShell Script
-# ==============================================================================
-
-Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "          NETBANKING MICROSERVICES PLATFORM LAUNCHER              " -ForegroundColor Cyan
-Write-Host "==================================================================" -ForegroundColor Cyan
-
-$rootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$modelDir = Join-Path $rootDir "Model_Class"
-
-# 1. Start Infrastructure Containers via Podman
-Write-Host "`n[1/6] Starting Podman Infrastructure Containers (Oracle, Kafka, Redis)..." -ForegroundColor Yellow
-try {
-    podman start oracle-db-full netbanking-kafka netbanking-redis netbanking-kafka-proxy kafka-ui netbanking-kafka-ui-proxy 2>$null
-    Write-Host "Infrastructure containers active." -ForegroundColor Green
-} catch {
-    Write-Host "Warning: Podman containers could not be verified automatically. Ensure Oracle (:1521), Kafka (:9092), and Redis (:6379) are running." -ForegroundColor DarkYellow
+param([switch]$Build)
+. "$PSScriptRoot/scripts/local-common.ps1"
+foreach ($tool in @('java','mvn','node','podman')) { Require-Command $tool }
+$config = Import-LocalEnv
+foreach ($key in @('JWT_SECRET','AUTH_DB_PASSWORD','USER_DB_PASSWORD','ACCOUNT_DB_PASSWORD','TRANSACTION_DB_PASSWORD','NOTIFICATION_DB_PASSWORD')) {
+    if (-not $config[$key] -or $config[$key] -like 'your_*') { throw "Configure $key in .env first." }
 }
-
-# 2. Launch Eureka Server (Port 8761)
-Write-Host "`n[2/6] Starting Eureka Discovery Server (Port 8761)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\eureka-server'; `$host.UI.RawUI.WindowTitle = 'Eureka Server (8761)'; Write-Host '--- EUREKA SERVER (8761) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# Wait for Eureka to initialize
-Write-Host "Waiting 12 seconds for Eureka Server to initialize..." -ForegroundColor Gray
-Start-Sleep -Seconds 12
-
-# 3. Launch Backend Microservices
-Write-Host "`n[3/6] Launching Core Microservices..." -ForegroundColor Yellow
-
-# Auth Service (:8081)
-Write-Host " -> Launching Auth Service (:8081)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\auth-service'; `$host.UI.RawUI.WindowTitle = 'Auth Service (8081)'; Write-Host '--- AUTH SERVICE (8081) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# User Service (:8082)
-Write-Host " -> Launching User Service (:8082)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\User-Service'; `$host.UI.RawUI.WindowTitle = 'User Service (8082)'; Write-Host '--- USER SERVICE (8082) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# Account Service (:8083)
-Write-Host " -> Launching Account Service (:8083)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\Account-Service'; `$host.UI.RawUI.WindowTitle = 'Account Service (8083)'; Write-Host '--- ACCOUNT SERVICE (8083) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# Transaction Service (:8084)
-Write-Host " -> Launching Transaction Service (:8084)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\Transaction-service'; `$host.UI.RawUI.WindowTitle = 'Transaction Service (8084)'; Write-Host '--- TRANSACTION SERVICE (8084) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# Notification Service (:8085)
-Write-Host " -> Launching Notification Service (:8085)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\Notification-Service'; `$host.UI.RawUI.WindowTitle = 'Notification Service (8085)'; Write-Host '--- NOTIFICATION SERVICE (8085) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# 4. Launch API Gateway (:8080)
-Write-Host "`n[4/6] Starting API Gateway (Port 8080)..." -ForegroundColor Yellow
-Start-Sleep -Seconds 6
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$modelDir\api-gateway'; `$host.UI.RawUI.WindowTitle = 'API Gateway (8080)'; Write-Host '--- API GATEWAY (8080) ---' -ForegroundColor Green; mvn spring-boot:run"
-
-# 5. Launch Oracle JET Frontend (:8000)
-Write-Host "`n[5/6] Starting Oracle JET Frontend (Port 8000)..." -ForegroundColor Yellow
-$frontendDir = Join-Path $rootDir "netbanking-frontend"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendDir'; `$host.UI.RawUI.WindowTitle = 'Oracle JET Frontend (8000)'; Write-Host '--- ORACLE JET REDWOOD FRONTEND (8000) ---' -ForegroundColor Green; node server.js"
-
-
-
-Write-Host "`n==================================================================" -ForegroundColor Green
-Write-Host "All services have been launched in separate console windows." -ForegroundColor Green
-Write-Host "Service Endpoints:" -ForegroundColor White
-Write-Host " - Frontend (Oracle JET):    http://localhost:8000" -ForegroundColor Cyan
-Write-Host " - API Gateway (Main Entry): http://localhost:8080" -ForegroundColor Gray
-Write-Host " - Eureka Dashboard:        http://localhost:8761" -ForegroundColor Gray
-Write-Host " - Kafka UI Dashboard:       http://localhost:8091" -ForegroundColor Cyan
-Write-Host "`nSwagger UI Documentation Endpoints:" -ForegroundColor Yellow
-Write-Host " - Auth Service Swagger:         http://localhost:8081/swagger-ui/index.html" -ForegroundColor Cyan
-Write-Host " - User Service Swagger:         http://localhost:8082/swagger-ui/index.html" -ForegroundColor Cyan
-Write-Host " - Account Service Swagger:      http://localhost:8083/swagger-ui/index.html" -ForegroundColor Cyan
-Write-Host " - Transaction Service Swagger:  http://localhost:8084/swagger-ui/index.html" -ForegroundColor Cyan
-Write-Host " - Notification Service Swagger: http://localhost:8085/swagger-ui/index.html" -ForegroundColor Cyan
-Write-Host "==================================================================" -ForegroundColor Green
-Write-Host "Ready for testing. To stop all services, run .\stop_netbanking.ps1" -ForegroundColor Green
+$services = @(
+    @{ Name='eureka-server'; Port=8761 }, @{ Name='auth-service'; Port=8081 },
+    @{ Name='User-Service'; Port=8082 }, @{ Name='Account-Service'; Port=8083 },
+    @{ Name='Transaction-service'; Port=8084 }, @{ Name='Notification-Service'; Port=8085 },
+    @{ Name='api-gateway'; Port=8080 }
+)
+foreach ($port in @($services.Port) + @(8000)) {
+    if (Test-LocalPort $port) { throw "Port $port is occupied. Stop the existing app before starting another copy." }
+}
+Invoke-Podman start oracle-db-full netbanking-kafka netbanking-redis
+$logDir = Join-Path $PSScriptRoot 'logs'
+New-Item -ItemType Directory $logDir -Force | Out-Null
+$stateFile = Join-Path $logDir 'local-processes.json'
+if (Test-Path $stateFile) {
+    foreach ($record in @(Get-Content $stateFile -Raw | ConvertFrom-Json)) {
+        $existing = Get-Process -Id $record.Id -ErrorAction SilentlyContinue
+        if ($existing -and $existing.StartTime.ToUniversalTime().Ticks -eq $record.StartTicks) {
+            throw 'A previous launch still has processes running. Run stop_netbanking.ps1 first.'
+        }
+    }
+}
+$records = @()
+function Save-StartedProcess($Process, [string]$Name) {
+    $script:records += @{ Id=$Process.Id; StartTicks=$Process.StartTime.ToUniversalTime().Ticks; Name=$Name }
+    ConvertTo-Json -InputObject @($script:records) | Set-Content $stateFile
+}
+Write-Host 'Building missing service JARs (use -Build after pulling code changes)...'
+foreach ($service in $services) {
+    $folder = Join-Path $PSScriptRoot "Model_Class/$($service.Name)"
+    $jars = @(Get-ChildItem "$folder/target/*.jar" -ErrorAction SilentlyContinue | Where-Object Name -notmatch '(sources|javadoc|original)')
+    if ($Build -or $jars.Count -eq 0) {
+        Push-Location $folder
+        try { & mvn clean package -DskipTests; if ($LASTEXITCODE -ne 0) { throw "Build failed: $($service.Name)" } }
+        finally { Pop-Location }
+        $jars = @(Get-ChildItem "$folder/target/*.jar" | Where-Object Name -notmatch '(sources|javadoc|original)')
+    }
+    if ($jars.Count -ne 1) { throw "Expected one runnable JAR in $folder/target." }
+    $service.Jar = $jars[0].FullName
+}
+foreach ($service in $services) {
+    $name = $service.Name
+    Write-Host "Starting $name..."
+    $process = Start-Process java -ArgumentList @('-Xms128m','-Xmx512m','-jar', ('"' + $service.Jar + '"')) -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/$name.log" -RedirectStandardError "$logDir/$name.error.log"
+    Save-StartedProcess $process $name
+    Wait-LocalHttp "http://127.0.0.1:$($service.Port)/actuator/health"
+}
+$process = Start-Process node -ArgumentList 'server.js' -WorkingDirectory "$PSScriptRoot/netbanking-frontend" -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/frontend.log" -RedirectStandardError "$logDir/frontend.error.log"
+Save-StartedProcess $process 'frontend'
+Wait-LocalHttp 'http://127.0.0.1:8000/' 30
+Write-Host 'Local app ready: http://localhost:8000. Logs: logs/. Ngrok has NOT been started.' -ForegroundColor Green
+Write-Host 'To share explicitly: .\start_tunnel.ps1 -Provider Ngrok'
