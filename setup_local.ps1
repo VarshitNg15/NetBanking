@@ -52,8 +52,12 @@ Ensure-Container 'netbanking-kafka' @(
 Write-Host 'Waiting for Oracle (first startup may take several minutes)...'
 $ready = $false
 for ($attempt = 0; $attempt -lt 120; $attempt++) {
+    $health = & podman inspect oracle-db-full --format '{{.State.Health.Status}}' 2>$null
+    if ($health -eq 'healthy') { $ready = $true; break }
     & podman exec oracle-db-full healthcheck.sh *> $null
     if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+    $test = "set heading off feedback off`nselect 1 from dual;`nexit;" | & podman exec -i oracle-db-full sqlplus -s / as sysdba 2>$null
+    if ($test -match '1') { $ready = $true; break }
     Start-Sleep -Seconds 5
 }
 if (-not $ready) { throw 'Oracle did not become ready. Run: podman logs oracle-db-full' }

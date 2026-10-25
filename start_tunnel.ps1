@@ -35,11 +35,8 @@ if ($Provider -eq 'Ngrok') {
     # Disable local request capture, which would otherwise retain login payloads.
     $ngrokArgs = @('http', $origin, '--inspect=false')
     if ($NgrokUrl) {
-        $publicUri = $null
-        if (-not [Uri]::TryCreate($NgrokUrl, [UriKind]::Absolute, [ref]$publicUri) -or $publicUri.Scheme -ne 'https' -or $publicUri.UserInfo) {
-            throw 'NgrokUrl must be an HTTPS URL without credentials.'
-        }
-        $ngrokArgs += @('--url', $NgrokUrl)
+        $domain = $NgrokUrl.Trim().TrimEnd('/') -replace '^https?://', ''
+        $ngrokArgs += @("--domain=$domain")
     }
     & $ngrokExe @ngrokArgs
 } elseif ($UsePodman) {

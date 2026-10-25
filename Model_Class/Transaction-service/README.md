@@ -32,7 +32,7 @@ The transfer flow contains the initial orchestration path, but production-grade 
 
 ## Local run
 
-Follow [Local setup in your system](../../LOCAL_SETUP_IN_YOUR_SYSTEM_README.md)
+Follow [Local setup in your system](../../Documentation/LOCAL_SETUP_IN_YOUR_SYSTEM_README.md)
 for prerequisites, database initialization, and PowerShell policy guidance.
 From the repository root, run `./start_netbanking.ps1`; stop with
 `./stop_netbanking.ps1 -Containers`.

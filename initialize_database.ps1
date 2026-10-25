@@ -5,10 +5,10 @@ $config = Import-LocalEnv
 $domains = @('Auth','User','Account','Transaction','Notification')
 $checkSql = "set heading off feedback off`nwhenever sqlerror exit failure`nalter session set container=FREEPDB1;`nselect 'EXISTING=' || count(*) from dba_users where username in ('AUTH_SCHEMA','USER_SCHEMA','ACCOUNT_SCHEMA','TRANSACTION_SCHEMA','NOTIFICATION_SCHEMA');`nexit;"
 $result = $checkSql | & podman exec -i oracle-db-full sqlplus -s / as sysdba
-if ($LASTEXITCODE -ne 0 -or ($result -join "`n") -notmatch 'EXISTING=0\s') {
+if ($LASTEXITCODE -ne 0 -or ($result -join "`n") -notmatch 'EXISTING=0(\s|$)') {
     throw 'Database already contains application schemas, or cannot be inspected. Nothing changed. Do not rerun initialization on an existing/partially initialized database; inspect it in SQL Developer.'
 }
-$sql = "set echo off verify off define off`nwhenever sqlerror exit failure rollback`nalter session set container=FREEPDB1;`n"
+$sql = "set echo off verify off define off sqlblanklines on`nwhenever sqlerror exit failure rollback`nalter session set container=FREEPDB1;`n"
 foreach ($domain in $domains) {
     $prefix = $domain.ToUpperInvariant()
     $username = $config["${prefix}_DB_USERNAME"]
