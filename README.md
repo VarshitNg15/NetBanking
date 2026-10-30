@@ -1,6 +1,6 @@
 # NetBanking Microservices Platform
 
-Our MetBanking App is a beginner-friendly banking demo built with Spring Boot microservices and an Oracle JET frontend. The application includes authentication, user management, account operations, transactions, and notifications.
+Our NetBanking App is a beginner-friendly banking demo built with Spring Boot microservices and an Oracle JET frontend. The application includes authentication, user management, account operations, transactions, and notifications.
 
 <span align="center">
   <strong>Java 17</strong> • <strong>Spring Boot 3.5</strong> • <strong>Oracle JET</strong> • <strong>Maven</strong> • <strong>Podman</strong> • <strong>Prometheus / Grafana</strong>
