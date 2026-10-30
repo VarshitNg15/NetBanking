@@ -1,15 +1,10 @@
 # NetBanking Microservices Platform
 
-**New laptop? Start with [Local setup in your system](Documentation/LOCAL_SETUP_IN_YOUR_SYSTEM_README.md).**
-For demo and interview walkthroughs, see the [Demo Guide](Documentation/DEMO_GUIDE.md).
-It covers fresh Podman infrastructure, Oracle schemas, private configuration,
-startup/shutdown, and optional ngrok sharing without Docker.
+Our MetBanking App is a beginner-friendly banking demo built with Spring Boot microservices and an Oracle JET frontend. The application includes authentication, user management, account operations, transactions, and notifications.
 
 <span align="center">
   <strong>Java 17</strong> • <strong>Spring Boot 3.5</strong> • <strong>Oracle JET</strong> • <strong>Maven</strong> • <strong>Podman</strong> • <strong>Prometheus / Grafana</strong>
 </span>
-
-A beginner-friendly banking demo built with Spring Boot microservices and an Oracle JET frontend. The application includes authentication, user management, account operations, transactions, and notifications.
 
 > This project simulates a digital banking platform with user registration, JWT-based authentication, account management, transaction processing, notifications, and service discovery.
 
