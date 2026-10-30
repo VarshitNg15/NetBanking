@@ -1,4 +1,4 @@
-param([switch]$Build)
+param([switch]$Build, [switch]$Wait)
 . "$PSScriptRoot/scripts/local-common.ps1"
 foreach ($tool in @('java','mvn','node','podman')) { Require-Command $tool }
 $config = Import-LocalEnv
@@ -47,7 +47,7 @@ foreach ($service in $services) {
 foreach ($service in $services) {
     $name = $service.Name
     Write-Host "Starting $name..."
-    $process = Start-Process java -ArgumentList @('-Xms128m','-Xmx512m','-jar', ('"' + $service.Jar + '"')) -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/$name.log" -RedirectStandardError "$logDir/$name.error.log"
+    $process = Start-Process java -ArgumentList @('-Xms128m','-Xmx512m','-jar', ('"' + $service.Jar + '"'), "--server.port=$($service.Port)") -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/$name.log" -RedirectStandardError "$logDir/$name.error.log"
     Save-StartedProcess $process $name
     Wait-LocalHttp "http://127.0.0.1:$($service.Port)/actuator/health"
 }
@@ -56,3 +56,13 @@ Save-StartedProcess $process 'frontend'
 Wait-LocalHttp 'http://127.0.0.1:8000/' 30
 Write-Host 'Local app ready: http://localhost:8000. Logs: logs/. Ngrok has NOT been started.' -ForegroundColor Green
 Write-Host 'To share explicitly: .\start_tunnel.ps1 -Provider Ngrok'
+
+if ($Wait) {
+    Write-Host 'All NetBanking microservices and frontend are running. Keeping session alive...'
+    try {
+        while ($true) { Start-Sleep -Seconds 5 }
+    } finally {
+        & "$PSScriptRoot/stop_netbanking.ps1"
+    }
+}
+

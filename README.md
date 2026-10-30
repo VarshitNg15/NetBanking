@@ -1,6 +1,7 @@
 # NetBanking Microservices Platform
 
-**New laptop? Start with [Local setup in your system](LOCAL_SETUP_IN_YOUR_SYSTEM_README.md).**
+**New laptop? Start with [Local setup in your system](Documentation/LOCAL_SETUP_IN_YOUR_SYSTEM_README.md).**
+For demo and interview walkthroughs, see the [Demo Guide](Documentation/DEMO_GUIDE.md).
 It covers fresh Podman infrastructure, Oracle schemas, private configuration,
 startup/shutdown, and optional ngrok sharing without Docker.
 
@@ -378,7 +379,10 @@ NetBanking/
 ├── start_netbanking.bat
 ├── stop_netbanking.ps1
 ├── stop_netbanking.bat
-└── ER_Diagram.md
+└── Documentation/
+    ├── DEMO_GUIDE.md
+    ├── ER_Diagram.md
+    └── LOCAL_SETUP_IN_YOUR_SYSTEM_README.md
 ```
 
 ## Deployment
@@ -397,7 +401,7 @@ This repository targets local development and demo deployment. The setup scripts
 - Service discovery: Eureka on `http://localhost:8761`
 - API entry point: Gateway on `http://localhost:8080`
 
-See [Local setup in your system](LOCAL_SETUP_IN_YOUR_SYSTEM_README.md) for the complete fresh-laptop sequence. Cloud production deployment and CI/CD are outside this local setup.
+See [Local setup in your system](Documentation/LOCAL_SETUP_IN_YOUR_SYSTEM_README.md) for the complete fresh-laptop sequence. Cloud production deployment and CI/CD are outside this local setup.
 
 ## Common troubleshooting
 

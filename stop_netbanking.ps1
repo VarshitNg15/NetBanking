@@ -10,7 +10,21 @@ if (Test-Path $stateFile) {
         }
     }
     Remove-Item -LiteralPath $stateFile
-} else { Write-Host 'No tracked app processes. Stop manually launched services in their own terminals.' }
+} else { Write-Host 'No tracked app processes in local-processes.json.' }
+
+# Fallback: terminate any orphaned processes holding NetBanking ports
+$ports = @(8761, 8080, 8081, 8082, 8083, 8084, 8085, 8000)
+$conns = Get-NetTCPConnection -LocalPort $ports -State Listen -ErrorAction SilentlyContinue
+if ($conns) {
+    $pidsToStop = $conns | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 4 }
+    foreach ($procId in $pidsToStop) {
+        $p = Get-Process -Id $procId -ErrorAction SilentlyContinue
+        if ($p) {
+            Write-Host "Stopping orphaned process $($p.ProcessName) (PID: $procId)"
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
 if ($Containers) {
     Require-Command podman
     Invoke-Podman stop oracle-db-full netbanking-kafka netbanking-redis
