@@ -216,7 +216,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           apiService.navigate('admin');
           return;
         }
-        document.title = 'Accounts - NetBanking Redwood Portal';
+        document.title = 'Accounts - OPay - Netbanking World';
         self.loadAccounts();
       };
     }

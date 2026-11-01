@@ -680,7 +680,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojdialog', 
 
       // Lifecycle hooks
       this.connected = () => {
-        document.title = 'NetBanking';
+        document.title = 'Admin Command Center - OPay - Netbanking World';
         self.isAuthorized(apiService.isAdmin());
         if (self.isAuthorized()) {
           self.loadAllAccounts();

@@ -148,12 +148,22 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       });
 
       this.router.sync().then(() => {
-        // Handle page reload/refresh persistence (Req 5):
+        // Resolve current router path safely from CoreRouter currentState or URL search params
+        const stateObj = self.router.currentState && self.router.currentState.value && (self.router.currentState.value.state || self.router.currentState.value);
+        let currentPath = (stateObj && stateObj.path) || '';
+
+        if (!currentPath) {
+          try {
+            const params = new URLSearchParams(window.location.search);
+            currentPath = params.get('ojr') || '';
+          } catch (e) {}
+        }
+
         if (apiService.isAuthenticated()) {
-          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
           const savedPath = localStorage.getItem('nb_last_path');
 
-          if (!currentPath || currentPath === 'login' || currentPath === '') {
+          // Only redirect if there is genuinely no route requested (e.g. root / )
+          if (!currentPath || currentPath === 'login') {
             let target = self.isAdmin() ? 'admin' : 'dashboard';
             if (savedPath && savedPath !== 'login') {
               if (self.isAdmin() && (savedPath === 'admin' || savedPath === 'notifications')) {
@@ -165,7 +175,6 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
             apiService.navigate(target);
           }
         } else {
-          const currentPath = (self.router.currentState && self.router.currentState.value && self.router.currentState.value.path) || '';
           if (currentPath !== 'login') {
             apiService.navigate('login');
           }
@@ -188,7 +197,7 @@ define(['knockout', './services/apiService', 'ojs/ojcontext', 'ojs/ojmodule-elem
       };
 
       // Header Branding
-      this.appName = ko.observable('NetBanking Redwood Portal');
+      this.appName = ko.observable('OPay - Netbanking World');
 
       // Update UI on Auth State Change
       apiService.onAuthChange((user) => {

@@ -1,4 +1,4 @@
-# NetBanking Microservices Platform
+# OPay - Netbanking World (Microservices Platform)
 
 **New laptop? Start with [Local setup in your system](Documentation/LOCAL_SETUP_IN_YOUR_SYSTEM_README.md).**
 For demo and interview walkthroughs, see the [Demo Guide](Documentation/DEMO_GUIDE.md).
@@ -191,6 +191,7 @@ This script starts:
 - Backend microservices
 - API gateway
 - Frontend app
+- Public Live Tunnels (Localtunnel & ngrok)
 
 ### Manual startup
 
@@ -277,7 +278,9 @@ To also stop the infrastructure containers:
 
 After startup, the project is typically available at:
 
-- Frontend: http://localhost:8000
+- Public Live Demo (Localtunnel): https://opay-netbanking-world.loca.lt
+- Public Live Demo (Ngrok): https://snagged-humble-outlook.ngrok-free.dev
+- Frontend (Local): http://localhost:8000
 - API Gateway: http://localhost:8080
 - Eureka Dashboard: http://localhost:8761
 - Auth Swagger: http://localhost:8081/swagger-ui/index.html

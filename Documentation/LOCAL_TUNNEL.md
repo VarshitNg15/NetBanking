@@ -7,6 +7,18 @@ remain local.
 
 ## Start
 
+### Localtunnel (Custom Subdomain: opay-netbanking-world)
+
+Localtunnel provides a branded custom subdomain without requiring account setup or auth tokens:
+
+```powershell
+.\start_tunnel.ps1 -Provider Localtunnel -Subdomain opay-netbanking-world
+```
+
+This runs `scripts/run_tunnel.ps1`, which includes an automatic reconnect loop to keep `https://opay-netbanking-world.loca.lt` live even if public tunnel sockets drop temporarily.
+
+*(Note: `.\start_netbanking.ps1` already starts Localtunnel automatically by default.)*
+
 ### ngrok (stable free account hostname)
 
 1. Create/sign in to a free account at https://dashboard.ngrok.com/signup.

@@ -263,7 +263,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
 
       // Lifecycle hooks
       this.connected = () => {
-        document.title = 'Sign In - NetBanking Portal';
+        document.title = 'Sign In - OPay - Netbanking World';
       };
 
       this.disconnected = () => {

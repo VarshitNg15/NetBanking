@@ -2,7 +2,7 @@
 <html lang="en-us">
 
 <head>
-  <title>NetBanking Enterprise Portal - Oracle JET Redwood</title>
+  <title>OPay - Netbanking World - Oracle JET Redwood</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1">
   <link rel="icon" href="https://static.oracle.com/cdn/jet/16.0.0/default/css/redwood/images/favicon.ico"
@@ -23,10 +23,12 @@
 <body class="oj-web-applayout-body">
   <!-- Navigation template -->
   <script type="text/html" id="navTemplate">
-      <li><a href="#">
-        <span :class="[[$data.detail.iconClass]]"></span>
-        <oj-bind-text value="[[$data.detail.label]]"></oj-bind-text>
-      </a></li>
+      <li :id="[[$data.path]]">
+        <a href="#" data-bind="click: function(data, event) { $root.goTo($data.path); if (event) event.preventDefault(); }">
+          <span :class="[[$data.detail.iconClass]]"></span>
+          <oj-bind-text value="[[$data.detail.label]]"></oj-bind-text>
+        </a>
+      </li>
     </script>
 
   <div id="globalBody">
@@ -40,7 +42,7 @@
       <div class="nb-drawer-header">
         <div class="nb-brand-mark">
           <span class="oj-ux-ico-bank nb-bank-icon"></span>
-          <span class="nb-brand-title">NetBanking</span>
+          <span class="nb-brand-title">OPay</span>
         </div>
         <div class="nb-drawer-user-info" data-bind="visible: isLoggedIn">
           <span class="nb-drawer-email"><oj-bind-text value="[[userLogin]]"></oj-bind-text></span>
@@ -78,7 +80,7 @@
           <div class="oj-flex-bar-middle oj-sm-align-items-center">
             <div class="nb-header-logo">
               <span class="oj-ux-ico-bank nb-bank-logo-icon"></span>
-              <span class="nb-header-title">NetBanking</span>
+              <span class="nb-header-title">OPay</span>
             </div>
           </div>
 
@@ -150,7 +152,7 @@
         </div>
         <div
           class="oj-web-applayout-footer-item oj-web-applayout-max-width oj-text-color-secondary oj-typography-body-sm nb-copy">
-          NetBanking Microservices Platform &bull; Built with Oracle JET & Redwood Design System &bull; Spring Cloud
+          OPay - Netbanking World &bull; Built with Oracle JET & Redwood Design System &bull; Spring Cloud
           Gateway :8080
         </div>
       </footer>
