@@ -176,7 +176,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       };
 
       this.connected = () => {
-        document.title = (apiService.isAdmin() ? 'System Audit Logs' : 'Notification Center') + ' - NetBanking Redwood Portal';
+        document.title = (apiService.isAdmin() ? 'System Audit Logs' : 'Notification Center') + ' - OPay - Netbanking World';
         self.isAdmin(apiService.isAdmin());
         self.user(apiService.getUser() || {});
         self.loadNotifications();

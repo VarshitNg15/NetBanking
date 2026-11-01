@@ -1,4 +1,4 @@
-param([switch]$Build, [switch]$Wait)
+param([switch]$Build, [switch]$Wait, [switch]$NoTunnel)
 . "$PSScriptRoot/scripts/local-common.ps1"
 foreach ($tool in @('java','mvn','node','podman')) { Require-Command $tool }
 $config = Import-LocalEnv
@@ -54,8 +54,45 @@ foreach ($service in $services) {
 $process = Start-Process node -ArgumentList 'server.js' -WorkingDirectory "$PSScriptRoot/netbanking-frontend" -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/frontend.log" -RedirectStandardError "$logDir/frontend.error.log"
 Save-StartedProcess $process 'frontend'
 Wait-LocalHttp 'http://127.0.0.1:8000/' 30
-Write-Host 'Local app ready: http://localhost:8000. Logs: logs/. Ngrok has NOT been started.' -ForegroundColor Green
-Write-Host 'To share explicitly: .\start_tunnel.ps1 -Provider Ngrok'
+
+$ngrokUrl = $null
+if (-not $NoTunnel) {
+    Write-Host 'Starting OPay Live Public Tunnel (https://opay-netbanking-world.loca.lt)...' -ForegroundColor Cyan
+    $tunnelScript = Join-Path $PSScriptRoot 'scripts/run_tunnel.ps1'
+    $tunnelProcess = Start-Process powershell -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $tunnelScript + '"'), '-Port', '8000', '-Subdomain', 'opay-netbanking-world') -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/tunnel.log" -RedirectStandardError "$logDir/tunnel.error.log"
+    Save-StartedProcess $tunnelProcess 'localtunnel'
+
+    $ngrokCommand = Get-Command ngrok -ErrorAction SilentlyContinue
+    $ngrokExe = Join-Path $PSScriptRoot '.local-tools\ngrok\ngrok.exe'
+    if ($ngrokCommand) { $ngrokExe = $ngrokCommand.Source }
+    if (Test-Path -LiteralPath $ngrokExe) {
+        Write-Host 'Starting ngrok tunnel...' -ForegroundColor Cyan
+        $ngrokProcess = Start-Process $ngrokExe -ArgumentList @('http', '8000', '--inspect=false') -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$logDir/ngrok.log" -RedirectStandardError "$logDir/ngrok.error.log"
+        Save-StartedProcess $ngrokProcess 'ngrok'
+        Start-Sleep -Seconds 2
+        try {
+            $tunnels = (Invoke-RestMethod http://127.0.0.1:4040/api/tunnels -TimeoutSec 3 -ErrorAction SilentlyContinue).tunnels
+            if ($tunnels) {
+                $ngrokUrl = ($tunnels | Where-Object proto -eq 'https').public_url
+                if (-not $ngrokUrl) { $ngrokUrl = $tunnels[0].public_url }
+            }
+        } catch {}
+        if (-not $ngrokUrl) { $ngrokUrl = 'https://snagged-humble-outlook.ngrok-free.dev' }
+    }
+}
+
+Write-Host '========================================================================' -ForegroundColor Green
+Write-Host ' OPay - Netbanking World is LIVE and Running!' -ForegroundColor Green
+Write-Host ' Local Dashboard:   http://localhost:8000' -ForegroundColor White
+if (-not $NoTunnel) {
+    Write-Host ' Custom Live Link:  https://opay-netbanking-world.loca.lt' -ForegroundColor Cyan
+    if ($ngrokUrl) {
+        Write-Host " Ngrok Live Link:   $ngrokUrl" -ForegroundColor Cyan
+    }
+}
+Write-Host ' Eureka Registry:   http://localhost:8761' -ForegroundColor Gray
+Write-Host ' Logs Directory:    logs/' -ForegroundColor Gray
+Write-Host '========================================================================' -ForegroundColor Green
 
 if ($Wait) {
     Write-Host 'All NetBanking microservices and frontend are running. Keeping session alive...'

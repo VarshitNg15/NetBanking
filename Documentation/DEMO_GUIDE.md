@@ -1,35 +1,38 @@
-# NetBanking - Live Demo Guide
+# OPay - Netbanking World - Live Demo Guide
 
-## 🌐 Permanent Demo Link
-- **Live Portal**: [https://snagged-humble-outlook.ngrok-free.dev](https://snagged-humble-outlook.ngrok-free.dev)
-- **Admin Dashboard**: [https://snagged-humble-outlook.ngrok-free.dev/#/admin](https://snagged-humble-outlook.ngrok-free.dev/#/admin)
+## 🌐 Public Live Demo Links
+- **Primary Live Portal (Custom Subdomain)**: [https://opay-netbanking-world.loca.lt](https://opay-netbanking-world.loca.lt)
+- **High-Reliability Ngrok Portal**: [https://snagged-humble-outlook.ngrok-free.dev](https://snagged-humble-outlook.ngrok-free.dev)
+- **Admin Dashboard**: [https://opay-netbanking-world.loca.lt/?ojr=admin](https://opay-netbanking-world.loca.lt/?ojr=admin)
 - **Admin Credentials**: `admin@netbanking.com` / `AdminPassword123!`
 
-> **Note for Interviewers/Visitors**: On the first visit, click the blue **"Visit Site"** button on the ngrok screen to enter the portal.
+> **Note for Interviewers/Visitors**: 
+> - On **Localtunnel** (`opay-netbanking-world.loca.lt`), if prompted for an endpoint IP, enter the public IP of the host machine or click Submit.
+> - On **Ngrok** (`snagged-humble-outlook.ngrok-free.dev`), click the blue **"Visit Site"** button on the ngrok advisory screen to enter the portal.
 
 ---
 
-## 🚀 How to Start the Demo
+## 🚀 How to Start the Demo (1-Click Startup)
 
-### Step 1: Start the Backend & Frontend
 In PowerShell from the project root:
 ```powershell
 .\start_netbanking.ps1
 ```
-*Automatically starts Podman containers (Oracle DB, Kafka, Redis), compiles/boots all 7 microservices, and launches the web portal on `http://localhost:8000`.*
+*This command automatically:*
+1. Starts Podman containers (Oracle DB, Kafka, Redis).
+2. Verifies and boots all 7 Spring Boot microservices & Eureka discovery.
+3. Launches the Oracle JET web portal on `http://localhost:8000`.
+4. Starts the resilient auto-reconnecting **Localtunnel** (`https://opay-netbanking-world.loca.lt`).
+5. Starts the background **ngrok** tunnel (`https://snagged-humble-outlook.ngrok-free.dev`).
 
-### Step 2: Start the Ngrok Tunnel
-In a second PowerShell terminal:
-```powershell
-.\start_tunnel.ps1 -Provider Ngrok -NgrokUrl "https://snagged-humble-outlook.ngrok-free.dev"
-```
-*Your application is now publicly accessible at your permanent demo link.*
+Both live public links will be printed right in your console!
 
 ---
 
 ## 🛑 How to Stop
-1. In the tunnel terminal, press **`Ctrl + C`**.
-2. In your main terminal, stop the app and containers:
+In your PowerShell terminal:
 ```powershell
 .\stop_netbanking.ps1 -Containers
 ```
+*This cleanly stops all microservices, Node frontend, localtunnel, and ngrok background processes, preserving database volumes.*
+

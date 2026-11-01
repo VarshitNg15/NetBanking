@@ -38,9 +38,9 @@
           </p>
         </div>
       </div>
-      <a href="?ojr=dashboard" class="nb-btn nb-btn-sm nb-btn-primary" style="text-decoration: none; display: inline-flex; align-items: center;">
+      <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" style="display: inline-flex; align-items: center;" data-bind="click: function() { $root.goTo('dashboard'); }">
         <span class="oj-ux-ico-contact-card" style="margin-right: 4px;"></span> Complete Profile (KYC) Now
-      </a>
+      </button>
     </div>
   </div>
   <!-- /ko -->
@@ -88,7 +88,7 @@
         <div style="text-align: center; padding: 2rem; color: var(--nb-text-muted);">
           <span class="oj-ux-ico-warning-s" style="font-size: 2.5rem; color: var(--nb-warning);"></span>
           <p style="margin-top: 0.5rem;">You do not have any active accounts eligible for transfers.</p>
-          <a href="#accounts" class="nb-btn nb-btn-sm nb-btn-primary">View Accounts</a>
+          <button type="button" class="nb-btn nb-btn-sm nb-btn-primary" data-bind="click: function() { $root.goTo('accounts'); }">View Accounts</button>
         </div>
         <!-- /ko -->
 

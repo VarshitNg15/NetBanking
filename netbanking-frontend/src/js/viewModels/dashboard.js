@@ -403,7 +403,7 @@ define(['knockout', '../services/apiService', 'ojs/ojarraydataprovider', 'ojs/oj
           apiService.navigate('admin');
           return;
         }
-        document.title = 'Dashboard - NetBanking Redwood Portal';
+        document.title = 'Dashboard - OPay - Netbanking World';
         self.loadDashboardData();
         self.loadCustomerProfile();
         self.loadNotifications();

@@ -187,7 +187,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
           apiService.navigate('admin');
           return;
         }
-        document.title = 'Fund Transfers - NetBanking Redwood Portal';
+        document.title = 'Fund Transfers - OPay - Netbanking World';
         self.loadUserAccounts();
       };
     }

@@ -1,9 +1,10 @@
 param(
     [int]$Port = 8000,
     [switch]$UsePodman,
-    [ValidateSet('Cloudflare', 'Ngrok')]
-    [string]$Provider = 'Cloudflare',
-    [string]$NgrokUrl
+    [ValidateSet('Cloudflare', 'Ngrok', 'Localtunnel')]
+    [string]$Provider = 'Localtunnel',
+    [string]$NgrokUrl,
+    [string]$Subdomain = 'opay-netbanking-world'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,6 +40,8 @@ if ($Provider -eq 'Ngrok') {
         $ngrokArgs += @("--domain=$domain")
     }
     & $ngrokExe @ngrokArgs
+} elseif ($Provider -eq 'Localtunnel') {
+    & "$PSScriptRoot/scripts/run_tunnel.ps1" -Port $Port -Subdomain $Subdomain
 } elseif ($UsePodman) {
     if (-not (Get-Command podman -ErrorAction SilentlyContinue)) { throw 'Podman is not on PATH. Open a terminal where Podman is available.' }
     & podman run --rm --name netbanking-tunnel docker.io/cloudflare/cloudflared:latest tunnel --no-autoupdate --url "http://host.containers.internal:$Port"

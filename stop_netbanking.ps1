@@ -25,8 +25,9 @@ if ($conns) {
         }
     }
 }
+Get-Process -Name 'ngrok' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 if ($Containers) {
     Require-Command podman
     Invoke-Podman stop oracle-db-full netbanking-kafka netbanking-redis
 }
-Write-Host 'Stop ngrok separately with Ctrl+C in its terminal. Database volumes have been preserved.'
+Write-Host 'All NetBanking microservices, frontend, and tunnels stopped. Database volumes preserved.'

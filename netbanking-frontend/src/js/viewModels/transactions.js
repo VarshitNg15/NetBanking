@@ -402,7 +402,7 @@ define(['knockout', '../services/apiService', 'ojs/ojknockout', 'ojs/ojbutton', 
       };
 
       this.connected = () => {
-        document.title = 'Transactions & Statements - NetBanking Redwood Portal';
+        document.title = 'Transactions & Statements - OPay - Netbanking World';
         self.loadData();
       };
     }
